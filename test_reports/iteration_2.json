@@ -1,0 +1,45 @@
+{
+  "summary": "Frontend-only retest after mobile responsive + Admin CMS coverage fixes. All 10 review-request items verified end-to-end on mobile (375x844) and desktop (1920x1080). Hero buttons clickable on mobile and quote wizard opens; Projects cards show title/category/description without hover; Contact cards tappable; /admin/site has new Kontakt + Footer tabs and contactEmail change persists to homepage; /admin/invoice-templates has new pro design (stats, search, gradient header) and -> Rechnung navigation pre-fills items from template via location.state.templateId; Neue Vorlage modal works with Aus Katalog dropdown.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Mobile homepage (375x844)", "issues": ["Page has ~2px horizontal overflow (scrollWidth=377 vs clientWidth=375). Likely caused by a section with negative margin or fixed-width child. Cosmetic only - no scrollbar visible to users but worth fixing to be 100% mobile-clean."]},
+      {"screen": "Mobile Kontakt section (#kontakt)", "issues": ["Contact cards appear to extend slightly past the right viewport edge in screenshot (likely the cause of the 2px overflow). Verify the cards' container max-width / padding on small screens."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "test_results_per_review_item": {
+    "mobile_hero_buttons_visible_clickable": "PASS - both hero-contact-btn (y=307) and hero-quote-btn (y=376) visible; element-from-point at center is the button content (SPAN inside button), not the partner bar. Clicking hero-quote-btn opens the 4-step Angebot wizard modal correctly.",
+    "mobile_hero_badge_hidden": "PASS - '12 MONATE' text not present in DOM on mobile.",
+    "mobile_no_horizontal_overflow": "MINOR - 2px overflow (377 vs 375) detected; reported as design issue.",
+    "mobile_projects_text_always_visible": "PASS - 6 project cards each show title (Basel Akademie, Genfer Tour Operator, ...), category (BILDUNGSPLATTFORM, REISE-PLATTFORM, ...) and description without hover. Each card has data-testid='project-<id>'.",
+    "mobile_contact_cards_tappable": "PASS - 4 cards visible with correct hrefs: contact-email-card -> mailto:info@redwork.ch, contact-phone-card -> tel:+41441234567, contact-whatsapp-card -> https://wa.me/41791234567, contact-address-card -> maps.google.com.",
+    "admin_site_has_kontakt_footer_tabs": "PASS - 10 tabs found including '📞 Kontakt' and 'Footer'.",
+    "admin_kontakt_tab_fields": "PASS - inputs present with data-testids: contact-title-input, contact-phone-input, contact-email-input, contact-whatsapp-input, contact-address-input, plus telefon-zeiten, email-hinweis, karten-iframe url. (NOTE: testids use kebab-case e.g. contact-email-input, not camelCase contactEmail.)",
+    "admin_contact_email_persists_to_homepage": "PASS - changed contactEmail to test-contact@redwork.ch via admin Speichern, reloaded /, scrolled to #kontakt; contact-email-card showed test-contact@redwork.ch with mailto link. Reverted to info@redwork.ch successfully.",
+    "invoice_templates_pro_design": "PASS - gradient header with Rechnungs-Vorlagen title, 4 stats cards (Vorlagen=1, Positionen ges.=2, Ø Wert (CHF)=2028, Katalog-Produkte=21), search input 'Vorlagen durchsuchen...', template card with → Rechnung (green) and → Offerte (blue) buttons plus edit/duplicate/delete icons.",
+    "neue_vorlage_modal": "PASS - opens 'Neue Vorlage erstellen' modal with Name, Beschreibung, '▸ Erweitert: Standard-Titel & Notizen' expander, '📦 Aus Katalog +' dropdown listing 21 catalog products (TEST_Product, Landing-Page, Unternehmens-Website, ...), Leere/Abbrechen/Speichern buttons.",
+    "template_to_invoice_prefill": "PASS - clicking '→ Rechnung' on Webdesign Standard template navigates to /admin/invoices/new and pre-fills items: row1 Landing Page qty=1 price=1800, row2 Hosting 1 Jahr qty=1 price=228; summary shows Zwischensumme CHF 2028.00, MwSt 8.1% CHF 164.27, Total CHF 2192.27. location.state.templateId mechanism works."
+  },
+  "action_items": [
+    "[Minor] Investigate the 2px mobile horizontal overflow (likely #kontakt cards container or a negative-margin grid). Audit with: document.querySelectorAll('*').forEach(e => {if (e.getBoundingClientRect().right > window.innerWidth) console.log(e)}) on 375px viewport."
+  ],
+  "critical_code_review_comments": [
+    "Admin Kontakt tab uses kebab-case data-testids (contact-email-input) which is fine, but the review-request mentioned camelCase field names (contactEmail). Either is acceptable; just keep consistent for future automation.",
+    "Both → Rechnung and → Offerte links use plain <a href='/admin/invoices/new'> with state passed via React Router Link's state prop - the integration works. Consider adding data-testid='to-invoice-from-tpl-<id>' for more robust testing.",
+    "Sidebar nav 'Rechnungen' anchor matches the same has-text('Rechnung') selector as the template card '→ Rechnung' button - testers should always use exact text or data-testid to avoid mismatches."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not retested (previously 100% / 25 tests)", "frontend": "100% of review items (10 PASS, 1 MINOR cosmetic overflow)"},
+  "test_credentials": "admin / Blevh4np1@@ (also stored in /app/memory/test_credentials.md)",
+  "seed_data_creation": "None new. Reverted contactEmail back to info@redwork.ch after persistence test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 11 frontend review items pass. Only minor 2px horizontal overflow on mobile remains. Use data-testid for hero buttons (hero-quote-btn, hero-contact-btn), contact cards (contact-email-card, contact-phone-card, contact-whatsapp-card, contact-address-card), project cards (project-<id>), admin login (admin-username/password/login-submit), and 'Neue Vorlage' button (new-tpl-btn). Site Settings Kontakt tab inputs use kebab-case: contact-{title|phone|email|whatsapp|address}-input. Sidebar 'Rechnungen' link conflicts with text-based selectors for template card '→ Rechnung' button - always use exact text matcher.",
+  "rca of the issue": "N/A - all functional tests pass. The only observation is a 2px scrollWidth excess on mobile homepage, likely from the Kontakt section cards extending past their padded container; non-blocking."
+}

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { Loader2, Save, Plus, Trash2, ArrowLeft, Eye, Send, FileDown, Package } from "lucide-react";
 import api, { tokenStorage, API } from "../../api";
 
@@ -20,6 +20,7 @@ export default function InvoiceEditor({ mode = "invoice" }) {
 
   const { id } = useParams();
   const nav = useNavigate();
+  const location = useLocation();
 
   const [doc, setDoc] = useState(EMPTY);
   const [companies, setCompanies] = useState([]);
@@ -47,6 +48,20 @@ export default function InvoiceEditor({ mode = "invoice" }) {
       } else {
         const def = co.data.find((c) => c.isDefault) || co.data[0];
         if (def) setDoc((d) => ({ ...d, companyId: def.id, vatRate: def.defaultVatRate, currency: def.currency || "CHF" }));
+        // Auto-load template if passed via location.state
+        const tplId = location.state?.templateId;
+        if (tplId) {
+          const tpl = tp.data.find((t) => t.id === tplId);
+          if (tpl) {
+            setDoc((d) => ({
+              ...d,
+              title: tpl.title || "",
+              intro: tpl.intro || "",
+              notes: tpl.notes || "",
+              items: (tpl.items || []).map((it) => ({ ...it })),
+            }));
+          }
+        }
       }
     } finally { setLoading(false); }
   }, [id]);

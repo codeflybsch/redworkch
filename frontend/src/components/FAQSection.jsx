@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
-import api from "../api";
+import api, { API } from "../api";
 
 export default function FAQSection() {
   const [faqs, setFaqs] = useState([]);
+  const [settings, setSettings] = useState({});
   const [activeCat, setActiveCat] = useState("");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(null);
@@ -11,6 +12,7 @@ export default function FAQSection() {
 
   useEffect(() => {
     api.get("/faqs").then((r) => setFaqs(r.data)).catch(() => {});
+    fetch(`${API}/site-settings`).then((r) => r.json()).then(setSettings).catch(() => {});
   }, []);
 
   const categories = useMemo(() => {
@@ -33,11 +35,11 @@ export default function FAQSection() {
     <section id="faq" className="py-20 md:py-24 bg-gradient-to-b from-white to-[#f1f5fb]">
       <div className="max-w-[1200px] mx-auto px-5 md:px-6">
         <div className="text-center mb-10 max-w-3xl mx-auto">
-          <h2 className="text-[30px] md:text-[44px] font-extrabold text-[#0f172a]">
-            <span className="section-title-hash">#</span> Häufig gestellte Fragen
+          <h2 className="text-[28px] sm:text-[30px] md:text-[44px] font-extrabold text-[#0f172a]">
+            <span className="section-title-hash">#</span> {settings.faqTitle || "Häufig gestellte Fragen"}
           </h2>
           <p className="text-[#E63946] font-bold tracking-wider text-sm mt-2">{faqs.length} ANTWORTEN</p>
-          <p className="text-[#475569] mt-4">Finden Sie Antworten auf die meistgestellten Fragen unserer Kundinnen und Kunden – nach Kategorien sortiert.</p>
+          <p className="text-[#475569] mt-4 text-sm sm:text-base">{settings.faqSubtitle || "Antworten auf die häufigsten Fragen unserer Kundinnen und Kunden"}</p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-6">
