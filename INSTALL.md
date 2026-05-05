@@ -375,6 +375,23 @@ systemctl reload nginx
 
 ---
 
+## ⏰ ADIM 14 — Otomatik Tekrarlayan Faturalar (Cron)
+
+Her gün gece 02:00'de **wiederkehrende Rechnungen**'i otomatik üret:
+
+```bash
+crontab -e
+```
+
+Aşağıdaki satırı ekle (kendi domain'in ile):
+```
+0 2 * * * curl -s -X POST https://SENIN-DOMAIN.ch/api/admin/invoices/run-recurring -H "Authorization: Bearer $(curl -s -X POST https://SENIN-DOMAIN.ch/api/admin/login -H "Content-Type: application/json" -d '{"username":"admin","password":"BENIM-PAROLAM"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")" >> /var/log/redwork-cron.log 2>&1
+```
+
+> ⚠️ Parolayı script'e koymak istemiyorsan **uzun süreli API token** kullan veya `~/.netrc`'den oku.
+
+---
+
 ## 🆘 Sorun mu var?
 
 | Belirti | Çözüm |

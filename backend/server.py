@@ -1126,6 +1126,24 @@ async def mark_paid(iid: str, user=Depends(require_admin)):
     return {"ok": True}
 
 
+class StatusIn(BaseModel):
+    status: str
+
+
+@api_router.patch("/admin/invoices/{iid}/status")
+async def set_doc_status(iid: str, payload: StatusIn, user=Depends(require_admin)):
+    allowed = {"draft", "sent", "paid", "overdue", "accepted", "declined"}
+    if payload.status not in allowed:
+        raise HTTPException(400, f"Status nicht erlaubt: {payload.status}")
+    if not await db.invoices.find_one({"id": iid}):
+        raise HTTPException(404, "Dokument nicht gefunden")
+    update = {"status": payload.status}
+    if payload.status == "paid":
+        update["paidAt"] = now_utc()
+    await db.invoices.update_one({"id": iid}, {"$set": update})
+    return {"ok": True}
+
+
 # ----------------------------------------------------------------------------
 # Duplicate (invoice or offer) – copies items + customer, new draft
 # ----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, Trash2, Edit3, Eye, Send, FileDown, CheckCircle2, AlertTriangle, Search, Receipt, Copy, RefreshCw, ArrowRightLeft, Repeat } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit3, Eye, Send, FileDown, CheckCircle2, AlertTriangle, Search, Receipt, Copy, RefreshCw, ArrowRightLeft, Repeat, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import api, { tokenStorage, API } from "../../api";
 
@@ -8,6 +8,8 @@ const STATUS = {
   sent: { label: "Gesendet", color: "#1E88E5" },
   paid: { label: "Bezahlt", color: "#22C55E" },
   overdue: { label: "Überfällig", color: "#E63946" },
+  accepted: { label: "Angenommen", color: "#22C55E" },
+  declined: { label: "Abgelehnt", color: "#64748b" },
 };
 
 export default function InvoiceList({ kind = "invoice" }) {
@@ -20,6 +22,8 @@ export default function InvoiceList({ kind = "invoice" }) {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [showOnlyRecurring, setShowOnlyRecurring] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
@@ -35,6 +39,8 @@ export default function InvoiceList({ kind = "invoice" }) {
   const compName = useMemo(() => Object.fromEntries(companies.map((c) => [c.id, c.name])), [companies]);
 
   const filtered = items.filter((i) => {
+    if (statusFilter && i.status !== statusFilter) return false;
+    if (showOnlyRecurring && !i.recurring) return false;
     const ql = q.trim().toLowerCase();
     if (!ql) return true;
     return (i.number || "").toLowerCase().includes(ql) || (i.clientName || "").toLowerCase().includes(ql);
@@ -107,6 +113,14 @@ export default function InvoiceList({ kind = "invoice" }) {
     setItems((arr) => arr.map((x) => x.id === id ? { ...x, status: "paid" } : x));
   };
 
+  const setStatus = async (id, status, label) => {
+    if (!window.confirm(`Als "${label}" markieren?`)) return;
+    try {
+      await api.patch(`/admin/invoices/${id}/status`, { status });
+      setItems((arr) => arr.map((x) => x.id === id ? { ...x, status } : x));
+    } catch (e) { setFeedback({ type: "err", text: e.response?.data?.detail || "Fehler" }); }
+  };
+
   const duplicate = async (id) => {
     try {
       const r = await api.post(`/admin/invoices/${id}/duplicate`);
@@ -161,9 +175,27 @@ export default function InvoiceList({ kind = "invoice" }) {
         </div>
       )}
 
-      <div className="relative mt-4 max-w-md">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nummer / Kundenname suchen..." className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm focus:border-[#1E88E5] focus:outline-none" />
+      <div className="flex gap-2 mt-4 flex-wrap items-center">
+        <div className="relative flex-1 max-w-md min-w-[220px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nummer / Kundenname suchen..." className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm focus:border-[#1E88E5] focus:outline-none" />
+        </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} data-testid="status-filter" className="px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-sm focus:border-[#1E88E5] focus:outline-none">
+          <option value="">Alle Status</option>
+          <option value="draft">Entwurf</option>
+          <option value="sent">Gesendet</option>
+          {!isOffer && <option value="paid">Bezahlt</option>}
+          {!isOffer && <option value="overdue">Überfällig</option>}
+          {isOffer && <option value="accepted">Angenommen</option>}
+          {isOffer && <option value="declined">Abgelehnt</option>}
+        </select>
+        {!isOffer && (
+          <label className="flex items-center gap-2 text-sm font-semibold text-[#0f172a] bg-white border border-slate-200 px-3 py-2.5 rounded-lg cursor-pointer">
+            <input type="checkbox" checked={showOnlyRecurring} onChange={(e) => setShowOnlyRecurring(e.target.checked)} data-testid="recurring-filter" className="w-4 h-4 accent-[#E63946]" />
+            🔁 Nur Abos
+          </label>
+        )}
+        <span className="text-xs text-[#64748b] ml-auto">{filtered.length} / {items.length}</span>
       </div>
 
       <div className="bg-white rounded-2xl shadow-card overflow-hidden mt-4">
@@ -199,6 +231,8 @@ export default function InvoiceList({ kind = "invoice" }) {
                           </button>
                           <Link to={`/admin/${path}/${it.id}`} title="Bearbeiten" className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#A855F7] hover:text-white flex items-center justify-center"><Edit3 size={14} /></Link>
                           <button onClick={() => duplicate(it.id)} title="Duplizieren" data-testid={`dup-${it.id}`} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#06B6D4] hover:text-white flex items-center justify-center"><Copy size={14} /></button>
+                          {isOffer && it.status !== "accepted" && <button onClick={() => setStatus(it.id, "accepted", "Angenommen")} title="Als angenommen markieren" data-testid={`acc-${it.id}`} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-emerald-600 hover:text-white flex items-center justify-center"><ThumbsUp size={14} /></button>}
+                          {isOffer && it.status !== "declined" && <button onClick={() => setStatus(it.id, "declined", "Abgelehnt")} title="Als abgelehnt markieren" data-testid={`dec-${it.id}`} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-500 hover:text-white flex items-center justify-center"><ThumbsDown size={14} /></button>}
                           {isOffer && <button onClick={() => convertOfferToInvoice(it.id)} title="In Rechnung umwandeln" data-testid={`conv-${it.id}`} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-emerald-600 hover:text-white flex items-center justify-center"><ArrowRightLeft size={14} /></button>}
                           {!isOffer && it.recurring && <span title="Wiederkehrend" className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center"><Repeat size={14} /></span>}
                           {!isOffer && it.status !== "paid" && (
