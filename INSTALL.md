@@ -1,222 +1,410 @@
-# redwork.ch – Sıfırdan VPS / VDS Kurulum Rehberi
+# 🚀 Kendi VPS'ine Kurulum Rehberi (14 Yaşında Anlat Modu)
 
-Bu rehber, **hiç sunucu kurmamış** birini bile elinden tutarak siteyi
-canlıya alır. Tahmini süre: **15–25 dakika**.
+Selam! Bu rehber, redwork.ch sitesini kendi sunucuna (VPS) kurmak için. **Adım adım, yavaş yavaş, tıkır tıkır** ilerleyeceğiz. Endişelenme, hata yapsan da geri dönebilirsin. ✌️
 
-> Senin durumun: 14 yaşındasın, bu işe yenisin. Hiç stres yapma — komutları
-> birebir kopyala-yapıştır yeterli. Bir adım takılırsan dur, hatayı yaz, sonra
-> devam et.
+> **Hangi işletim sistemi?** Bu rehberde **Ubuntu**, **Debian** ve **AlmaLinux/Rocky** için ayrı talimatlar var. VPS satın aldığında bunlardan birini seçmen yeterli. En kolay = Ubuntu 22.04.
 
 ---
 
-## 1) İhtiyacın olanlar
+## 📦 Sana Lazım Olanlar
 
-| Ne lazım?                       | Açıklama                                                  |
-|---------------------------------|-----------------------------------------------------------|
-| Bir VPS / VDS                   | En az **2 GB RAM**, 20 GB disk, root erişimi              |
-| İşletim sistemi                 | **Ubuntu 22.04/24.04**, **Debian 12** veya **AlmaLinux 9**|
-| Bir **domain** (örn. `redwork.ch`) | DNS ayarlarına erişimin olmalı                          |
-| SSH istemcisi                   | Windows: PuTTY veya Terminal · Mac/Linux: `ssh` komutu    |
-| Mail SMTP bilgileri             | Cevap maili göndermek için (örn. Plesk mail kutusu)       |
+1. Bir VPS (örn. Hetzner, Contabo, DigitalOcean, Hostinger). En az **2 GB RAM, 1 vCPU, 20 GB disk**.
+2. Bir **alan adı** (mesela `redwork.ch`). Domain'in DNS ayarlarına bir **A kaydı** ekleyip VPS IP'sine yönlendireceksin.
+3. Bir **SSH istemcisi** (Windows: Termius veya PuTTY; Mac/Linux: zaten var, terminal yeter).
+4. Bu projenin kodları (zip dosyası ya da git repo).
 
 ---
 
-## 2) Domaini sunucuya yönlendir
+## 🪜 Adım 0 — VPS'e Bağlan
 
-Domain panelinden (örn. **Plesk → Domains → DNS Settings**, ya da Cloudflare
-gibi nereyi kullanıyorsan) iki **A** kaydı oluştur:
+Aldığın VPS'in size IP, kullanıcı adı (genelde `root`) ve parola/SSH key vermiştir.
 
-```
-A   redwork.ch       ->   <SUNUCU_IP>
-A   www.redwork.ch   ->   <SUNUCU_IP>
+```bash
+ssh root@VPS_IP_ADRESIN
 ```
 
-DNS yayılması 5 dk – 1 saat sürebilir. Test için: `ping redwork.ch` çıkan IP
-sunucununki olmalı.
+Şifre sorarsa yaz, **Enter**. İlk açılışta `yes` yaz, **Enter**.
+
+Şimdi VPS'in içindeyiz. Tüm aşağıdaki komutları **VPS terminalinde** çalıştıracağız.
 
 ---
 
-## 3) Sunucuya bağlan
+## 🅰️ ADIM 1 — Sistemi Güncelle
 
-**Windows:** PuTTY aç → Host: `<SUNUCU_IP>` → Open → kullanıcı `root` →
-sunucu sağlayıcının verdiği şifre.
-
-**Mac/Linux:**
+### Ubuntu / Debian
 ```bash
-ssh root@<SUNUCU_IP>
+apt update && apt upgrade -y
+apt install -y curl wget git unzip nano ufw build-essential ca-certificates gnupg
 ```
+
+### AlmaLinux / Rocky / RHEL
+```bash
+dnf update -y
+dnf install -y curl wget git unzip nano firewalld policycoreutils-python-utils \
+               gcc gcc-c++ make tar
+systemctl enable --now firewalld
+```
+
+> 💡 **Tip**: Komut çok uzunsa kopyalarken `\` (devam karakteri) işaretlerine dikkat. Tek satır da yazabilirsin.
 
 ---
 
-## 4) Projeyi sunucuya yükle
+## 🔥 ADIM 2 — Güvenlik Duvarı (Firewall)
 
-İki yolu var, sana uygun olanı seç:
-
-**(A) ZIP ile (en kolay):**
-
-Projeyi yerel bilgisayarından sunucuya gönder:
+### Ubuntu / Debian (`ufw`)
 ```bash
-# Yerel bilgisayardan (Mac/Linux veya Windows WSL):
-scp redwork.zip root@<SUNUCU_IP>:/root/
+ufw allow OpenSSH
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw --force enable
+ufw status
 ```
 
-Sonra sunucuda:
+### AlmaLinux (`firewalld`)
 ```bash
-cd /root
-apt-get update -y && apt-get install -y unzip   # AlmaLinux: dnf install -y unzip
-unzip redwork.zip -d redwork
-cd redwork
-```
-
-**(B) Git ile (eğer GitHub'a yüklediysen):**
-```bash
-cd /root
-apt-get install -y git    # AlmaLinux: dnf install -y git
-git clone https://github.com/<kullanici>/<repo>.git redwork
-cd redwork
-```
-
-Şimdi `redwork` klasörünün içinde olmalısın, içinde `backend` ve `frontend`
-klasörlerini görmelisin:
-```bash
-ls
-# Görmesi gereken: backend  frontend  install-debian.sh  install-rhel.sh  ...
+firewall-cmd --permanent --add-service=ssh
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --reload
 ```
 
 ---
 
-## 5) Otomatik kurulum scriptini çalıştır
+## 🐍 ADIM 3 — Python 3.11+ Kur
 
-### 5.A) Ubuntu / Debian için
+### Ubuntu / Debian
 ```bash
-bash install-debian.sh
+apt install -y python3 python3-pip python3-venv \
+               libpango-1.0-0 libcairo2 libffi-dev pkg-config
+python3 --version    # 3.11+ görmelisin
 ```
 
-### 5.B) AlmaLinux / Rocky / RHEL için
+### AlmaLinux
 ```bash
-bash install-rhel.sh
-```
-
-Script sana sırayla şunları soracak — örnek cevaplarla:
-
-```
-Domain adresi (orn. redwork.ch)              : redwork.ch
-Admin kullanici adi                            : admin
-Admin sifresi                                  : <gizli, panel girişi için>
-Mail SMTP host (orn. mail.redwork.ch)         : mail.redwork.ch
-Mail SMTP port (465 / 587)                    : 465
-Mail kullanici (orn. info@redwork.ch)         : info@redwork.ch
-Mail sifresi                                   : <Plesk mail kutusu şifresi>
-Gonderici ad (orn. RedWORK)                   : RedWORK | WebDesign, App, Hosting
-Lets Encrypt SSL kurulsun mu? (y/n)           : y
-```
-
-> **Önemli:** SSL'in (`y`) çalışması için domainin DNS'i sunucuya zaten
-> yönlendirilmiş olmalı (Adım 2). Aksi halde Certbot başarısız olur — sorun
-> değil, sonradan da çalıştırabilirsin.
-
-Script tamamlandığında ekranda şu çıkacak:
-```
-[+] KURULUM TAMAMLANDI.
-[+]   Site:        http://redwork.ch/
-[+]   Admin Panel: http://redwork.ch/admin/login
+dnf install -y python3.11 python3.11-pip python3.11-devel \
+               cairo pango libffi-devel
+ln -sf /usr/bin/python3.11 /usr/local/bin/python3
+python3 --version
 ```
 
 ---
 
-## 6) Test et
+## 🟢 ADIM 4 — Node.js 20 + Yarn
 
-1. Tarayıcıdan `https://redwork.ch` aç → site açılmalı.
-2. `https://redwork.ch/admin/login` → adım 5'teki admin kullanıcı/şifresi.
-3. Admin panelinde **Website-Inhalte** sekmesini aç → bir slide ekle/değiştir →
-   **Speichern** → ana sayfayı yenile, değişikliği gör.
-4. Bir test mesajı gönder (kontakt formu) → admin panelde **Kontakt-Nachrichten** →
-   mesajı aç → **Antwort senden** → kendi adresine gerçek mail gitmeli.
-
----
-
-## 7) Sık karşılaşılan sorunlar
-
-| Sorun                              | Çözüm                                                                                  |
-|------------------------------------|----------------------------------------------------------------------------------------|
-| Site açılmıyor / 502               | `supervisorctl status` ile backend çalışıyor mu bak. `tail -f /var/log/redwork-backend.err.log` ile log oku. |
-| `nginx -t` "permission denied" der | AlmaLinux için: `setsebool -P httpd_can_network_connect 1`                              |
-| SSL Certbot hatası                 | DNS henüz yayılmadıysa biraz bekle, sonra: `certbot --nginx -d redwork.ch -d www.redwork.ch` |
-| Mail gitmiyor                      | `/opt/redwork/backend/.env` içindeki SMTP bilgilerini kontrol et, sonra `supervisorctl restart redwork-backend` |
-| MongoDB başlamadı                  | `systemctl status mongod` → genelde `journalctl -u mongod` log gösterir                 |
-| Plesk fail2ban bizi banladı        | Plesk → Tools & Settings → IP Address Banning → Banned IPs → Unban (veya sunucu IP'ni Trusted'a ekle) |
-
----
-
-## 8) Faydalı komutlar
-
+### Ubuntu / Debian
 ```bash
-# Backend yeniden başlat (kod değişikliğinden sonra)
-supervisorctl restart redwork-backend
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
+npm install -g yarn
+node -v && yarn -v
+```
 
-# Frontend'i yeniden derle (kod değişikliğinden sonra)
-cd /opt/redwork/frontend && yarn build
-
-# Backend logu canlı izle
-tail -f /var/log/redwork-backend.err.log
-
-# Nginx logu
-tail -f /var/log/nginx/error.log
-
-# .env'yi düzenle (örn. mail şifresi değiştirmek için)
-nano /opt/redwork/backend/.env
-supervisorctl restart redwork-backend
+### AlmaLinux
+```bash
+curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+dnf install -y nodejs
+npm install -g yarn
+node -v && yarn -v
 ```
 
 ---
 
-## 9) Güncelleme yapmak istersen
+## 🍃 ADIM 5 — MongoDB Kur
 
-Yeni bir versiyon yüklediğinde:
+### Ubuntu 22.04
 ```bash
-cd /opt/redwork
-# Yeni dosyaları kopyala (ZIP açtığın yerden)
-cp -r /root/yeni-redwork/* /opt/redwork/
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | \
+  gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
 
-# Backend'i güncelle
-cd /opt/redwork/backend
+echo "deb [signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] \
+  https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | \
+  tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+apt update && apt install -y mongodb-org
+systemctl enable --now mongod
+systemctl status mongod   # "active (running)" görmelisin
+```
+
+> Debian 12 için yukarıdaki `jammy` kelimesini `bookworm` ile değiştir.
+
+### AlmaLinux 9
+`/etc/yum.repos.d/mongodb-org-7.0.repo` dosyası oluştur:
+```bash
+cat > /etc/yum.repos.d/mongodb-org-7.0.repo <<EOF
+[mongodb-org-7.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/9/mongodb-org/7.0/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://www.mongodb.org/static/pgp/server-7.0.asc
+EOF
+
+dnf install -y mongodb-org
+systemctl enable --now mongod
+```
+
+---
+
+## 📁 ADIM 6 — Proje Dosyalarını Yükle
+
+```bash
+mkdir -p /var/www
+cd /var/www
+# Eğer zip varsa:
+# scp ile yükle ya da:
+# wget -O proje.zip "ZIP_LINKIN" && unzip proje.zip -d redwork
+# Ya da git ile:
+# git clone https://github.com/KULLANICI/redwork.git redwork
+
+# Burada "redwork" klasörü oluştuğunu varsayıyoruz:
+cd /var/www/redwork
+ls   # backend/ frontend/ INSTALL.md ... görmelisin
+```
+
+---
+
+## 🔧 ADIM 7 — Backend'i Hazırla
+
+```bash
+cd /var/www/redwork/backend
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+**`.env` dosyasını oluştur** (parolayı kendine göre değiştir!):
+
+```bash
+cat > .env <<'EOF'
+MONGO_URL=mongodb://127.0.0.1:27017
+DB_NAME=redwork_db
+JWT_SECRET=BURAYA-EN-AZ-32-KARAKTER-RANDOM-BIR-SEY-YAZ
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=COKIYI-BIR-PAROLA-DEGISTIR
+
+# E-Posta gönderebilmek için (örn. Mailgun, SendGrid SMTP, kendi mailservern):
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=info@redwork.ch
+SMTP_FROM_NAME=redwork.ch
+SMTP_USE_TLS=true
+EOF
+```
+
+> ⚠️ `JWT_SECRET` ve `ADMIN_PASSWORD` mutlaka uzun, karışık olsun! Tahmin edilebilir parola koyarsan hesabını çalarlar.
+
+Backend'i bir kere elle test et:
+```bash
+uvicorn server:app --host 0.0.0.0 --port 8001
+# Tarayıcıdan http://VPS_IP:8001/api → "redwork.ch API läuft" görmelisin
+# Ctrl+C ile kapat
+```
+
+---
+
+## 🎨 ADIM 8 — Frontend'i Build Et
+
+```bash
+cd /var/www/redwork/frontend
+
+# .env dosyası
+cat > .env <<EOF
+REACT_APP_BACKEND_URL=https://SENIN-DOMAIN.ch
+WDS_SOCKET_PORT=443
+EOF
+
+yarn install
+yarn build       # build/ klasörü oluşur
+```
+
+> **Önemli:** `REACT_APP_BACKEND_URL`'e backend'in dış adresini yaz. Domain ayarlanmadıysa `http://VPS_IP` da yazabilirsin (geçici).
+
+---
+
+## 🛡 ADIM 9 — Servisleri Sürekli Çalıştır (systemd)
+
+### Backend için servis dosyası
+```bash
+cat > /etc/systemd/system/redwork-backend.service <<'EOF'
+[Unit]
+Description=redwork.ch Backend (FastAPI)
+After=network.target mongod.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/redwork/backend
+EnvironmentFile=/var/www/redwork/backend/.env
+ExecStart=/var/www/redwork/backend/venv/bin/uvicorn server:app --host 127.0.0.1 --port 8001 --workers 2
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now redwork-backend
+systemctl status redwork-backend
+```
+
+> **AlmaLinux için ek**: SELinux backend'i engelliyorsa:
+> ```bash
+> setsebool -P httpd_can_network_connect 1
+> ```
+
+---
+
+## 🌐 ADIM 10 — NGINX + HTTPS (SSL)
+
+### NGINX kur
+```bash
+# Ubuntu/Debian
+apt install -y nginx
+# AlmaLinux
+dnf install -y nginx && systemctl enable --now nginx
+```
+
+### Site konfigürasyonu
+```bash
+cat > /etc/nginx/sites-available/redwork.conf <<'EOF'
+server {
+    listen 80;
+    server_name SENIN-DOMAIN.ch www.SENIN-DOMAIN.ch;
+
+    # Frontend (React build)
+    root /var/www/redwork/frontend/build;
+    index index.html;
+
+    # Static dosyaları cache'le
+    location /static/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Backend API'yi /api → localhost:8001'e ilet
+    location /api/ {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        client_max_body_size 25M;
+    }
+
+    # SPA: tüm yolları index.html'e döndür
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+EOF
+
+# Ubuntu/Debian:
+ln -sf /etc/nginx/sites-available/redwork.conf /etc/nginx/sites-enabled/redwork.conf
+rm -f /etc/nginx/sites-enabled/default
+
+# AlmaLinux:
+# /etc/nginx/conf.d/redwork.conf altına aynı içeriği yazsan da çalışır.
+
+nginx -t
+systemctl reload nginx
+```
+
+### Let's Encrypt ile ücretsiz HTTPS
+```bash
+# Ubuntu/Debian:
+apt install -y certbot python3-certbot-nginx
+
+# AlmaLinux:
+dnf install -y epel-release
+dnf install -y certbot python3-certbot-nginx
+
+certbot --nginx -d SENIN-DOMAIN.ch -d www.SENIN-DOMAIN.ch \
+        --redirect --agree-tos -m senin@email.com --non-interactive
+```
+
+Bittiğinde tarayıcıdan `https://SENIN-DOMAIN.ch` aç → site açılır 🎉
+
+---
+
+## 🛠 ADIM 11 — Admin Paneline Giriş
+
+URL: `https://SENIN-DOMAIN.ch/admin/login`
+Kullanıcı: `admin`
+Parola: `.env`'e koyduğun `ADMIN_PASSWORD`.
+
+---
+
+## 📨 ADIM 12 — E-Posta Gönderimi
+
+Faturaları/teklifleri tek tıkla göndermek için bir SMTP gerekir.
+
+**Mailgun, SendGrid, Brevo, kendi cPanel'in** ya da Gmail-uygulamaşifresi gibi seçeneklerden birini seç. Sonra:
+
+```bash
+nano /var/www/redwork/backend/.env
+# SMTP_HOST, SMTP_USER, SMTP_PASSWORD, SMTP_FROM doldur
+systemctl restart redwork-backend
+```
+
+---
+
+## 🔁 ADIM 13 — Güncelleme Yapmak İstediğinde
+
+```bash
+cd /var/www/redwork
+git pull   # ya da yeni zip yükle
+
+# Backend
+cd backend
 source venv/bin/activate
 pip install -r requirements.txt
-deactivate
-supervisorctl restart redwork-backend
+systemctl restart redwork-backend
 
-# Frontend'i güncelle
-cd /opt/redwork/frontend
+# Frontend
+cd ../frontend
 yarn install
 yarn build
-```
-
-`.env` dosyalarını **silme** — şifreler ve ayarlar orada.
-
----
-
-## 10) Yedekleme (önerilir)
-
-```bash
-# MongoDB veritabanı yedeği
-mongodump --db redwork --out /root/backup-$(date +%F)
-
-# Geri yükleme
-mongorestore --db redwork /root/backup-2026-05-05/redwork
-```
-
-Cron ile her gece otomatik yedek için:
-```bash
-echo "0 3 * * * mongodump --db redwork --out /root/backup-\$(date +\%F) --gzip" | crontab -
+systemctl reload nginx
 ```
 
 ---
 
-## Özet
+## 🆘 Sorun mu var?
 
-✅ Tek script (`install-debian.sh` veya `install-rhel.sh`) hemen her şeyi kurar.  
-✅ Admin panelden **Website-Inhalte** sekmesinde Hero, slides, butonlar, partnerler ve istatistikler düzenlenebilir.  
-✅ **Kontakt-Nachrichten** içinde gelen mesajları SMTP üzerinden direkt cevaplayabilirsin (thread görünümü ile).  
-✅ Plesk SMTP'si (`mail.redwork.ch`, port 465) doğrulandı, çalışıyor.
+| Belirti | Çözüm |
+|---|---|
+| "502 Bad Gateway" | `systemctl status redwork-backend` ile kontrol et, log'a bak: `journalctl -u redwork-backend -e` |
+| "Mixed content" / API 404 | `frontend/.env` içindeki `REACT_APP_BACKEND_URL` doğru mu? `yarn build` yeniden çalıştır. |
+| MongoDB bağlanmıyor | `systemctl status mongod`. Yeniden çalıştır: `systemctl restart mongod`. |
+| Site açılmıyor | `nginx -t`, sonra `systemctl status nginx`. DNS A-kaydı VPS IP'ye işaret ediyor mu? |
+| SELinux (AlmaLinux) | `setenforce 0` ile geçici olarak kapat, sorun gidiyorsa policy ekle. |
 
-İyi yolculuklar! 🚀
+---
+
+## ✨ Bonus İpuçları
+
+- **Yedek almayı unutma!** Haftalık MongoDB dump:
+  ```bash
+  mongodump --db redwork_db --out /var/backups/$(date +%F)
+  ```
+- VPS'inde **fail2ban** kur, SSH'a deneme yapanları otomatik banla:
+  ```bash
+  apt install -y fail2ban   # / dnf install -y fail2ban
+  systemctl enable --now fail2ban
+  ```
+- VPS'i **swap** ile rahatlatmak (1 GB swap):
+  ```bash
+  fallocate -l 1G /swapfile && chmod 600 /swapfile
+  mkswap /swapfile && swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  ```
+
+---
+
+Yardıma ihtiyacın olursa: `journalctl -u redwork-backend -e` ile hata logu paylaşırsan tek tek çözeriz. **İyi çalışmalar!** 🎉

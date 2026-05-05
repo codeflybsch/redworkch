@@ -83,11 +83,11 @@ export default function ContactSection() {
             </div>
           </div>
 
-          <div className="rounded-2xl overflow-hidden border border-white/10 min-h-[420px] bg-white/5">
+          <div className="rounded-2xl overflow-hidden border border-white/10 min-h-[420px] bg-white/5 relative">
             <iframe
               title="Standort"
               src={s.contactMapUrl}
-              className="w-full h-full min-h-[420px]"
+              className="absolute inset-0 w-full h-full block border-0"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
             />

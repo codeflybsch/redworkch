@@ -52,6 +52,7 @@ export default function AdminLogin() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="admin"
+                data-testid="admin-username"
                 className="w-full pl-10 pr-3 py-3 bg-black border-2 border-white/10 focus:border-[#E63946] outline-none rounded-xl text-white transition"
                 autoComplete="username"
               />
@@ -65,6 +66,7 @@ export default function AdminLogin() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                data-testid="admin-password"
                 className="w-full pl-10 pr-3 py-3 bg-black border-2 border-white/10 focus:border-[#E63946] outline-none rounded-xl text-white transition"
                 autoComplete="current-password"
               />
@@ -81,6 +83,7 @@ export default function AdminLogin() {
         <button
           type="submit"
           disabled={submitting}
+          data-testid="admin-login-submit"
           className="mt-6 w-full flex items-center justify-center gap-2 bg-[#E63946] hover:bg-[#d22c39] disabled:opacity-50 text-white py-3 rounded-xl font-bold transition"
         >
           {submitting && <Loader2 size={18} className="animate-spin" />}
