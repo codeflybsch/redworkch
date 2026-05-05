@@ -13,6 +13,22 @@ Kendi vps lerimde kuracagim sekilde, adim adim anlat bana 14 yasindayim ona gör
 - **Email**: SMTP (configurable via env)
 - **PWA**: manifest.json + sw.js
 
+## What's been implemented (Iteration 2 – 2026-01)
+
+### New features added
+- ✅ **SMTP konfiguriert** (`mail.redwork.ch:465`, info@redwork.ch). ⚠️ Login fails (535 auth failure) – Wahrscheinlich falsches Passwort. Nutzer muss prüfen oder app-spezifisches Passwort generieren.
+- ✅ **Mehrsprachige PDFs & Vorschau** – `LANG` dict mit DE, FR, IT, EN. Wird über `company.language` ausgewählt. Validiert mit FR-PDF.
+- ✅ **Drag & Drop Sortierung** – `@hello-pangea/dnd` integriert. Funktioniert bei Projects/Blogs/Testimonials/Services (CrudManager) und FAQs (FAQAdmin) und alle Kollektionen via Endpoint `POST /admin/{collection}/reorder`.
+- ✅ **Rechnungs-Vorlagen** (`invoice_templates` collection) – Speichern häufig verwendeter Positions-Sets, Laden direkt im InvoiceEditor via Dropdown.
+- ✅ **Wiederkehrende Rechnungen (Abos)** – Felder `recurring`, `recurringInterval` (monthly/quarterly/yearly), `recurringNextDate`, `recurringEndDate`. Endpoint `POST /admin/invoices/run-recurring` erzeugt fällige Folgerechnungen.
+- ✅ **Duplicate Invoice/Offer** – `POST /admin/invoices/{id}/duplicate` erzeugt Entwurfskopie mit neuer Nummer.
+- ✅ **Offer → Invoice Conversion** – `POST /admin/offers/{id}/convert-to-invoice` mit `parentId` Verknüpfung.
+- ✅ Admin Sidebar hat neuen Eintrag "Rechnungs-Vorlagen".
+
+### Test Status (Iteration 2)
+- All endpoints tested via curl: reorder ✓, templates CRUD ✓, recurring run ✓ (created RW-RG-2026-00006), duplicate ✓, offer→invoice convert ✓, FR PDF ✓ (20453b, "Facture"/"Échéance" gefunden)
+- Frontend lint clean, dashboard rendered all 11 cards correctly
+
 ## What's been implemented (Iteration 1 – 2026-01)
 
 ### Backend

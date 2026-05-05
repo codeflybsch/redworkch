@@ -8,6 +8,7 @@ const EMPTY = {
   clientName: "", clientStreet: "", clientZip: "", clientCity: "", clientCountry: "CH", clientEmail: "",
   issueDate: new Date().toISOString().slice(0, 10), dueDate: "",
   items: [], vatRate: null, currency: "CHF", reference: "", status: "draft",
+  recurring: false, recurringInterval: "monthly", recurringNextDate: "", recurringEndDate: "",
 };
 
 const inp = "w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:border-[#1E88E5] focus:outline-none text-sm bg-white text-[#0f172a]";
@@ -24,6 +25,7 @@ export default function InvoiceEditor({ mode = "invoice" }) {
   const [companies, setCompanies] = useState([]);
   const [products, setProducts] = useState([]);
   const [cats, setCats] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -32,12 +34,13 @@ export default function InvoiceEditor({ mode = "invoice" }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [co, pr, ca] = await Promise.all([
+      const [co, pr, ca, tp] = await Promise.all([
         api.get("/admin/companies"),
         api.get("/admin/products"),
         api.get("/admin/product-categories"),
+        api.get("/admin/invoice-templates"),
       ]);
-      setCompanies(co.data); setProducts(pr.data); setCats(ca.data);
+      setCompanies(co.data); setProducts(pr.data); setCats(ca.data); setTemplates(tp.data);
       if (id) {
         const r = await api.get(`/admin/invoices/${id}`);
         setDoc({ ...EMPTY, ...r.data });
@@ -156,6 +159,33 @@ export default function InvoiceEditor({ mode = "invoice" }) {
 
       <div className="mt-6 grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {!id && templates.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-3 flex-wrap">
+              <span className="text-sm font-bold text-[#0f172a]">⚡️ Vorlage laden:</span>
+              <select
+                onChange={(e) => {
+                  const tpl = templates.find((t) => t.id === e.target.value);
+                  if (tpl) {
+                    setDoc((d) => ({
+                      ...d,
+                      title: tpl.title || d.title,
+                      notes: tpl.notes || d.notes,
+                      intro: tpl.intro || d.intro,
+                      items: [...(d.items || []), ...(tpl.items || []).map((it) => ({ ...it }))],
+                    }));
+                    setFeedback({ type: "ok", text: `Vorlage "${tpl.name}" geladen` });
+                  }
+                  e.target.value = "";
+                }}
+                data-testid="load-tpl-select"
+                className="text-sm px-3 py-1.5 rounded-lg border border-blue-300 bg-white text-[#0f172a] font-semibold flex-1 min-w-[200px]"
+              >
+                <option value="">— Vorlage wählen —</option>
+                {templates.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.items?.length || 0} Pos.)</option>)}
+              </select>
+            </div>
+          )}
+
           <Card title="Firma & Dokument-Daten">
             <div className="grid md:grid-cols-2 gap-3">
               <Field label="Eigene Firma">
@@ -221,6 +251,31 @@ export default function InvoiceEditor({ mode = "invoice" }) {
           <Card title="Anmerkungen / Hinweise">
             <textarea value={doc.notes || ""} onChange={(e) => setDoc({ ...doc, notes: e.target.value })} rows={3} className={inp} placeholder="Zusätzliche Informationen, die auf der Rechnung erscheinen sollen." />
           </Card>
+
+          {!isOffer && (
+            <Card title="🔁 Wiederkehrende Rechnung (Abo)">
+              <label className="flex items-center gap-2 select-none mb-3">
+                <input type="checkbox" checked={!!doc.recurring} onChange={(e) => setDoc({ ...doc, recurring: e.target.checked })} data-testid="recurring-toggle" className="w-4 h-4 accent-[#E63946]" />
+                <span className="text-sm font-semibold">Diese Rechnung automatisch wiederholen</span>
+              </label>
+              {doc.recurring && (
+                <div className="grid md:grid-cols-3 gap-3">
+                  <Field label="Intervall">
+                    <select value={doc.recurringInterval || "monthly"} onChange={(e) => setDoc({ ...doc, recurringInterval: e.target.value })} className={inp}>
+                      <option value="monthly">Monatlich</option>
+                      <option value="quarterly">Vierteljährlich</option>
+                      <option value="yearly">Jährlich</option>
+                    </select>
+                  </Field>
+                  <Field label="Nächstes Erstelldatum"><input type="date" value={doc.recurringNextDate || ""} onChange={(e) => setDoc({ ...doc, recurringNextDate: e.target.value })} className={inp} /></Field>
+                  <Field label="Endet am (optional)"><input type="date" value={doc.recurringEndDate || ""} onChange={(e) => setDoc({ ...doc, recurringEndDate: e.target.value })} className={inp} /></Field>
+                </div>
+              )}
+              {doc.recurring && (
+                <p className="text-xs text-[#64748b] mt-2">💡 Die Rechnung wird als Vorlage verwendet. Beim Auslösen (Button "Wiederholungen jetzt erzeugen" in der Rechnungsliste) werden automatisch neue Rechnungen mit dem heutigen Datum erstellt.</p>
+              )}
+            </Card>
+          )}
         </div>
 
         <div className="space-y-4">

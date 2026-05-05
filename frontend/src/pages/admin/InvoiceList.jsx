@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, Trash2, Edit3, Eye, Send, FileDown, CheckCircle2, AlertTriangle, Search, Receipt } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit3, Eye, Send, FileDown, CheckCircle2, AlertTriangle, Search, Receipt, Copy, RefreshCw, ArrowRightLeft, Repeat } from "lucide-react";
 import { Link } from "react-router-dom";
 import api, { tokenStorage, API } from "../../api";
 
@@ -107,6 +107,36 @@ export default function InvoiceList({ kind = "invoice" }) {
     setItems((arr) => arr.map((x) => x.id === id ? { ...x, status: "paid" } : x));
   };
 
+  const duplicate = async (id) => {
+    try {
+      const r = await api.post(`/admin/invoices/${id}/duplicate`);
+      setItems((arr) => [r.data, ...arr]);
+      setFeedback({ type: "ok", text: `Dupliziert: ${r.data.number}` });
+    } catch (e) { setFeedback({ type: "err", text: e.response?.data?.detail || "Fehler" }); }
+  };
+
+  const convertOfferToInvoice = async (id) => {
+    if (!window.confirm("Offerte in eine Rechnung umwandeln?")) return;
+    try {
+      const r = await api.post(`/admin/offers/${id}/convert-to-invoice`);
+      setFeedback({ type: "ok", text: `Rechnung erstellt: ${r.data.number}` });
+    } catch (e) { setFeedback({ type: "err", text: e.response?.data?.detail || "Fehler" }); }
+  };
+
+  const runRecurring = async () => {
+    if (!window.confirm("Alle fälligen wiederkehrenden Rechnungen jetzt erzeugen?")) return;
+    setFeedback(null);
+    try {
+      const r = await api.post(`/admin/invoices/run-recurring`);
+      if (r.data.count === 0) {
+        setFeedback({ type: "ok", text: "Keine fälligen Wiederholungen gefunden." });
+      } else {
+        setFeedback({ type: "ok", text: `${r.data.count} neue Rechnung(en) erzeugt: ${r.data.created.join(", ")}` });
+        load();
+      }
+    } catch (e) { setFeedback({ type: "err", text: e.response?.data?.detail || "Fehler" }); }
+  };
+
   return (
     <div data-testid={`${path}-page`}>
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -117,6 +147,11 @@ export default function InvoiceList({ kind = "invoice" }) {
         <Link to={`/admin/${path}/new`} data-testid={`new-${path}-btn`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#E63946] hover:bg-[#c5303d] text-white font-bold text-sm">
           <Plus size={15} /> {newLabel}
         </Link>
+        {!isOffer && (
+          <button onClick={runRecurring} data-testid="run-recurring-btn" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white font-bold text-sm">
+            <RefreshCw size={15} /> Wiederholungen jetzt erzeugen
+          </button>
+        )}
       </div>
 
       {feedback && (
@@ -163,6 +198,9 @@ export default function InvoiceList({ kind = "invoice" }) {
                             {busyId === it.id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                           </button>
                           <Link to={`/admin/${path}/${it.id}`} title="Bearbeiten" className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#A855F7] hover:text-white flex items-center justify-center"><Edit3 size={14} /></Link>
+                          <button onClick={() => duplicate(it.id)} title="Duplizieren" data-testid={`dup-${it.id}`} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#06B6D4] hover:text-white flex items-center justify-center"><Copy size={14} /></button>
+                          {isOffer && <button onClick={() => convertOfferToInvoice(it.id)} title="In Rechnung umwandeln" data-testid={`conv-${it.id}`} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-emerald-600 hover:text-white flex items-center justify-center"><ArrowRightLeft size={14} /></button>}
+                          {!isOffer && it.recurring && <span title="Wiederkehrend" className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center"><Repeat size={14} /></span>}
                           {!isOffer && it.status !== "paid" && (
                             <button onClick={() => markPaid(it.id)} title="Als bezahlt markieren" className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-emerald-600 hover:text-white flex items-center justify-center"><CheckCircle2 size={14} /></button>
                           )}

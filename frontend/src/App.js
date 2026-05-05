@@ -40,6 +40,7 @@ import Products from "./pages/admin/Products";
 import Invoices from "./pages/admin/Invoices";
 import Offers from "./pages/admin/Offers";
 import InvoiceEditor from "./pages/admin/InvoiceEditor";
+import InvoiceTemplates from "./pages/admin/InvoiceTemplates";
 
 function PublicSite() {
   const [scrolled, setScrolled] = useState(false);
@@ -114,6 +115,7 @@ function App() {
                 <Route path="invoices" element={<Invoices />} />
                 <Route path="invoices/new" element={<InvoiceEditor mode="invoice" />} />
                 <Route path="invoices/:id" element={<InvoiceEditor mode="invoice" />} />
+                <Route path="invoice-templates" element={<InvoiceTemplates />} />
                 <Route path="offers" element={<Offers />} />
                 <Route path="offers/new" element={<InvoiceEditor mode="offer" />} />
                 <Route path="offers/:id" element={<InvoiceEditor mode="offer" />} />

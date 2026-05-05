@@ -388,6 +388,12 @@ class InvoiceIn(BaseModel):
     reference: Optional[str] = ""
     status: str = "draft"  # draft | sent | paid | overdue
     type: str = "invoice"  # "invoice" | "offer"
+    # Recurring
+    recurring: bool = False
+    recurringInterval: Optional[str] = "monthly"  # monthly | quarterly | yearly
+    recurringNextDate: Optional[str] = ""
+    recurringEndDate: Optional[str] = ""
+    parentId: Optional[str] = ""  # set on auto-generated children
 
 
 class Invoice(InvoiceIn):
@@ -405,6 +411,27 @@ class InvoiceSendIn(BaseModel):
     subject: Optional[str] = ""
     message: Optional[str] = ""
     toEmail: Optional[str] = ""
+
+
+# ----- Invoice template (saved item lists) -----
+class InvoiceTemplateIn(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    items: List[InvoiceItem] = []
+    notes: Optional[str] = ""
+    intro: Optional[str] = ""
+    title: Optional[str] = ""
+    order: int = 0
+
+
+class InvoiceTemplate(InvoiceTemplateIn):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    createdAt: datetime = Field(default_factory=now_utc)
+
+
+# ----- Reorder payload -----
+class ReorderIn(BaseModel):
+    ids: List[str]
 
 
 # ----------------------------------------------------------------------------
@@ -675,6 +702,32 @@ make_crud("services", ServiceIn, Service, "services")
 make_crud("companies", CompanyIn, Company, "companies", public=False)
 make_crud("product_categories", ProductCategoryIn, ProductCategory, "product-categories", public=False)
 make_crud("products", ProductIn, Product, "products", public=False)
+make_crud("invoice_templates", InvoiceTemplateIn, InvoiceTemplate, "invoice-templates", public=False)
+
+
+# ----------------------------------------------------------------------------
+# Generic reorder endpoint (drag & drop ordering)
+# ----------------------------------------------------------------------------
+_REORDER_COLLECTIONS = {
+    "projects", "blogs", "testimonials", "services", "faqs",
+    "products", "product-categories", "invoice-templates", "email-templates",
+    "companies",
+}
+_COL_MAP = {
+    "product-categories": "product_categories",
+    "invoice-templates": "invoice_templates",
+    "email-templates": "email_templates",
+}
+
+
+@api_router.post("/admin/{collection}/reorder")
+async def reorder_items(collection: str, payload: ReorderIn, user=Depends(require_admin)):
+    if collection not in _REORDER_COLLECTIONS:
+        raise HTTPException(404, "Sortierung für diese Kollektion nicht erlaubt")
+    db_col = _COL_MAP.get(collection, collection)
+    for idx, item_id in enumerate(payload.ids):
+        await db[db_col].update_one({"id": item_id}, {"$set": {"order": idx}})
+    return {"ok": True, "count": len(payload.ids)}
 
 
 # ----------------------------------------------------------------------------
@@ -1074,6 +1127,121 @@ async def mark_paid(iid: str, user=Depends(require_admin)):
 
 
 # ----------------------------------------------------------------------------
+# Duplicate (invoice or offer) – copies items + customer, new draft
+# ----------------------------------------------------------------------------
+@api_router.post("/admin/invoices/{iid}/duplicate", response_model=Invoice)
+async def duplicate_doc(iid: str, user=Depends(require_admin)):
+    doc = await db.invoices.find_one({"id": iid})
+    if not doc:
+        raise HTTPException(404, "Dokument nicht gefunden")
+    company = await _resolve_company(doc.get("companyId"))
+    new_type = doc.get("type", "invoice")
+    cleaned = clean(doc).copy()
+    for key in ("id", "createdAt", "number", "sentAt", "paidAt", "status",
+                "recurringNextDate", "parentId"):
+        cleaned.pop(key, None)
+    cleaned["status"] = "draft"
+    cleaned["recurring"] = False
+    items = [InvoiceItem(**it) for it in cleaned.get("items", [])]
+    inv = Invoice(
+        **{k: v for k, v in cleaned.items() if k != "items"},
+        items=items,
+        number=await _next_number(company, new_type),
+    )
+    await db.invoices.insert_one(inv.dict())
+    return inv
+
+
+# ----------------------------------------------------------------------------
+# Convert offer -> invoice
+# ----------------------------------------------------------------------------
+@api_router.post("/admin/offers/{iid}/convert-to-invoice", response_model=Invoice)
+async def offer_to_invoice(iid: str, user=Depends(require_admin)):
+    doc = await db.invoices.find_one({"id": iid, "type": "offer"})
+    if not doc:
+        raise HTTPException(404, "Offerte nicht gefunden")
+    company = await _resolve_company(doc.get("companyId"))
+    cleaned = clean(doc).copy()
+    for key in ("id", "createdAt", "number", "sentAt", "paidAt"):
+        cleaned.pop(key, None)
+    cleaned["type"] = "invoice"
+    cleaned["status"] = "draft"
+    cleaned["parentId"] = iid
+    items = [InvoiceItem(**it) for it in cleaned.get("items", [])]
+    inv = Invoice(
+        **{k: v for k, v in cleaned.items() if k != "items"},
+        items=items,
+        number=await _next_number(company, "invoice"),
+    )
+    await db.invoices.insert_one(inv.dict())
+    return inv
+
+
+# ----------------------------------------------------------------------------
+# Run recurring invoices – generates new invoice if recurringNextDate has passed
+# ----------------------------------------------------------------------------
+def _add_interval(date_str: str, interval: str) -> str:
+    try:
+        d = datetime.strptime(date_str[:10], "%Y-%m-%d")
+    except Exception:
+        d = datetime.utcnow()
+    if interval == "yearly":
+        d = d.replace(year=d.year + 1)
+    elif interval == "quarterly":
+        m = d.month + 3
+        y = d.year + (m - 1) // 12
+        d = d.replace(year=y, month=((m - 1) % 12) + 1)
+    else:  # monthly
+        m = d.month + 1
+        y = d.year + (m - 1) // 12
+        d = d.replace(year=y, month=((m - 1) % 12) + 1)
+    return d.strftime("%Y-%m-%d")
+
+
+@api_router.post("/admin/invoices/run-recurring")
+async def run_recurring(user=Depends(require_admin)):
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    parents = await db.invoices.find({
+        "recurring": True,
+        "type": "invoice",
+        "$or": [
+            {"recurringNextDate": {"$lte": today}},
+            {"recurringNextDate": {"$exists": False}},
+            {"recurringNextDate": ""},
+        ],
+    }).to_list(500)
+
+    created = []
+    for parent in parents:
+        end_date = parent.get("recurringEndDate") or ""
+        if end_date and end_date <= today:
+            continue
+        company = await _resolve_company(parent.get("companyId"))
+        cleaned = clean(parent).copy()
+        for key in ("id", "createdAt", "number", "sentAt", "paidAt"):
+            cleaned.pop(key, None)
+        cleaned["status"] = "draft"
+        cleaned["recurring"] = False  # the child is a one-off
+        cleaned["parentId"] = parent["id"]
+        cleaned["issueDate"] = today
+        items = [InvoiceItem(**it) for it in cleaned.get("items", [])]
+        new_inv = Invoice(
+            **{k: v for k, v in cleaned.items() if k != "items"},
+            items=items,
+            number=await _next_number(company, "invoice"),
+        )
+        await db.invoices.insert_one(new_inv.dict())
+        created.append(new_inv.number)
+
+        # advance parent next date
+        interval = parent.get("recurringInterval") or "monthly"
+        next_date = _add_interval(parent.get("recurringNextDate") or today, interval)
+        await db.invoices.update_one({"id": parent["id"]}, {"$set": {"recurringNextDate": next_date}})
+
+    return {"ok": True, "created": created, "count": len(created)}
+
+
+# ----------------------------------------------------------------------------
 # Stats
 # ----------------------------------------------------------------------------
 @api_router.get("/admin/stats")
@@ -1092,6 +1260,8 @@ async def admin_stats(user=Depends(require_admin)):
         "faqs": await db.faqs.count_documents({}),
         "products": await db.products.count_documents({}),
         "companies": await db.companies.count_documents({}),
+        "invoiceTemplates": await db.invoice_templates.count_documents({}),
+        "recurringInvoices": await db.invoices.count_documents({"recurring": True, "type": "invoice"}),
     }
 
 

@@ -23,6 +23,65 @@ from svglib.svglib import svg2rlg
 
 
 # ---------------------------------------------------------------------------
+# i18n
+# ---------------------------------------------------------------------------
+LANG = {
+    "de": {
+        "invoice": "Rechnung", "offer": "Offerte",
+        "billed_to_invoice": "Rechnung an:", "billed_to_offer": "Offerte an:",
+        "no": "Nr.", "date": "Datum", "due": "Fällig", "ref": "Referenz",
+        "header_no": "#", "header_desc": "Beschreibung", "header_qty": "Menge",
+        "header_price": "Einzelpreis", "header_total": "Total",
+        "subtotal": "Zwischensumme", "vat": "MwSt", "total": "Total",
+        "notes": "Hinweise", "default_terms": "Zahlbar innert 30 Tagen via beigefügtem QR-Code.",
+        "vatnr": "MwSt-Nr",
+        "preview_qr_note": "Im finalen PDF erscheint hier ein Schweizer QR-Einzahlungsschein.",
+        "payment": "Zahlung", "preview_footer": "Vorschau – Druck via PDF-Export",
+    },
+    "fr": {
+        "invoice": "Facture", "offer": "Devis",
+        "billed_to_invoice": "Facturé à :", "billed_to_offer": "Devis à :",
+        "no": "N°", "date": "Date", "due": "Échéance", "ref": "Référence",
+        "header_no": "#", "header_desc": "Description", "header_qty": "Qté",
+        "header_price": "Prix unitaire", "header_total": "Total",
+        "subtotal": "Sous-total", "vat": "TVA", "total": "Total",
+        "notes": "Remarques", "default_terms": "Payable sous 30 jours via le QR-code joint.",
+        "vatnr": "N° TVA",
+        "preview_qr_note": "Le PDF final contient un bulletin QR suisse.",
+        "payment": "Paiement", "preview_footer": "Aperçu – impression via export PDF",
+    },
+    "it": {
+        "invoice": "Fattura", "offer": "Offerta",
+        "billed_to_invoice": "Fattura a:", "billed_to_offer": "Offerta a:",
+        "no": "Nr.", "date": "Data", "due": "Scadenza", "ref": "Riferimento",
+        "header_no": "#", "header_desc": "Descrizione", "header_qty": "Q.tà",
+        "header_price": "Prezzo unit.", "header_total": "Totale",
+        "subtotal": "Subtotale", "vat": "IVA", "total": "Totale",
+        "notes": "Note", "default_terms": "Pagabile entro 30 giorni tramite il codice QR allegato.",
+        "vatnr": "P.IVA",
+        "preview_qr_note": "Il PDF finale contiene una polizza QR svizzera.",
+        "payment": "Pagamento", "preview_footer": "Anteprima – stampa via PDF",
+    },
+    "en": {
+        "invoice": "Invoice", "offer": "Quotation",
+        "billed_to_invoice": "Bill to:", "billed_to_offer": "Quotation for:",
+        "no": "No.", "date": "Date", "due": "Due", "ref": "Reference",
+        "header_no": "#", "header_desc": "Description", "header_qty": "Qty",
+        "header_price": "Unit price", "header_total": "Total",
+        "subtotal": "Subtotal", "vat": "VAT", "total": "Total",
+        "notes": "Notes", "default_terms": "Payable within 30 days via the attached Swiss QR slip.",
+        "vatnr": "VAT-ID",
+        "preview_qr_note": "The final PDF contains a Swiss QR payment slip.",
+        "payment": "Payment", "preview_footer": "Preview – print via PDF export",
+    },
+}
+
+
+def _t(settings: dict) -> dict:
+    return LANG.get((settings.get("language") or "de").lower(), LANG["de"])
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 def _fmt_money(value, currency: str = "CHF") -> str:
@@ -67,7 +126,7 @@ def _decode_logo(logo_b64: str):
     if not logo_b64:
         return None
     try:
-        data = logo_b64.split(",")[-1]  # strip data: prefix if present
+        data = logo_b64.split(",")[-1]
         raw = base64.b64decode(data)
         return ImageReader(io.BytesIO(raw))
     except Exception:
@@ -120,8 +179,8 @@ def _qrbill_drawing(invoice: dict, settings: dict):
 # Shared layout for invoice + offer
 # ---------------------------------------------------------------------------
 def _build_doc(invoice: dict, settings: dict, *, doc_kind: str) -> bytes:
-    """doc_kind: 'invoice' or 'offer'."""
     is_offer = doc_kind == "offer"
+    t = _t(settings)
     buf = io.BytesIO()
 
     styles = getSampleStyleSheet()
@@ -130,9 +189,8 @@ def _build_doc(invoice: dict, settings: dict, *, doc_kind: str) -> bytes:
     h_title = ParagraphStyle("h_title", parent=styles["Normal"], fontSize=18, leading=22, spaceAfter=4, fontName="Helvetica-Bold")
     h_label = ParagraphStyle("h_label", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#64748b"), spaceAfter=2)
 
-    # Reserve QR area only for invoices.
     bottom_reserve = (10.5 * cm + 0.5 * cm) if not is_offer else 2 * cm
-    label_word = "Offerte" if is_offer else "Rechnung"
+    label_word = t["offer"] if is_offer else t["invoice"]
 
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
@@ -149,7 +207,7 @@ def _build_doc(invoice: dict, settings: dict, *, doc_kind: str) -> bytes:
         f"{settings.get('companyZip','')} {settings.get('companyCity','')}".strip(),
     ]
     if settings.get("companyVat"):
-        company_lines.append(f"MwSt-Nr: {settings['companyVat']}")
+        company_lines.append(f"{t['vatnr']}: {settings['companyVat']}")
     if settings.get("companyEmail"):
         company_lines.append(settings["companyEmail"])
     if settings.get("companyPhone"):
@@ -157,15 +215,14 @@ def _build_doc(invoice: dict, settings: dict, *, doc_kind: str) -> bytes:
 
     meta = [
         f"<b>{label_word.upper()}</b>",
-        f"Nr.: {invoice.get('number','-')}",
-        f"Datum: {_fmt_date(invoice.get('issueDate') or datetime.utcnow())}",
+        f"{t['no']}: {invoice.get('number','-')}",
+        f"{t['date']}: {_fmt_date(invoice.get('issueDate') or datetime.utcnow())}",
     ]
     if not is_offer:
-        meta.append(f"Fällig: {_fmt_date(invoice.get('dueDate'))}")
+        meta.append(f"{t['due']}: {_fmt_date(invoice.get('dueDate'))}")
     if invoice.get("reference"):
-        meta.append(f"Referenz: {invoice['reference']}")
+        meta.append(f"{t['ref']}: {invoice['reference']}")
 
-    # Optional logo on the left
     logo = _decode_logo(settings.get("logoBase64"))
     left_cell = Paragraph("<br/>".join([l for l in company_lines if l]), h_small)
     if logo:
@@ -192,7 +249,7 @@ def _build_doc(invoice: dict, settings: dict, *, doc_kind: str) -> bytes:
         bill_to_lines.append(invoice["clientStreet"])
     if invoice.get("clientZip") or invoice.get("clientCity"):
         bill_to_lines.append(f"{invoice.get('clientZip','')} {invoice.get('clientCity','')}".strip())
-    story.append(Paragraph("Rechnung an:" if not is_offer else "Offerte an:", h_label))
+    story.append(Paragraph(t["billed_to_offer"] if is_offer else t["billed_to_invoice"], h_label))
     story.append(Paragraph("<br/>".join(bill_to_lines), h_small))
     story.append(Spacer(1, 0.6 * cm))
 
@@ -203,7 +260,7 @@ def _build_doc(invoice: dict, settings: dict, *, doc_kind: str) -> bytes:
         story.append(Spacer(1, 0.3 * cm))
 
     currency = invoice.get("currency", "CHF") or "CHF"
-    table_data = [["#", "Beschreibung", "Menge", "Einzelpreis", "Total"]]
+    table_data = [[t["header_no"], t["header_desc"], t["header_qty"], t["header_price"], t["header_total"]]]
     for i, it in enumerate(invoice.get("items", []), start=1):
         qty = Decimal(str(it.get("quantity", 1)))
         price = Decimal(str(it.get("unitPrice", 0)))
@@ -237,9 +294,9 @@ def _build_doc(invoice: dict, settings: dict, *, doc_kind: str) -> bytes:
     total = Decimal(str(invoice.get("total", 0))).quantize(Decimal("0.01"))
 
     totals_data = [
-        ["Zwischensumme", _fmt_money(subtotal, currency)],
-        [f"MwSt ({vat_rate}%)", _fmt_money(vat_amount, currency)],
-        ["Total", _fmt_money(total, currency)],
+        [t["subtotal"], _fmt_money(subtotal, currency)],
+        [f"{t['vat']} ({vat_rate}%)", _fmt_money(vat_amount, currency)],
+        [t["total"], _fmt_money(total, currency)],
     ]
     totals_table = Table(totals_data, colWidths=[5 * cm, 4 * cm], hAlign="RIGHT")
     totals_table.setStyle(TableStyle([
@@ -255,12 +312,12 @@ def _build_doc(invoice: dict, settings: dict, *, doc_kind: str) -> bytes:
     story.append(Spacer(1, 0.5 * cm))
 
     if invoice.get("notes"):
-        story.append(Paragraph("<b>Hinweise:</b>", h_label))
+        story.append(Paragraph(f"<b>{t['notes']}:</b>", h_label))
         story.append(Paragraph(invoice["notes"], h_small))
         story.append(Spacer(1, 0.3 * cm))
 
     if not is_offer:
-        payment_terms = settings.get("paymentTerms") or "Zahlbar innert 30 Tagen via beigefügtem QR-Code."
+        payment_terms = settings.get("paymentTerms") or t["default_terms"]
         story.append(Paragraph(payment_terms, h_small))
 
     if is_offer:
@@ -285,7 +342,7 @@ def build_offer_pdf(offer: dict, settings: dict) -> bytes:
 
 
 # ---------------------------------------------------------------------------
-# HTML preview
+# HTML preview (i18n)
 # ---------------------------------------------------------------------------
 def _html_escape(s) -> str:
     return html_lib.escape(str(s or ""))
@@ -293,7 +350,8 @@ def _html_escape(s) -> str:
 
 def _render_html(invoice: dict, settings: dict, *, doc_kind: str) -> str:
     is_offer = doc_kind == "offer"
-    label = "Offerte" if is_offer else "Rechnung"
+    t = _t(settings)
+    label = t["offer"] if is_offer else t["invoice"]
     currency = invoice.get("currency", "CHF") or "CHF"
 
     rows_html = ""
@@ -323,20 +381,20 @@ def _render_html(invoice: dict, settings: dict, *, doc_kind: str) -> str:
         f"{_html_escape(settings.get('companyZip',''))} {_html_escape(settings.get('companyCity',''))}<br/>"
     )
     if settings.get("companyVat"):
-        company_html += f"MwSt-Nr: {_html_escape(settings['companyVat'])}<br/>"
+        company_html += f"{t['vatnr']}: {_html_escape(settings['companyVat'])}<br/>"
     if settings.get("companyEmail"):
         company_html += f"{_html_escape(settings['companyEmail'])}<br/>"
 
     payment_block = ""
     if not is_offer:
         payment_block = (
-            f"<div class='payment'><strong>Zahlung:</strong><br/>"
+            f"<div class='payment'><strong>{t['payment']}:</strong><br/>"
             f"IBAN: {_html_escape(settings.get('iban',''))}<br/>"
-            f"{_html_escape(settings.get('paymentTerms',''))}<br/>"
-            f"<em>Im finalen PDF erscheint hier ein Schweizer QR-Einzahlungsschein.</em></div>"
+            f"{_html_escape(settings.get('paymentTerms') or t['default_terms'])}<br/>"
+            f"<em>{t['preview_qr_note']}</em></div>"
         )
 
-    return f"""<!doctype html><html lang="de"><head>
+    return f"""<!doctype html><html lang="{settings.get('language','de')}"><head>
 <meta charset="utf-8"/>
 <title>{label} {_html_escape(invoice.get('number',''))}</title>
 <style>
@@ -363,14 +421,14 @@ def _render_html(invoice: dict, settings: dict, *, doc_kind: str) -> str:
     <div>{company_html}</div>
     <div class="meta">
       <span class="badge">{label}</span>
-      <h1 style="margin-top:8px">Nr. {_html_escape(invoice.get('number','-'))}</h1>
-      <div>Datum: {_fmt_date(invoice.get('issueDate') or datetime.utcnow())}</div>
-      {f"<div>Fällig: {_fmt_date(invoice.get('dueDate'))}</div>" if not is_offer else ""}
-      {f"<div>Referenz: {_html_escape(invoice.get('reference',''))}</div>" if invoice.get('reference') else ""}
+      <h1 style="margin-top:8px">{t['no']} {_html_escape(invoice.get('number','-'))}</h1>
+      <div>{t['date']}: {_fmt_date(invoice.get('issueDate') or datetime.utcnow())}</div>
+      {f"<div>{t['due']}: {_fmt_date(invoice.get('dueDate'))}</div>" if not is_offer else ""}
+      {f"<div>{t['ref']}: {_html_escape(invoice.get('reference',''))}</div>" if invoice.get('reference') else ""}
     </div>
   </div>
 
-  <div class="label">{label} an</div>
+  <div class="label">{t['billed_to_offer'] if is_offer else t['billed_to_invoice']}</div>
   <div style="font-size:14px;line-height:1.5">
     <strong>{_html_escape(invoice.get('clientName',''))}</strong><br/>
     {_html_escape(invoice.get('clientStreet',''))}<br/>
@@ -381,19 +439,19 @@ def _render_html(invoice: dict, settings: dict, *, doc_kind: str) -> str:
   {f"<p>{_html_escape(invoice.get('intro',''))}</p>" if invoice.get('intro') else ""}
 
   <table>
-    <thead><tr><th>#</th><th>Beschreibung</th><th class="r">Menge</th><th class="r">Einzelpreis</th><th class="r">Total</th></tr></thead>
-    <tbody>{rows_html or '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94a3b8">Keine Positionen erfasst</td></tr>'}</tbody>
+    <thead><tr><th>{t['header_no']}</th><th>{t['header_desc']}</th><th class="r">{t['header_qty']}</th><th class="r">{t['header_price']}</th><th class="r">{t['header_total']}</th></tr></thead>
+    <tbody>{rows_html or '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94a3b8">—</td></tr>'}</tbody>
   </table>
 
   <div class="totals">
-    <div class="row"><span>Zwischensumme</span><span>{_fmt_money(invoice.get('subtotal', 0), currency)}</span></div>
-    <div class="row"><span>MwSt ({invoice.get('vatRate', 0)}%)</span><span>{_fmt_money(invoice.get('vatAmount', 0), currency)}</span></div>
-    <div class="row total"><span>Total</span><span>{_fmt_money(invoice.get('total', 0), currency)}</span></div>
+    <div class="row"><span>{t['subtotal']}</span><span>{_fmt_money(invoice.get('subtotal', 0), currency)}</span></div>
+    <div class="row"><span>{t['vat']} ({invoice.get('vatRate', 0)}%)</span><span>{_fmt_money(invoice.get('vatAmount', 0), currency)}</span></div>
+    <div class="row total"><span>{t['total']}</span><span>{_fmt_money(invoice.get('total', 0), currency)}</span></div>
   </div>
 
-  {f"<div class='small' style='margin-top:24px'><strong>Hinweise:</strong><br/>{_html_escape(invoice.get('notes',''))}</div>" if invoice.get('notes') else ""}
+  {f"<div class='small' style='margin-top:24px'><strong>{t['notes']}:</strong><br/>{_html_escape(invoice.get('notes',''))}</div>" if invoice.get('notes') else ""}
   {payment_block}
-  <p class="small" style="margin-top:30px;text-align:center">{_html_escape(settings.get('companyName',''))} &bull; Vorschau – Druck via PDF-Export</p>
+  <p class="small" style="margin-top:30px;text-align:center">{_html_escape(settings.get('companyName',''))} &bull; {t['preview_footer']}</p>
 </div></body></html>"""
 
 

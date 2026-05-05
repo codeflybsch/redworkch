@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Plus, Edit2, Trash2, X, Loader2, Save } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Loader2, Save, ListOrdered, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api from "../../api";
 
 /**
@@ -18,6 +19,7 @@ export default function CrudManager({ title, resource, publicResource, fields, c
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [sortMode, setSortMode] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,19 +68,39 @@ export default function CrudManager({ title, resource, publicResource, fields, c
     setItems((arr) => arr.filter((x) => x.id !== id));
   };
 
+  const onDragEnd = async (result) => {
+    if (!result.destination) return;
+    const reordered = Array.from(items);
+    const [moved] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, moved);
+    setItems(reordered);
+    try {
+      await api.post(`/admin/${resource}/reorder`, { ids: reordered.map((i) => i.id) });
+    } catch (e) { /* ignore */ }
+  };
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-extrabold text-[#0f172a]">{title}</h1>
           <p className="text-[#64748b] mt-1">{items.length} Einträge</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-2 bg-[#E63946] hover:bg-[#d22c39] text-white px-5 py-2.5 rounded-full font-bold transition"
-        >
-          <Plus size={18} /> Neu hinzufügen
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setSortMode((s) => !s)}
+            data-testid="toggle-sort-mode"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm transition ${sortMode ? "bg-[#0f172a] text-white" : "bg-slate-100 hover:bg-slate-200 text-[#0f172a]"}`}
+          >
+            <ListOrdered size={16} /> {sortMode ? "Sortieren beenden" : "Sortieren"}
+          </button>
+          <button
+            onClick={openNew}
+            className="flex items-center gap-2 bg-[#E63946] hover:bg-[#d22c39] text-white px-5 py-2.5 rounded-full font-bold transition"
+          >
+            <Plus size={18} /> Neu hinzufügen
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-card overflow-hidden">
@@ -86,6 +108,35 @@ export default function CrudManager({ title, resource, publicResource, fields, c
           <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto" /></div>
         ) : items.length === 0 ? (
           <div className="p-12 text-center text-[#64748b]">Noch keine Einträge.</div>
+        ) : sortMode ? (
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="list">
+              {(provided) => (
+                <div ref={provided.innerRef} {...provided.droppableProps} className="p-3 space-y-1.5">
+                  <p className="text-xs text-[#64748b] mb-2 px-2">Ziehe die Einträge an den Griffen, um die Reihenfolge zu ändern. Wird automatisch gespeichert.</p>
+                  {items.map((it, idx) => (
+                    <Draggable key={it.id} draggableId={it.id} index={idx}>
+                      {(prov, snap) => (
+                        <div
+                          ref={prov.innerRef}
+                          {...prov.draggableProps}
+                          className={`flex items-center gap-3 bg-white rounded-xl border ${snap.isDragging ? "border-[#E63946] shadow-2xl" : "border-slate-200"} px-2 py-2`}
+                        >
+                          <div {...prov.dragHandleProps} className="px-2 text-slate-400 hover:text-[#E63946] cursor-grab"><GripVertical size={18} /></div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm text-[#0f172a] truncate">{columns[0]?.render ? columns[0].render(it) : it[columns[0]?.key]}</div>
+                            {columns[1] && <div className="text-xs text-[#64748b] truncate">{columns[1]?.render ? columns[1].render(it) : it[columns[1]?.key]}</div>}
+                          </div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">#{idx + 1}</span>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">

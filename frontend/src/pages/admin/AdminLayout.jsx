@@ -41,6 +41,7 @@ const groups = [
       { to: "/admin/products", label: "Produkte / Katalog", icon: Package },
       { to: "/admin/invoices", label: "Rechnungen", icon: Receipt },
       { to: "/admin/offers", label: "Offerten", icon: FileSignature },
+      { to: "/admin/invoice-templates", label: "Rechnungs-Vorlagen", icon: FileText },
     ],
   },
 ];

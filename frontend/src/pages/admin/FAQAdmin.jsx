@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Save, Plus, Trash2, Edit3, X, Search, HelpCircle } from "lucide-react";
+import { Loader2, Save, Plus, Trash2, Edit3, X, Search, HelpCircle, ListOrdered, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api from "../../api";
 
 const EMPTY = { category: "Allgemein", question: "", answer: "", order: 0, published: true };
@@ -11,6 +12,7 @@ export default function FAQAdmin() {
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
+  const [sortMode, setSortMode] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,6 +64,20 @@ export default function FAQAdmin() {
     setItems((arr) => arr.filter((x) => x.id !== id));
   };
 
+  const onDragEnd = async (result) => {
+    if (!result.destination) return;
+    const reordered = Array.from(filtered);
+    const [moved] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, moved);
+    // update items: for visible part, replace; rest stays as-is
+    const visibleIds = new Set(filtered.map((x) => x.id));
+    const others = items.filter((x) => !visibleIds.has(x.id));
+    setItems([...reordered, ...others]);
+    try {
+      await api.post("/admin/faqs/reorder", { ids: reordered.map((i) => i.id) });
+    } catch (e) { /* ignore */ }
+  };
+
   return (
     <div data-testid="faqs-page">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -69,9 +85,18 @@ export default function FAQAdmin() {
           <h1 className="text-3xl font-extrabold text-[#0f172a]">FAQ verwalten</h1>
           <p className="text-[#64748b] mt-1">{items.length} Einträge insgesamt · {categories.length} Kategorien</p>
         </div>
-        <button onClick={() => open(null)} data-testid="new-faq-btn" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#E63946] hover:bg-[#c5303d] text-white font-bold text-sm transition">
-          <Plus size={15} /> Neue FAQ
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setSortMode((s) => !s)}
+            data-testid="faq-sort-toggle"
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm ${sortMode ? "bg-[#0f172a] text-white" : "bg-slate-100 hover:bg-slate-200 text-[#0f172a]"}`}
+          >
+            <ListOrdered size={15} /> {sortMode ? "Sortieren beenden" : "Sortieren"}
+          </button>
+          <button onClick={() => open(null)} data-testid="new-faq-btn" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#E63946] hover:bg-[#c5303d] text-white font-bold text-sm transition">
+            <Plus size={15} /> Neue FAQ
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3 mt-4 flex-wrap">
@@ -90,6 +115,30 @@ export default function FAQAdmin() {
           <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto" /></div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-[#64748b]">Keine Einträge gefunden.</div>
+        ) : sortMode ? (
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="faqs">
+              {(provided) => (
+                <div ref={provided.innerRef} {...provided.droppableProps} className="p-3 space-y-1.5">
+                  <p className="text-xs text-[#64748b] mb-2 px-2">💡 Tipp: Wähle oben eine Kategorie, dann sortiere die FAQs nur in dieser Kategorie. Bei vielen Einträgen für bessere Performance.</p>
+                  {filtered.slice(0, 200).map((it, idx) => (
+                    <Draggable key={it.id} draggableId={it.id} index={idx}>
+                      {(prov, snap) => (
+                        <div ref={prov.innerRef} {...prov.draggableProps} className={`flex items-center gap-2 bg-white border ${snap.isDragging ? "border-[#E63946] shadow-2xl" : "border-slate-200"} rounded-lg px-2 py-2`}>
+                          <div {...prov.dragHandleProps} className="px-2 text-slate-400 hover:text-[#E63946] cursor-grab"><GripVertical size={16} /></div>
+                          <span className="text-[10px] font-bold text-slate-400 w-8">#{idx + 1}</span>
+                          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-slate-100 rounded font-bold text-[#0f172a] flex-shrink-0">{it.category}</span>
+                          <span className="text-sm font-semibold text-[#0f172a] truncate">{it.question}</span>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                  {filtered.length > 200 && <p className="text-xs text-center text-[#94a3b8] py-2">Nur die ersten 200 sortierbar – verfeinere via Kategorie-Filter.</p>}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
