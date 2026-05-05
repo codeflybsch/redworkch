@@ -27,7 +27,7 @@ export default function ContactSection() {
   return (
     <section id="kontakt" className="py-20 md:py-28 bg-[#0a0a0a] text-white relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(230,57,70,0.18),transparent_50%),radial-gradient(circle_at_80%_70%,rgba(30,136,229,0.15),transparent_50%)] pointer-events-none" />
-      <div className="max-w-[1200px] mx-auto px-5 md:px-6 relative">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 relative">
         <div className="text-center mb-12 max-w-3xl mx-auto">
           <p className="text-[#FFC107] font-bold tracking-[0.25em] text-xs">{s.contactSubtitle?.toUpperCase()}</p>
           <h2 className="text-[32px] md:text-[48px] font-extrabold mt-2">{s.contactTitle}</h2>

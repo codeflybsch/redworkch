@@ -11,7 +11,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #f1f5fb;
   color: #0f172a;
+  overflow-x: hidden;
 }
+
+html { overflow-x: hidden; }
 
 code { font-family: 'Roboto Mono', monospace; }
 
