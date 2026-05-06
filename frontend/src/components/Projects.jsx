@@ -12,7 +12,7 @@ export default function Projects() {
   }, []);
 
   return (
-    <section id="projekte" className="py-16 sm:py-24 bg-[#f1f5fb]">
+    <section id="projekte" className="scroll-mt-24 py-16 sm:py-24 bg-[#f1f5fb]">
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6">
         <div className="text-center mb-10 sm:mb-14">
           <h2 className="text-[28px] sm:text-[34px] md:text-[44px] font-extrabold text-[#0f172a]">

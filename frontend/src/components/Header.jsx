@@ -16,7 +16,11 @@ export default function Header({ scrolled }) {
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         const el = document.getElementById(id);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (el) {
+          const headerHeight = document.querySelector("header")?.offsetHeight || 0;
+          const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
+          window.scrollTo({ top: Math.max(top, 0), behavior: "smooth" });
+        }
       }
       setOpen(false);
     }

@@ -274,6 +274,7 @@ class SiteSettings(BaseModel):
     footerEmail: str = "info@redwork.ch"
     footerLinks: List[str] = []
     footerCopyright: str = "© 2026 redwork.ch – Alle Rechte vorbehalten"
+    footerSlogan: str = "12 Monate kostenloser Support für alle unsere Kunden inklusive!"
     footerSocial: dict = {"facebook": "", "instagram": "", "linkedin": "", "twitter": "", "youtube": ""}
 
 
@@ -404,6 +405,14 @@ class Invoice(InvoiceIn):
     total: float = 0.0
     sentAt: Optional[datetime] = None
     paidAt: Optional[datetime] = None
+    # Public signing (offers)
+    publicToken: str = Field(default_factory=lambda: uuid.uuid4().hex)
+    signedAt: Optional[datetime] = None
+    signedBy: Optional[str] = ""
+    signatureData: Optional[str] = ""  # base64 PNG of drawn signature
+    signedIp: Optional[str] = ""
+    declinedAt: Optional[datetime] = None
+    declineReason: Optional[str] = ""
     createdAt: datetime = Field(default_factory=now_utc)
 
 
@@ -589,6 +598,20 @@ async def delete_quote(quote_id: str, user=Depends(require_admin)):
 async def create_contact(payload: ContactIn):
     c = Contact(**payload.dict())
     await db.contacts.insert_one(c.dict())
+    # Forward to admin inbox (info@redwork.ch via SMTP)
+    admin_inbox = os.environ.get("ADMIN_NOTIFY_EMAIL", "").strip() or os.environ.get("SMTP_FROM", "").strip()
+    if admin_inbox:
+        body = (
+            f"Neue Kontakt-Nachricht von {c.fullName} <{c.email}>\n"
+            f"Telefon: {c.phone or '—'}\n"
+            f"Betreff: {c.subject}\n\n"
+            f"{c.message}\n\n"
+            f"---\nDirekt im Admin-Panel beantworten."
+        )
+        await asyncio.to_thread(
+            _send_email_smtp, admin_inbox, "redwork.ch Admin",
+            f"📩 Neue Nachricht: {c.subject}", body,
+        )
     return c
 
 
@@ -1142,6 +1165,132 @@ async def set_doc_status(iid: str, payload: StatusIn, user=Depends(require_admin
         update["paidAt"] = now_utc()
     await db.invoices.update_one({"id": iid}, {"$set": update})
     return {"ok": True}
+
+
+# ----------------------------------------------------------------------------
+# Public offer signing flow
+# ----------------------------------------------------------------------------
+class OfferAcceptIn(BaseModel):
+    signedBy: str
+    signatureData: str = ""
+
+
+class OfferDeclineIn(BaseModel):
+    declineReason: Optional[str] = ""
+
+
+def _public_offer_dto(doc: dict, company: dict) -> dict:
+    return {
+        "number": doc.get("number"),
+        "title": doc.get("title", ""),
+        "intro": doc.get("intro", ""),
+        "notes": doc.get("notes", ""),
+        "issueDate": doc.get("issueDate", ""),
+        "currency": doc.get("currency", "CHF"),
+        "items": doc.get("items", []),
+        "subtotal": doc.get("subtotal", 0),
+        "vatRate": doc.get("vatRate", 0),
+        "vatAmount": doc.get("vatAmount", 0),
+        "total": doc.get("total", 0),
+        "status": doc.get("status", "sent"),
+        "signedAt": doc.get("signedAt"),
+        "signedBy": doc.get("signedBy"),
+        "declinedAt": doc.get("declinedAt"),
+        "clientName": doc.get("clientName"),
+        "clientStreet": doc.get("clientStreet", ""),
+        "clientZip": doc.get("clientZip", ""),
+        "clientCity": doc.get("clientCity", ""),
+        "company": {
+            "name": company.get("name", ""),
+            "street": company.get("street", ""),
+            "zip": company.get("zip", ""),
+            "city": company.get("city", ""),
+            "email": company.get("email", ""),
+            "phone": company.get("phone", ""),
+            "logoBase64": company.get("logoBase64", ""),
+        },
+    }
+
+
+@api_router.get("/offers/public/{token}")
+async def get_public_offer(token: str):
+    doc = await db.invoices.find_one({"publicToken": token, "type": "offer"})
+    if not doc:
+        raise HTTPException(404, "Offerte nicht gefunden oder Link ungültig")
+    company = await _resolve_company(doc.get("companyId"))
+    return _public_offer_dto(clean(doc), company)
+
+
+@api_router.post("/offers/public/{token}/accept")
+async def accept_public_offer(token: str, payload: OfferAcceptIn):
+    doc = await db.invoices.find_one({"publicToken": token, "type": "offer"})
+    if not doc:
+        raise HTTPException(404, "Offerte nicht gefunden")
+    if doc.get("status") in ("accepted", "declined"):
+        raise HTTPException(400, "Diese Offerte wurde bereits beantwortet.")
+    if not payload.signedBy.strip():
+        raise HTTPException(400, "Bitte Namen für Signatur angeben.")
+    update = {
+        "status": "accepted",
+        "signedAt": now_utc(),
+        "signedBy": payload.signedBy.strip(),
+        "signatureData": (payload.signatureData or "")[:200000],
+    }
+    await db.invoices.update_one({"id": doc["id"]}, {"$set": update})
+    admin_inbox = os.environ.get("ADMIN_NOTIFY_EMAIL", "").strip() or os.environ.get("SMTP_FROM", "").strip()
+    if admin_inbox:
+        body = (
+            f"Offerte {doc.get('number')} wurde von {payload.signedBy} angenommen.\n\n"
+            f"Kunde: {doc.get('clientName')} ({doc.get('clientEmail') or '—'})\n"
+            f"Total: {doc.get('currency','CHF')} {doc.get('total')}\n\n"
+            f"Sie können die Offerte nun in eine Rechnung umwandeln."
+        )
+        await asyncio.to_thread(
+            _send_email_smtp, admin_inbox, "redwork.ch Admin",
+            f"✅ Offerte {doc.get('number')} angenommen", body,
+        )
+    return {"ok": True, "status": "accepted"}
+
+
+@api_router.post("/offers/public/{token}/decline")
+async def decline_public_offer(token: str, payload: OfferDeclineIn):
+    doc = await db.invoices.find_one({"publicToken": token, "type": "offer"})
+    if not doc:
+        raise HTTPException(404, "Offerte nicht gefunden")
+    if doc.get("status") in ("accepted", "declined"):
+        raise HTTPException(400, "Diese Offerte wurde bereits beantwortet.")
+    await db.invoices.update_one({"id": doc["id"]}, {"$set": {
+        "status": "declined", "declinedAt": now_utc(),
+        "declineReason": (payload.declineReason or "")[:500],
+    }})
+    admin_inbox = os.environ.get("ADMIN_NOTIFY_EMAIL", "").strip() or os.environ.get("SMTP_FROM", "").strip()
+    if admin_inbox:
+        await asyncio.to_thread(
+            _send_email_smtp, admin_inbox, "redwork.ch Admin",
+            f"❌ Offerte {doc.get('number')} abgelehnt",
+            f"Kunde: {doc.get('clientName')}\nGrund: {payload.declineReason or '—'}",
+        )
+    return {"ok": True, "status": "declined"}
+
+
+# ----------------------------------------------------------------------------
+# Public single Project & Blog endpoints (for detail pages)
+# ----------------------------------------------------------------------------
+@api_router.get("/projects/{pid}", response_model=Project)
+async def get_project_public(pid: str):
+    doc = await db.projects.find_one({"id": pid})
+    if not doc:
+        raise HTTPException(404, "Projekt nicht gefunden")
+    return Project(**clean(doc))
+
+
+@api_router.get("/blogs/{bid}", response_model=Blog)
+async def get_blog_public(bid: str):
+    doc = await db.blogs.find_one({"id": bid})
+    if not doc:
+        raise HTTPException(404, "Beitrag nicht gefunden")
+    return Blog(**clean(doc))
+
 
 
 # ----------------------------------------------------------------------------
