@@ -15,8 +15,6 @@ export default function Services() {
 
   useEffect(() => {
     api.get("/services").then((r) => setServices(r.data)).catch(() => {});
-    api.get("/site-settings").then((r) => setS((prev) => ({ ...prev, ...r.data })
-    api.get("/services").then((r) => setServices(r.data)).catch(() => {});
     api.get("/site-settings").then((r) => setS((prev) => ({ ...prev, ...r.data }))).catch(() => {});
   }, []);
 

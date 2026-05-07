@@ -66,7 +66,7 @@ export default function Projects() {
                     {p.url ? "Projekt ansehen" : "Mehr erfahren"} <ArrowRight size={14} />
                   </span>
                 </div>
-              </Tag>
+              </Wrapper>
             );
           })}
         </div>
