@@ -103,10 +103,10 @@ export default function Hero() {
 
       {/* Support Badge */}
       {s.badgeEnabled && (
-        <div className="absolute top-16 right-3 sm:right-4 z-20 pointer-events-none">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 sm:left-auto sm:top-16 sm:right-4 z-20 pointer-events-none">
           <div className="relative">
             <div className="absolute inset-0 bg-[#E63946] rounded-full blur-2xl opacity-30 animate-pulse" />
-            <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-44 md:h-44 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-[#E63946] to-[#a8202e] border-2 border-white/20 flex flex-col items-center justify-center text-center text-white px-2 sm:px-3 md:px-5 shadow-2xl">
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-44 md:h-44 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-[#E63946] to-[#a8202e] border-2 border-white/20 flex flex-col items-center justify-center text-center text-white px-2 sm:px-3 md:px-5 shadow-2xl">
               <ShieldCheck size={22} className="text-[#FFC107] mb-1" />
               <div className="text-[#FFC107] font-extrabold text-[22px] sm:text-[26px] leading-none">{s.badgeNumber}</div>
               <div className="text-[10px] sm:text-[11px] font-bold tracking-wider mt-1">{s.badgeUnit}</div>

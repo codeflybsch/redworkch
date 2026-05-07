@@ -20,10 +20,12 @@ import WhyUs from "./components/WhyUs";
 import FAQSection from "./components/FAQSection";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
+import HostingPackages from "./components/HostingPackages";
 import QuoteWizard from "./components/QuoteWizard";
 import ContactModal from "./components/ContactModal";
 
 import AdminLogin from "./pages/admin/AdminLogin";
+import MembershipPanel from "./pages/MembershipPanel";
 import AdminLayout from "./pages/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Quotes from "./pages/admin/Quotes";
@@ -64,14 +66,7 @@ function PublicSite() {
       <Projects />
       <BlogPosts />
       <Services />
-      <Features />
-      <PromoVideo />
-      <Testimonials />
-      <WhyUs />
-      <FAQSection />
-      <ContactSection />
-      <Footer />
-
+      <HostingPackages />
       <QuoteWizard />
       <ContactModal />
 
@@ -99,6 +94,7 @@ function App() {
               <Route path="/" element={<PublicSite />} />
 
               <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/account" element={<MembershipPanel />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="site" element={<SiteSettings />} />

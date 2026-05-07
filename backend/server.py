@@ -733,6 +733,18 @@ make_crud("products", ProductIn, Product, "products", public=False)
 make_crud("invoice_templates", InvoiceTemplateIn, InvoiceTemplate, "invoice-templates", public=False)
 
 
+@api_router.get("/products", response_model=List[Product])
+async def list_products_public():
+    items = await db.products.find().sort("order", 1).to_list(2000)
+    return [Product(**clean(i)) for i in items]
+
+
+@api_router.get("/product-categories", response_model=List[ProductCategory])
+async def list_product_categories_public():
+    items = await db.product_categories.find().sort("order", 1).to_list(2000)
+    return [ProductCategory(**clean(i)) for i in items]
+
+
 # ----------------------------------------------------------------------------
 # Generic reorder endpoint (drag & drop ordering)
 # ----------------------------------------------------------------------------

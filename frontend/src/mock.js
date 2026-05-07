@@ -82,9 +82,11 @@ export const reasons = [
 export const navItems = [
   { label: "start", href: "#top" },
   { label: "leistungen", href: "#leistungen" },
+  { label: "hosting", href: "#hosting" },
   { label: "projekte", href: "#projekte" },
   { label: "blog", href: "#blog" },
   { label: "über uns", href: "#ueber" },
+  { label: "Kundenbereich", href: "/account" },
   { label: "FAQ", href: "#faq" },
   { label: "kontakt", href: "#kontakt" },
 ];
