@@ -250,6 +250,11 @@ class SiteSettings(BaseModel):
     whyUsTitle: str = "Warum redwork.ch?"
     whyUsSubtitle: str = "12 starke Gründe, die uns zur richtigen Wahl machen"
     reasons: List[dict] = []
+    servicesTitle: str = "Was wir tun ?"
+    servicesSubtitle: str = "Unsere Leistungen im Überblick"
+    projectsTitle: str = "Was wir gemacht haben?"
+    projectsSubtitle: str = "Referenzprojekte"
+    promoSectionLabel: str = "UNTERNEHMENSVORSTELLUNG"
     promoVideoUrl: str = ""
     promoVideoTitle: str = "Lernen Sie uns in 90 Sekunden kennen"
     promoVideoSubtitle: str = "Ein kurzer Einblick in unsere Arbeitsweise"

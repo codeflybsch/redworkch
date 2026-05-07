@@ -5,10 +5,12 @@ import { useModals } from "../contexts/ModalContext";
 
 export default function Projects() {
   const [projects, setProjects] = useState([]);
+  const [s, setS] = useState({ projectsTitle: "Was wir gemacht haben?", projectsSubtitle: "REFERENZPROJEKTE" });
   const { openQuote } = useModals();
 
   useEffect(() => {
     api.get("/projects").then((r) => setProjects(r.data)).catch(() => {});
+    api.get("/site-settings").then((r) => setS((prev) => ({ ...prev, ...r.data }))).catch(() => {});
   }, []);
 
   return (
@@ -16,17 +18,20 @@ export default function Projects() {
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6">
         <div className="text-center mb-10 sm:mb-14">
           <h2 className="text-[28px] sm:text-[34px] md:text-[44px] font-extrabold text-[#0f172a]">
-            <span className="section-title-hash">#</span> Was wir gemacht haben?
+            <span className="section-title-hash">#</span> {s.projectsTitle}
           </h2>
-          <p className="text-[#E63946] font-bold tracking-wider text-xs sm:text-sm mt-2">REFERENZPROJEKTE</p>
+          <p className="text-[#E63946] font-bold tracking-wider text-xs sm:text-sm mt-2">{s.projectsSubtitle}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-8">
           {projects.map((p) => {
-            const Tag = p.url ? "a" : "div";
-            const tagProps = p.url ? { href: p.url, target: "_blank", rel: "noreferrer" } : {};
+            const isLink = Boolean(p.url);
+            const Wrapper = isLink ? "a" : "button";
+            const tagProps = isLink
+              ? { href: p.url, target: "_blank", rel: "noreferrer" }
+              : { type: "button", onClick: openQuote };
             return (
-              <Tag
+              <Wrapper
                 key={p.id}
                 {...tagProps}
                 data-testid={`project-${p.id}`}

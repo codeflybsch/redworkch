@@ -15,7 +15,9 @@ const DEFAULT = {
   howWeWorkTitle: "", howWeWorkSubtitle: "", workSteps: [],
   featuresTitle: "", featuresSubtitle: "", features: [],
   whyUsTitle: "", whyUsSubtitle: "", reasons: [],
-  promoVideoUrl: "", promoVideoTitle: "", promoVideoSubtitle: "",
+  servicesTitle: "", servicesSubtitle: "",
+  projectsTitle: "", projectsSubtitle: "",
+  promoSectionLabel: "", promoVideoUrl: "", promoVideoTitle: "", promoVideoSubtitle: "",
   // contact
   contactTitle: "", contactSubtitle: "", contactIntro: "",
   contactPhone: "", contactPhoneHours: "",
@@ -214,15 +216,24 @@ export default function SiteSettings() {
               <Field label="Titel"><Input value={data.howWeWorkTitle} onChange={(e) => update("howWeWorkTitle", e.target.value)} /></Field>
               <Field label="Untertitel"><Input value={data.howWeWorkSubtitle} onChange={(e) => update("howWeWorkSubtitle", e.target.value)} /></Field>
             </Section>
+            <Section title="Was wir tun">
+              <Field label="Titel"><Input value={data.servicesTitle} onChange={(e) => update("servicesTitle", e.target.value)} /></Field>
+              <Field label="Untertitel"><Input value={data.servicesSubtitle} onChange={(e) => update("servicesSubtitle", e.target.value)} /></Field>
+            </Section>
             <Section title="Stärken / Features">
               <Field label="Titel"><Input value={data.featuresTitle} onChange={(e) => update("featuresTitle", e.target.value)} /></Field>
               <Field label="Untertitel"><Input value={data.featuresSubtitle} onChange={(e) => update("featuresSubtitle", e.target.value)} /></Field>
+            </Section>
+            <Section title="Was wir gemacht haben">
+              <Field label="Titel"><Input value={data.projectsTitle} onChange={(e) => update("projectsTitle", e.target.value)} /></Field>
+              <Field label="Untertitel"><Input value={data.projectsSubtitle} onChange={(e) => update("projectsSubtitle", e.target.value)} /></Field>
             </Section>
             <Section title="Warum wir">
               <Field label="Titel"><Input value={data.whyUsTitle} onChange={(e) => update("whyUsTitle", e.target.value)} /></Field>
               <Field label="Untertitel"><Input value={data.whyUsSubtitle} onChange={(e) => update("whyUsSubtitle", e.target.value)} /></Field>
             </Section>
             <Section title="Promo-Video">
+              <Field label="Sektion-Label"><Input value={data.promoSectionLabel} onChange={(e) => update("promoSectionLabel", e.target.value)} /></Field>
               <Field label="Video URL (YouTube/Vimeo Embed)"><Input value={data.promoVideoUrl} onChange={(e) => update("promoVideoUrl", e.target.value)} placeholder="https://www.youtube.com/embed/XXXX" /></Field>
               <Field label="Titel"><Input value={data.promoVideoTitle} onChange={(e) => update("promoVideoTitle", e.target.value)} /></Field>
               <Field label="Untertitel"><Input value={data.promoVideoSubtitle} onChange={(e) => update("promoVideoSubtitle", e.target.value)} /></Field>

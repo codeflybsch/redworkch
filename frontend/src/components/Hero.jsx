@@ -103,20 +103,20 @@ export default function Hero() {
 
       {/* Support Badge */}
       {s.badgeEnabled && (
-        <div className="hidden md:block absolute top-24 right-4 md:right-10 z-20 pointer-events-none">
+        <div className="absolute top-16 right-3 sm:right-4 z-20 pointer-events-none">
           <div className="relative">
             <div className="absolute inset-0 bg-[#E63946] rounded-full blur-2xl opacity-30 animate-pulse" />
-            <div className="relative w-32 h-32 md:w-44 md:h-44 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-[#E63946] to-[#a8202e] border-2 border-white/20 flex flex-col items-center justify-center text-center text-white px-3 md:px-5 shadow-2xl">
-              <ShieldCheck size={26} className="text-[#FFC107] mb-1" />
-              <div className="text-[#FFC107] font-extrabold text-[26px] leading-none">{s.badgeNumber}</div>
-              <div className="text-[11px] font-bold tracking-wider mt-1">{s.badgeUnit}</div>
-              <div className="text-[12px] font-semibold mt-1 leading-tight">
+            <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-44 md:h-44 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-[#E63946] to-[#a8202e] border-2 border-white/20 flex flex-col items-center justify-center text-center text-white px-2 sm:px-3 md:px-5 shadow-2xl">
+              <ShieldCheck size={22} className="text-[#FFC107] mb-1" />
+              <div className="text-[#FFC107] font-extrabold text-[22px] sm:text-[26px] leading-none">{s.badgeNumber}</div>
+              <div className="text-[10px] sm:text-[11px] font-bold tracking-wider mt-1">{s.badgeUnit}</div>
+              <div className="text-[10px] sm:text-[12px] font-semibold mt-1 leading-tight">
                 {s.badgeText1}
                 <br />
                 <span className="text-[#FFC107]">{s.badgeText2}</span>
               </div>
-              <div className="text-[10px] mt-1 opacity-80">{s.badgeFooter1}</div>
-              <div className="text-[10px] mt-0.5 opacity-80 font-bold">{s.badgeFooter2}</div>
+              <div className="text-[9px] sm:text-[10px] mt-1 opacity-80">{s.badgeFooter1}</div>
+              <div className="text-[9px] sm:text-[10px] mt-0.5 opacity-80 font-bold">{s.badgeFooter2}</div>
             </div>
           </div>
         </div>

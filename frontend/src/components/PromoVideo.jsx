@@ -1,10 +1,16 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Play, X } from "lucide-react";
 import { useModals } from "../contexts/ModalContext";
+import api from "../api";
 
 export default function PromoVideo() {
   const [open, setOpen] = useState(false);
+  const [s, setS] = useState({ promoSectionLabel: "UNTERNEHMENSVORSTELLUNG", promoVideoTitle: "Unser Vorstellungsfilm", promoVideoSubtitle: "Ein kurzer Einblick in unsere Arbeitsweise", promoVideoUrl: "" });
   const { openQuote } = useModals();
+
+  useEffect(() => {
+    api.get("/site-settings").then((r) => setS((prev) => ({ ...prev, ...r.data }))).catch(() => {});
+  }, []);
 
   return (
     <>
@@ -22,15 +28,15 @@ export default function PromoVideo() {
             </button>
           </div>
           <div>
-            <p className="text-[#E63946] font-bold tracking-wider text-sm">UNTERNEHMENSVORSTELLUNG</p>
+            <p className="text-[#E63946] font-bold tracking-wider text-sm">{s.promoSectionLabel}</p>
             <h2 className="text-[28px] md:text-[36px] font-extrabold text-[#0f172a] mt-3 leading-tight">
-              Unser Vorstellungsfilm
+              {s.promoVideoTitle}
             </h2>
-            <p className="text-[#475569] mt-5 leading-relaxed">
-              Mit unserem sorgfältig gestalteten Vorstellungsfilm geben wir Ihnen einen ersten Einblick in unser
-              Unternehmen. <strong>Wir kennen alle Anforderungen</strong> der Web-Welt und freuen uns, Sie in jedem
-              Bereich zu unterstützen.
-            </p>
+            {s.promoVideoSubtitle && (
+              <p className="text-[#475569] mt-5 leading-relaxed">
+                {s.promoVideoSubtitle}
+              </p>
+            )}
             <p className="text-[#475569] mt-3 leading-relaxed">
               <strong>redwork.ch</strong> verbindet Wissen und Erfahrung mit Vertrauen und einem Lächeln und bietet
               Ihnen alle Unterstützung, um Ihre Traumprojekte zu verwirklichen.
@@ -58,7 +64,7 @@ export default function PromoVideo() {
           </button>
           <div className="w-full max-w-4xl aspect-video" onClick={(e) => e.stopPropagation()}>
             <iframe
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+              src={`${s.promoVideoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ"}${(s.promoVideoUrl || "").includes("?") ? "&" : "?"}autoplay=1`}
               title="redwork.ch Vorstellungsfilm"
               className="w-full h-full rounded-2xl"
               allow="autoplay; encrypted-media"

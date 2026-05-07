@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import api from "../api";
 import { workSteps } from "../mock";
 import { ChevronLeft, ChevronRight, Presentation, Palette, Code2, Rocket, ShieldCheck, Globe } from "lucide-react";
 
@@ -22,11 +23,16 @@ const gradientMap = {
 
 export default function HowWeWork() {
   const [start, setStart] = useState(0);
+  const [s, setS] = useState({ howWeWorkTitle: "Wie wir arbeiten ?", howWeWorkSubtitle: "PRODUKTIONSPHASE" });
   const visible = 4;
   const items = [];
   for (let i = 0; i < visible; i++) {
     items.push(workSteps[(start + i) % workSteps.length]);
   }
+
+  useEffect(() => {
+    api.get("/site-settings").then((r) => setS((prev) => ({ ...prev, ...r.data }))).catch(() => {});
+  }, []);
 
   const next = () => setStart((s) => (s + 1) % workSteps.length);
   const prev = () => setStart((s) => (s - 1 + workSteps.length) % workSteps.length);
@@ -36,9 +42,9 @@ export default function HowWeWork() {
       <div className="max-w-[1400px] mx-auto px-6">
         <div className="text-center mb-14">
           <h2 className="text-[34px] md:text-[44px] font-extrabold text-[#0f172a]">
-            <span className="section-title-hash">#</span> Wie wir arbeiten ?
+            <span className="section-title-hash">#</span> {s.howWeWorkTitle}
           </h2>
-          <p className="text-[#E63946] font-bold tracking-wider text-sm mt-2">PRODUKTIONSPHASE</p>
+          <p className="text-[#E63946] font-bold tracking-wider text-sm mt-2">{s.howWeWorkSubtitle}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">

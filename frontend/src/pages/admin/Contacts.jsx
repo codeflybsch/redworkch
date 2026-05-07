@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Trash2, Eye, X, Mail, Phone, Loader2, Send, AlertTriangle, CheckCircle2, Reply, Info } from "lucide-react";
 import api from "../../api";
 
@@ -21,12 +21,60 @@ export default function Contacts() {
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: "ok"|"err", text: string }
   const [emailCfg, setEmailCfg] = useState({ configured: false, from: null });
+  const [newAlert, setNewAlert] = useState(null);
+  const knownContactIdsRef = useRef(new Set());
+
+  const playNotificationSound = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const audioCtx = new AudioContext();
+      const oscillator = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = 880;
+      gain.gain.value = 0.12;
+      oscillator.connect(gain);
+      gain.connect(audioCtx.destination);
+      oscillator.start();
+      setTimeout(() => {
+        oscillator.stop();
+        audioCtx.close().catch(() => {});
+      }, 180);
+    } catch (e) {
+      // ignore if audio is not available
+    }
+  };
+
+  const showBrowserNotification = (title, text) => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      new Notification(title, { body: text });
+      return;
+    }
+    if (Notification.permission !== "denied") {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          new Notification(title, { body: text });
+        }
+      });
+    }
+  };
+
+  const notifyNewContacts = (count) => {
+    const message = `${count} neue Kontakt-Anfrage${count > 1 ? "n" : ""} eingegangen.`;
+    setNewAlert({ title: "Neue Nachricht", text: message });
+    playNotificationSound();
+    showBrowserNotification("Neue Kontakt-Anfrage", message);
+    window.setTimeout(() => setNewAlert(null), 8000);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await api.get("/admin/contacts");
       setItems(r.data);
+      knownContactIdsRef.current = new Set(r.data.map((q) => q.id));
     } finally {
       setLoading(false);
     }
@@ -36,6 +84,27 @@ export default function Contacts() {
     load();
     api.get("/admin/email-config").then((r) => setEmailCfg(r.data)).catch(() => {});
   }, [load]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(async () => {
+      try {
+        const r = await api.get("/admin/contacts");
+        const current = r.data || [];
+        const newItems = current.filter((q) => !knownContactIdsRef.current.has(q.id));
+        if (newItems.length > 0) {
+          setItems(current);
+          knownContactIdsRef.current = new Set(current.map((q) => q.id));
+          notifyNewContacts(newItems.length);
+        } else {
+          setItems(current);
+          knownContactIdsRef.current = new Set(current.map((q) => q.id));
+        }
+      } catch (e) {
+        // ignore polling failures
+      }
+    }, 15000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const openContact = async (q) => {
     setSelected(q);
@@ -128,6 +197,19 @@ export default function Contacts() {
     <div data-testid="contacts-page">
       <h1 className="text-3xl font-extrabold text-[#0f172a]">Kontakt-Nachrichten</h1>
       <p className="text-[#64748b] mt-1">{items.length} Nachrichten insgesamt</p>
+
+      {newAlert && (
+        <div className="fixed top-24 right-4 z-50 w-[320px] rounded-3xl border border-white/20 bg-[#0f172a] p-4 shadow-2xl text-white">
+          <div className="flex items-start gap-3">
+            <div className="mt-1 h-2.5 w-2.5 rounded-full bg-[#E63946]" />
+            <div>
+              <p className="text-sm font-bold">{newAlert.title}</p>
+              <p className="text-xs text-white/80 mt-1 leading-relaxed">{newAlert.text}</p>
+            </div>
+            <button onClick={() => setNewAlert(null)} className="ml-auto text-white/80 hover:text-white transition">×</button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-card overflow-hidden mt-6">
         {loading ? (

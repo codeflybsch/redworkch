@@ -10,10 +10,14 @@ const iconMap = { Smartphone, Code, Search, Megaphone, Award, MessageSquare };
 
 export default function Services() {
   const [services, setServices] = useState([]);
+  const [s, setS] = useState({ servicesTitle: "Was wir tun ?", servicesSubtitle: "DIENSTLEISTUNGEN" });
   const { openQuote } = useModals();
 
   useEffect(() => {
     api.get("/services").then((r) => setServices(r.data)).catch(() => {});
+    api.get("/site-settings").then((r) => setS((prev) => ({ ...prev, ...r.data })
+    api.get("/services").then((r) => setServices(r.data)).catch(() => {});
+    api.get("/site-settings").then((r) => setS((prev) => ({ ...prev, ...r.data }))).catch(() => {});
   }, []);
 
   const left = services.filter((s) => s.side === "left");
@@ -46,9 +50,9 @@ export default function Services() {
       <div className="max-w-[1400px] mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-[34px] md:text-[44px] font-extrabold text-[#0f172a]">
-            <span className="section-title-hash">#</span> Was wir tun ?
+            <span className="section-title-hash">#</span> {s.servicesTitle}
           </h2>
-          <p className="text-[#E63946] font-bold tracking-wider text-sm mt-2">DIENSTLEISTUNGEN</p>
+          <p className="text-[#E63946] font-bold tracking-wider text-sm mt-2">{s.servicesSubtitle}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">

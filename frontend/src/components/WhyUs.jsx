@@ -1,15 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import api from "../api";
 import { reasons } from "../mock";
 
 export default function WhyUs() {
+  const [s, setS] = useState({ whyUsTitle: "Warum redwork.ch ?", whyUsSubtitle: "UNSERE VORTEILE" });
+
+  useEffect(() => {
+    api.get("/site-settings").then((r) => setS((prev) => ({ ...prev, ...r.data }))).catch(() => {});
+  }, []);
+
   return (
     <section id="ueber" className="py-24 bg-white">
       <div className="max-w-[1400px] mx-auto px-6">
         <div className="text-center mb-14 max-w-3xl mx-auto">
           <h2 className="text-[34px] md:text-[44px] font-extrabold text-[#0f172a]">
-            <span className="section-title-hash">#</span> Warum redwork.ch ?
+            <span className="section-title-hash">#</span> {s.whyUsTitle}
           </h2>
-          <p className="text-[#E63946] font-bold tracking-wider text-sm mt-2">UNSERE VORTEILE</p>
+          <p className="text-[#E63946] font-bold tracking-wider text-sm mt-2">{s.whyUsSubtitle}</p>
           <p className="text-[#475569] mt-6 leading-relaxed">
             Seit über 10 Jahren tragen wir als preisgekrönte Webdesign- und Software-Agentur dazu bei, dass Marken
             eine starke Identität in der digitalen Welt aufbauen. redwork.ch schafft mit seinem Expertenteam in den
