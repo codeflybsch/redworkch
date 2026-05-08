@@ -27,8 +27,13 @@ import ContactModal from "./components/ContactModal";
 import AdminLogin from "./pages/admin/AdminLogin";
 import MembershipPanel from "./pages/MembershipPanel";
 import Register from "./pages/Register";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import Products from "./pages/Products";
+import Support from "./pages/Support";
+import TicketDetail from "./pages/TicketDetail";
 import AdminLayout from "./pages/admin/AdminLayout";
-import Dashboard from "./pages/admin/Dashboard";
+import AdminDashboard from "./pages/admin/Dashboard";
 import Quotes from "./pages/admin/Quotes";
 import Contacts from "./pages/admin/Contacts";
 import ProjectsAdmin from "./pages/admin/ProjectsAdmin";
@@ -39,12 +44,15 @@ import SiteSettings from "./pages/admin/SiteSettings";
 import FAQAdmin from "./pages/admin/FAQAdmin";
 import EmailTemplates from "./pages/admin/EmailTemplates";
 import Companies from "./pages/admin/Companies";
-import Products from "./pages/admin/Products";
+import AdminProducts from "./pages/admin/Products";
 import Invoices from "./pages/admin/Invoices";
 import Offers from "./pages/admin/Offers";
 import InvoiceEditor from "./pages/admin/InvoiceEditor";
 import InvoiceTemplates from "./pages/admin/InvoiceTemplates";
 import HostingPackagesAdmin from "./pages/admin/HostingPackagesAdmin";
+import Customers from "./pages/admin/Customers";
+import Orders from "./pages/admin/Orders";
+import Tickets from "./pages/admin/Tickets";
 
 function PublicSite() {
   const [scrolled, setScrolled] = useState(false);
@@ -97,10 +105,18 @@ function App() {
 
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="/tickets/:ticketId" element={<TicketDetail />} />
               <Route path="/account" element={<MembershipPanel />} />
               <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<Dashboard />} />
+                <Route index element={<AdminDashboard />} />
                 <Route path="site" element={<SiteSettings />} />
+                <Route path="customers" element={<Customers />} />
+                <Route path="orders" element={<Orders />} />
+                <Route path="tickets" element={<Tickets />} />
                 <Route path="quotes" element={<Quotes />} />
                 <Route path="contacts" element={<Contacts />} />
                 <Route path="projects" element={<ProjectsAdmin />} />
@@ -110,7 +126,7 @@ function App() {
                 <Route path="faqs" element={<FAQAdmin />} />
                 <Route path="templates" element={<EmailTemplates />} />
                 <Route path="companies" element={<Companies />} />
-                <Route path="products" element={<Products />} />
+                <Route path="products" element={<AdminProducts />} />
                 <Route path="hosting" element={<HostingPackagesAdmin />} />
                 <Route path="invoices" element={<Invoices />} />
                 <Route path="invoices/new" element={<InvoiceEditor mode="invoice" />} />

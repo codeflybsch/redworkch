@@ -271,6 +271,9 @@ DEFAULT_PRODUCT_CATEGORIES = [
     {"name": "Hosting & Wartung", "description": "Hosting, Domain, laufende Wartung", "order": 4},
     {"name": "Branding & Design", "description": "Logo, CI, Druck", "order": 5},
     {"name": "Beratung", "description": "Strategie & Beratungsleistungen", "order": 6},
+    {"name": "Hosting", "description": "Webhosting, VPS, Dedicated Server", "order": 7},
+    {"name": "Domains", "description": "Domain-Registrierung", "order": 8},
+    {"name": "SSL-Zertifikate", "description": "SSL-Sicherheit", "order": 9},
 ]
 
 
@@ -295,4 +298,27 @@ DEFAULT_PRODUCTS = [
     {"name": "Foto-Shooting halber Tag", "description": "Professionelle Fotos vor Ort, 4 Stunden", "unitPrice": 950.0, "unit": "Tag", "order": 18},
     {"name": "Fotoshooting ganzer Tag", "description": "Professionelle Fotos vor Ort, 8 Stunden inkl. Bildbearbeitung", "unitPrice": 1750.0, "unit": "Tag", "order": 19},
     {"name": "Mehrsprachigkeit Aufpreis", "description": "Pro zusätzliche Sprache (DE→FR/IT/EN), inkl. Übersetzung", "unitPrice": 650.0, "unit": "Sprache", "order": 20},
+    # Hosting products
+    {"categoryId": "hosting", "name": "Webhosting Basic", "description": "1 Website, 10 GB Speicher, unbegrenzter Traffic, SSL, E-Mail", "unitPrice": 9.90, "unit": "Monat", "order": 21},
+    {"categoryId": "hosting", "name": "Webhosting Professional", "description": "5 Websites, 50 GB Speicher, unbegrenzter Traffic, SSL, E-Mail, Backup", "unitPrice": 19.90, "unit": "Monat", "order": 22},
+    {"categoryId": "hosting", "name": "Webhosting Enterprise", "description": "Unbegrenzte Websites, 200 GB Speicher, unbegrenzter Traffic, SSL, E-Mail, täglich Backup, CDN", "unitPrice": 49.90, "unit": "Monat", "order": 23},
+    {"categoryId": "hosting", "name": "VPS Basic", "description": "1 vCPU, 2 GB RAM, 20 GB SSD, unbegrenzter Traffic", "unitPrice": 29.90, "unit": "Monat", "order": 24},
+    {"categoryId": "hosting", "name": "VPS Professional", "description": "2 vCPU, 4 GB RAM, 40 GB SSD, unbegrenzter Traffic", "unitPrice": 49.90, "unit": "Monat", "order": 25},
+    {"categoryId": "hosting", "name": "VPS Enterprise", "description": "4 vCPU, 8 GB RAM, 80 GB SSD, unbegrenzter Traffic", "unitPrice": 99.90, "unit": "Monat", "order": 26},
+    {"categoryId": "hosting", "name": "Dedicated Server Basic", "description": "Intel i3, 8 GB RAM, 500 GB HDD, 100 Mbit/s", "unitPrice": 149.90, "unit": "Monat", "order": 27},
+    {"categoryId": "hosting", "name": "Dedicated Server Professional", "description": "Intel i5, 16 GB RAM, 1 TB SSD, 1 Gbit/s", "unitPrice": 249.90, "unit": "Monat", "order": 28},
+    {"categoryId": "hosting", "name": "Dedicated Server Enterprise", "description": "Intel i7, 32 GB RAM, 2 TB SSD, 1 Gbit/s, Managed", "unitPrice": 399.90, "unit": "Monat", "order": 29},
+    {"categoryId": "domains", "name": ".ch Domain", "description": "Schweizer Domain-Registrierung", "unitPrice": 15.00, "unit": "Jahr", "order": 30},
+    {"categoryId": "domains", "name": ".com Domain", "description": "Internationale Domain-Registrierung", "unitPrice": 12.00, "unit": "Jahr", "order": 31},
+    {"categoryId": "domains", "name": ".de Domain", "description": "Deutsche Domain-Registrierung", "unitPrice": 8.00, "unit": "Jahr", "order": 32},
+    {"categoryId": "ssl", "name": "SSL Basic (DV)", "description": "Domain Validation SSL-Zertifikat", "unitPrice": 25.00, "unit": "Jahr", "order": 33},
+    {"categoryId": "ssl", "name": "SSL Professional (OV)", "description": "Organization Validation SSL-Zertifikat", "unitPrice": 75.00, "unit": "Jahr", "order": 34},
+    {"categoryId": "ssl", "name": "SSL Enterprise (EV)", "description": "Extended Validation SSL-Zertifikat", "unitPrice": 150.00, "unit": "Jahr", "order": 35},
 ]
+
+# Empty defaults for other collections
+DEFAULT_PROJECTS = []
+DEFAULT_BLOGS = []
+DEFAULT_TESTIMONIALS = []
+DEFAULT_SERVICES = []
+DEFAULT_COMPANIES = []

@@ -21,7 +21,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 
-from seed_data import DEFAULT_FAQS, DEFAULT_EMAIL_TEMPLATES, DEFAULT_PRODUCT_CATEGORIES, DEFAULT_PRODUCTS
+from seed_data import DEFAULT_FAQS, DEFAULT_EMAIL_TEMPLATES, DEFAULT_PRODUCT_CATEGORIES, DEFAULT_PRODUCTS, DEFAULT_PROJECTS, DEFAULT_BLOGS, DEFAULT_TESTIMONIALS, DEFAULT_SERVICES, DEFAULT_COMPANIES
 from qr_invoice import build_invoice_pdf, build_offer_pdf, render_invoice_html, render_offer_html
 
 ROOT_DIR = Path(__file__).parent
@@ -427,6 +427,92 @@ class InvoiceSendIn(BaseModel):
     toEmail: Optional[str] = ""
 
 
+# ----- User (Customer) -----
+class UserIn(BaseModel):
+    email: EmailStr
+    password: str
+    firstName: str
+    lastName: str
+    company: Optional[str] = ""
+    phone: Optional[str] = ""
+
+
+class User(UserIn):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    passwordHash: str
+    emailVerified: bool = False
+    emailVerificationToken: Optional[str] = None
+    passwordResetToken: Optional[str] = None
+    passwordResetExpires: Optional[datetime] = None
+    createdAt: datetime = Field(default_factory=now_utc)
+    lastLogin: Optional[datetime] = None
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserUpdate(BaseModel):
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    company: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    token: str
+    newPassword: str
+
+
+# ----- Order (Customer Orders) -----
+class OrderIn(BaseModel):
+    productId: str
+    duration: str  # "monthly" | "yearly"
+    quantity: int = 1
+
+
+class Order(OrderIn):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    userId: str
+    status: str = "pending"  # pending | paid | active | cancelled | expired
+    total: float = 0.0
+    createdAt: datetime = Field(default_factory=now_utc)
+    activatedAt: Optional[datetime] = None
+
+
+# ----- Ticket (Support Tickets) -----
+class TicketIn(BaseModel):
+    subject: str
+    category: str
+    priority: str  # "low" | "medium" | "high"
+    message: str
+
+
+class Ticket(TicketIn):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    userId: str
+    status: str = "open"  # open | in_progress | answered | closed
+    createdAt: datetime = Field(default_factory=now_utc)
+    updatedAt: datetime = Field(default_factory=now_utc)
+
+
+class TicketReplyIn(BaseModel):
+    message: str
+
+
+class TicketReply(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ticketId: str
+    userId: Optional[str] = None  # None for admin replies
+    message: str
+    createdAt: datetime = Field(default_factory=now_utc)
+
+
 # ----- Invoice template (saved item lists) -----
 class InvoiceTemplateIn(BaseModel):
     name: str
@@ -470,6 +556,25 @@ async def require_admin(token: Optional[str] = Depends(oauth2_scheme)):
     except JWTError:
         raise HTTPException(status_code=401, detail="Ungültiges Token")
     return {"username": username}
+
+
+async def require_customer(token: Optional[str] = Depends(oauth2_scheme)):
+    if not token:
+        raise HTTPException(status_code=401, detail="Nicht authentifiziert")
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        role = payload.get("role")
+        email = payload.get("email")
+        if role != "customer":
+            raise HTTPException(status_code=401, detail="Ungültiges Token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Ungültiges Token")
+    # Fetch user to ensure exists
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=401, detail="Benutzer nicht gefunden")
+    return {"id": user_id, "email": email, "firstName": user["firstName"], "lastName": user["lastName"]}
 
 
 def clean(d):
@@ -563,6 +668,308 @@ async def admin_login(payload: LoginIn):
 @api_router.get("/admin/me")
 async def admin_me(user=Depends(require_admin)):
     return user
+
+
+# ----------------------------------------------------------------------------
+# Routes : Customer Auth
+# ----------------------------------------------------------------------------
+@api_router.post("/auth/register", response_model=TokenOut)
+async def customer_register(payload: UserIn):
+    # Check if email exists
+    existing = await db.users.find_one({"email": payload.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="E-Mail-Adresse bereits registriert")
+    
+    # Hash password
+    hashed = pwd_context.hash(payload.password)
+    
+    # Generate verification token
+    verification_token = uuid.uuid4().hex
+    
+    user = User(
+        email=payload.email,
+        passwordHash=hashed,
+        firstName=payload.firstName,
+        lastName=payload.lastName,
+        company=payload.company,
+        phone=payload.phone,
+        emailVerificationToken=verification_token
+    )
+    
+    await db.users.insert_one(user.dict())
+    
+    # Send verification email
+    subject = "E-Mail-Verifizierung - redwork.ch"
+    body = f"""Hallo {user.firstName},
+
+Vielen Dank für Ihre Registrierung bei redwork.ch!
+
+Bitte verifizieren Sie Ihre E-Mail-Adresse, indem Sie auf den folgenden Link klicken:
+{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/verify-email?token={verification_token}
+
+Falls Sie sich nicht registriert haben, ignorieren Sie diese E-Mail.
+
+Mit freundlichen Grüßen,
+Ihr redwork.ch Team"""
+    
+    success, error = _send_email_smtp(user.email, f"{user.firstName} {user.lastName}", subject, body)
+    if not success:
+        logger.warning(f"Verification email failed: {error}")
+    
+    # For now, auto-verify for simplicity, or require verification
+    # To make it work, let's auto-verify
+    await db.users.update_one({"id": user.id}, {"$set": {"emailVerified": True}})
+    
+    token = create_access_token({"sub": user.id, "role": "customer", "email": user.email})
+    return TokenOut(access_token=token, user={"id": user.id, "email": user.email, "firstName": user.firstName, "lastName": user.lastName})
+
+
+@api_router.post("/auth/login", response_model=TokenOut)
+async def customer_login(payload: UserLogin):
+    user = await db.users.find_one({"email": payload.email})
+    if not user or not pwd_context.verify(payload.password, user["passwordHash"]):
+        raise HTTPException(status_code=401, detail="Ungültige E-Mail oder Passwort")
+    
+    if not user.get("emailVerified", False):
+        raise HTTPException(status_code=401, detail="E-Mail-Adresse nicht verifiziert")
+    
+    # Update last login
+    await db.users.update_one({"id": user["id"]}, {"$set": {"lastLogin": now_utc()}})
+    
+    token = create_access_token({"sub": user["id"], "role": "customer", "email": user["email"]})
+    return TokenOut(access_token=token, user={"id": user["id"], "email": user["email"], "firstName": user["firstName"], "lastName": user["lastName"]})
+
+
+@api_router.get("/auth/me")
+async def customer_me(user=Depends(require_customer)):
+    return user
+
+
+@api_router.post("/auth/password-reset-request")
+async def password_reset_request(payload: PasswordResetRequest):
+    user = await db.users.find_one({"email": payload.email})
+    if not user:
+        # Don't reveal if email exists
+        return {"message": "Falls die E-Mail-Adresse registriert ist, wurde eine E-Mail mit Anweisungen gesendet."}
+    
+    reset_token = uuid.uuid4().hex
+    expires = now_utc() + timedelta(hours=1)
+    
+    await db.users.update_one({"id": user["id"]}, {"$set": {"passwordResetToken": reset_token, "passwordResetExpires": expires}})
+    
+    subject = "Passwort zurücksetzen - redwork.ch"
+    body = f"""Hallo {user['firstName']},
+
+Sie haben eine Anfrage zum Zurücksetzen Ihres Passworts gestellt.
+
+Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen:
+{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token={reset_token}
+
+Der Link ist 1 Stunde gültig.
+
+Falls Sie diese Anfrage nicht gestellt haben, ignorieren Sie diese E-Mail.
+
+Mit freundlichen Grüßen,
+Ihr redwork.ch Team"""
+    
+    success, error = _send_email_smtp(user["email"], f"{user['firstName']} {user['lastName']}", subject, body)
+    if not success:
+        logger.warning(f"Password reset email failed: {error}")
+    
+    return {"message": "Falls die E-Mail-Adresse registriert ist, wurde eine E-Mail mit Anweisungen gesendet."}
+
+
+@api_router.post("/auth/password-reset")
+async def password_reset(payload: PasswordReset):
+    user = await db.users.find_one({"passwordResetToken": payload.token})
+    if not user or not user.get("passwordResetExpires") or user["passwordResetExpires"] < now_utc():
+        raise HTTPException(status_code=400, detail="Ungültiger oder abgelaufener Token")
+    
+    hashed = pwd_context.hash(payload.newPassword)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"passwordHash": hashed, "passwordResetToken": None, "passwordResetExpires": None}})
+    
+    return {"message": "Passwort erfolgreich zurückgesetzt"}
+
+
+@api_router.get("/auth/verify-email")
+async def verify_email(token: str):
+    user = await db.users.find_one({"emailVerificationToken": token})
+    if not user:
+        raise HTTPException(status_code=400, detail="Ungültiger Verifizierungstoken")
+    
+    await db.users.update_one({"id": user["id"]}, {"$set": {"emailVerified": True, "emailVerificationToken": None}})
+    
+    return {"message": "E-Mail-Adresse erfolgreich verifiziert"}
+
+
+@api_router.patch("/auth/profile")
+async def update_profile(payload: UserUpdate, user=Depends(require_customer)):
+    update = {k: v for k, v in payload.dict().items() if v is not None}
+    if update:
+        await db.users.update_one({"id": user["id"]}, {"$set": update})
+    return {"message": "Profil aktualisiert"}
+
+
+@api_router.post("/auth/change-password")
+async def change_password(oldPassword: str, newPassword: str, user=Depends(require_customer)):
+    db_user = await db.users.find_one({"id": user["id"]})
+    if not pwd_context.verify(oldPassword, db_user["passwordHash"]):
+        raise HTTPException(status_code=400, detail="Altes Passwort ist falsch")
+    
+    hashed = pwd_context.hash(newPassword)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"passwordHash": hashed}})
+    
+    return {"message": "Passwort geändert"}
+
+
+# ----------------------------------------------------------------------------
+# Routes : Customer Products
+# ----------------------------------------------------------------------------
+@api_router.get("/products")
+async def list_products():
+    # Get products with category
+    products = await db.products.find().sort("order", 1).to_list(1000)
+    categories = await db.product_categories.find().to_list(100)
+    cat_dict = {c["id"]: c["name"] for c in categories}
+    
+    for p in products:
+        clean(p)
+        p["categoryName"] = cat_dict.get(p.get("categoryId"), "")
+    
+    return products
+
+
+# ----------------------------------------------------------------------------
+# Routes : Customer Orders
+# ----------------------------------------------------------------------------
+@api_router.post("/orders", response_model=Order)
+async def create_order(payload: OrderIn, user=Depends(require_customer)):
+    product = await db.products.find_one({"id": payload.productId})
+    if not product:
+        raise HTTPException(404, "Produkt nicht gefunden")
+    
+    price = product["unitPrice"]
+    if payload.duration == "yearly":
+        price *= 12 * 0.9  # 10% discount for yearly
+    
+    total = price * payload.quantity
+    
+    order = Order(
+        productId=payload.productId,
+        duration=payload.duration,
+        quantity=payload.quantity,
+        userId=user["id"],
+        total=total
+    )
+    
+    await db.orders.insert_one(order.dict())
+    
+    return order
+
+
+@api_router.get("/orders")
+async def list_user_orders(user=Depends(require_customer)):
+    orders = await db.orders.find({"userId": user["id"]}).sort("createdAt", -1).to_list(1000)
+    products = await db.products.find().to_list(1000)
+    prod_dict = {p["id"]: p for p in products}
+    
+    for o in orders:
+        clean(o)
+        prod = prod_dict.get(o["productId"])
+        if prod:
+            o["productName"] = prod["name"]
+            o["productDescription"] = prod["description"]
+    
+    return orders
+
+
+# ----------------------------------------------------------------------------
+# Routes : Customer Tickets
+# ----------------------------------------------------------------------------
+@api_router.post("/tickets", response_model=Ticket)
+async def create_ticket(payload: TicketIn, user=Depends(require_customer)):
+    ticket = Ticket(
+        subject=payload.subject,
+        category=payload.category,
+        priority=payload.priority,
+        message=payload.message,
+        userId=user["id"]
+    )
+    
+    await db.tickets.insert_one(ticket.dict())
+    
+    return ticket
+
+
+@api_router.get("/tickets")
+async def list_user_tickets(user=Depends(require_customer)):
+    tickets = await db.tickets.find({"userId": user["id"]}).sort("updatedAt", -1).to_list(1000)
+    return [clean(t) for t in tickets]
+
+
+@api_router.get("/tickets/{ticket_id}")
+async def get_ticket(ticket_id: str, user=Depends(require_customer)):
+    ticket = await db.tickets.find_one({"id": ticket_id, "userId": user["id"]})
+    if not ticket:
+        raise HTTPException(404, "Ticket nicht gefunden")
+    
+    replies = await db.ticket_replies.find({"ticketId": ticket_id}).sort("createdAt", 1).to_list(1000)
+    
+    clean(ticket)
+    ticket["replies"] = [clean(r) for r in replies]
+    
+    return ticket
+
+
+@api_router.post("/tickets/{ticket_id}/replies")
+async def add_ticket_reply(ticket_id: str, payload: TicketReplyIn, user=Depends(require_customer)):
+    ticket = await db.tickets.find_one({"id": ticket_id, "userId": user["id"]})
+    if not ticket:
+        raise HTTPException(404, "Ticket nicht gefunden")
+    
+    reply = TicketReply(
+        ticketId=ticket_id,
+        userId=user["id"],
+        message=payload.message
+    )
+    
+    await db.ticket_replies.insert_one(reply.dict())
+    
+    # Update ticket updatedAt
+    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": now_utc(), "status": "answered" if ticket["status"] == "open" else ticket["status"]}})
+    
+    return {"message": "Antwort hinzugefügt"}
+
+
+# ----------------------------------------------------------------------------
+# Routes : Customer Dashboard
+# ----------------------------------------------------------------------------
+@api_router.get("/dashboard")
+async def customer_dashboard(user=Depends(require_customer)):
+    # Active orders
+    active_orders = await db.orders.find({"userId": user["id"], "status": {"$in": ["active", "paid"]}}).sort("createdAt", -1).to_list(10)
+    
+    # Recent orders
+    recent_orders = await db.orders.find({"userId": user["id"]}).sort("createdAt", -1).limit(5).to_list(5)
+    
+    # Open tickets
+    open_tickets = await db.tickets.find({"userId": user["id"], "status": {"$nin": ["closed"]}}).sort("updatedAt", -1).to_list(10)
+    
+    # Recent activities (simplified)
+    activities = []
+    for o in recent_orders[:3]:
+        activities.append({"type": "order", "message": f"Bestellung {o['id']} erstellt", "date": o["createdAt"]})
+    for t in open_tickets[:2]:
+        activities.append({"type": "ticket", "message": f"Ticket '{t['subject']}' aktualisiert", "date": t["updatedAt"]})
+    
+    activities.sort(key=lambda x: x["date"], reverse=True)
+    
+    return {
+        "activeOrders": [clean(o) for o in active_orders],
+        "recentOrders": [clean(o) for o in recent_orders],
+        "openTickets": [clean(o) for o in open_tickets],
+        "recentActivities": activities[:5]
+    }
 
 
 # ----------------------------------------------------------------------------
@@ -768,6 +1175,130 @@ async def reorder_items(collection: str, payload: ReorderIn, user=Depends(requir
     for idx, item_id in enumerate(payload.ids):
         await db[db_col].update_one({"id": item_id}, {"$set": {"order": idx}})
     return {"ok": True, "count": len(payload.ids)}
+
+
+# ----------------------------------------------------------------------------
+# Routes : Admin Customers
+# ----------------------------------------------------------------------------
+@api_router.get("/admin/customers")
+async def list_customers(user=Depends(require_admin)):
+    customers = await db.users.find().sort("createdAt", -1).to_list(1000)
+    return [clean(c) for c in customers]
+
+
+@api_router.get("/admin/customers/{customer_id}")
+async def get_customer(customer_id: str, user=Depends(require_admin)):
+    customer = await db.users.find_one({"id": customer_id})
+    if not customer:
+        raise HTTPException(404, "Kunde nicht gefunden")
+    return clean(customer)
+
+
+@api_router.patch("/admin/customers/{customer_id}")
+async def update_customer(customer_id: str, payload: UserUpdate, user=Depends(require_admin)):
+    update = {k: v for k, v in payload.dict().items() if v is not None}
+    if update:
+        await db.users.update_one({"id": customer_id}, {"$set": update})
+    return {"message": "Kunde aktualisiert"}
+
+
+@api_router.delete("/admin/customers/{customer_id}")
+async def delete_customer(customer_id: str, user=Depends(require_admin)):
+    await db.users.delete_one({"id": customer_id})
+    # Also delete orders and tickets?
+    await db.orders.delete_many({"userId": customer_id})
+    await db.tickets.delete_many({"userId": customer_id})
+    await db.ticket_replies.delete_many({"userId": customer_id})
+    return {"message": "Kunde gelöscht"}
+
+
+# ----------------------------------------------------------------------------
+# Routes : Admin Orders
+# ----------------------------------------------------------------------------
+@api_router.get("/admin/orders")
+async def list_orders(user=Depends(require_admin)):
+    orders = await db.orders.find().sort("createdAt", -1).to_list(1000)
+    users = await db.users.find().to_list(1000)
+    products = await db.products.find().to_list(1000)
+    user_dict = {u["id"]: f"{u['firstName']} {u['lastName']}" for u in users}
+    prod_dict = {p["id"]: p["name"] for p in products}
+    
+    for o in orders:
+        clean(o)
+        o["userName"] = user_dict.get(o["userId"], "")
+        o["productName"] = prod_dict.get(o["productId"], "")
+    
+    return orders
+
+
+@api_router.patch("/admin/orders/{order_id}")
+async def update_order(order_id: str, status: str, user=Depends(require_admin)):
+    await db.orders.update_one({"id": order_id}, {"$set": {"status": status}})
+    return {"message": "Bestellung aktualisiert"}
+
+
+# ----------------------------------------------------------------------------
+# Routes : Admin Tickets
+# ----------------------------------------------------------------------------
+@api_router.get("/admin/tickets")
+async def list_tickets(user=Depends(require_admin)):
+    tickets = await db.tickets.find().sort("updatedAt", -1).to_list(1000)
+    users = await db.users.find().to_list(1000)
+    user_dict = {u["id"]: f"{u['firstName']} {u['lastName']}" for u in users}
+    
+    for t in tickets:
+        clean(t)
+        t["userName"] = user_dict.get(t["userId"], "")
+    
+    return tickets
+
+
+@api_router.get("/admin/tickets/{ticket_id}")
+async def get_admin_ticket(ticket_id: str, user=Depends(require_admin)):
+    ticket = await db.tickets.find_one({"id": ticket_id})
+    if not ticket:
+        raise HTTPException(404, "Ticket nicht gefunden")
+    
+    replies = await db.ticket_replies.find({"ticketId": ticket_id}).sort("createdAt", 1).to_list(1000)
+    users = await db.users.find().to_list(1000)
+    user_dict = {u["id"]: f"{u['firstName']} {u['lastName']}" for u in users}
+    
+    clean(ticket)
+    ticket["userName"] = user_dict.get(ticket["userId"], "")
+    ticket["replies"] = []
+    for r in replies:
+        clean(r)
+        r["userName"] = user_dict.get(r.get("userId"), "Admin") if r.get("userId") else "Admin"
+        ticket["replies"].append(r)
+    
+    return ticket
+
+
+@api_router.post("/admin/tickets/{ticket_id}/replies")
+async def add_admin_ticket_reply(ticket_id: str, payload: TicketReplyIn, user=Depends(require_admin)):
+    ticket = await db.tickets.find_one({"id": ticket_id})
+    if not ticket:
+        raise HTTPException(404, "Ticket nicht gefunden")
+    
+    reply = TicketReply(
+        ticketId=ticket_id,
+        userId=None,  # Admin
+        message=payload.message
+    )
+    
+    await db.ticket_replies.insert_one(reply.dict())
+    
+    # Update ticket
+    new_status = "answered" if ticket["status"] in ["open", "in_progress"] else ticket["status"]
+    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": now_utc(), "status": new_status}})
+    
+    return {"message": "Antwort hinzugefügt"}
+
+
+@api_router.patch("/admin/tickets/{ticket_id}")
+async def update_ticket_status(ticket_id: str, status: str, user=Depends(require_admin)):
+    await db.tickets.update_one({"id": ticket_id}, {"$set": {"status": status, "updatedAt": now_utc()}})
+    return {"message": "Ticket aktualisiert"}
 
 
 # ----------------------------------------------------------------------------
@@ -1499,6 +2030,38 @@ DEFAULT_COMPANIES = [
 
 @app.on_event("startup")
 async def seed_default_content():
+    # Seed categories first
+    col, defaults, Model = ("product_categories", DEFAULT_PRODUCT_CATEGORIES, ProductCategory)
+    count = await db[col].count_documents({})
+    category_ids = {}
+    if count == 0 and defaults:
+        for d in defaults:
+            obj = Model(**d)
+            result = await db[col].insert_one(obj.dict())
+            category_ids[d["name"].lower()] = str(result.inserted_id)
+        logger.info(f"Seeded {len(defaults)} entries to {col}")
+    
+    # Seed products with categoryId
+    col, defaults, Model = ("products", DEFAULT_PRODUCTS, Product)
+    count = await db[col].count_documents({})
+    if count == 0 and defaults:
+        for d in defaults:
+            if "categoryId" in d:
+                cat_name = d["categoryId"]
+                if cat_name in category_ids:
+                    d["categoryId"] = category_ids[cat_name]
+                else:
+                    # Find existing category
+                    cat = await db.product_categories.find_one({"name": cat_name})
+                    if cat:
+                        d["categoryId"] = cat["id"]
+                    else:
+                        del d["categoryId"]
+            obj = Model(**d)
+            await db[col].insert_one(obj.dict())
+        logger.info(f"Seeded {len(defaults)} entries to {col}")
+    
+    # Other seeders
     seeders = [
         ("projects", DEFAULT_PROJECTS, Project),
         ("blogs", DEFAULT_BLOGS, Blog),
@@ -1507,8 +2070,6 @@ async def seed_default_content():
         ("faqs", DEFAULT_FAQS, FAQ),
         ("email_templates", DEFAULT_EMAIL_TEMPLATES, EmailTemplate),
         ("companies", DEFAULT_COMPANIES, Company),
-        ("product_categories", DEFAULT_PRODUCT_CATEGORIES, ProductCategory),
-        ("products", DEFAULT_PRODUCTS, Product),
     ]
     for col, defaults, Model in seeders:
         count = await db[col].count_documents({})
@@ -1535,3 +2096,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { Menu, X, ChevronDown, Heart, ClipboardCheck } from "lucide-react";
+import { Menu, X, ChevronDown, Heart, ClipboardCheck, LogIn, User } from "lucide-react";
 import { navItems } from "../mock";
 import { useModals } from "../contexts/ModalContext";
+import { useAuth } from "../contexts/AuthContext";
 import Logo from "./Logo";
 
 export default function Header({ scrolled }) {
   const [open, setOpen] = useState(false);
   const { openQuote } = useModals();
+  const { user, logout } = useAuth();
 
   const handleNav = (e, href) => {
     if (href.startsWith("#")) {
@@ -59,6 +61,32 @@ export default function Header({ scrolled }) {
           >
             <ClipboardCheck size={22} className="text-[#E63946]" />
           </button>
+          {user ? (
+            <div className="flex items-center space-x-2">
+              <a
+                href="/dashboard"
+                className="text-white hover:text-[#FFC107] transition-colors flex items-center space-x-1"
+              >
+                <User size={18} />
+                <span>Dashboard</span>
+              </a>
+              <button
+                onClick={logout}
+                className="text-white hover:text-[#FFC107] transition-colors"
+                aria-label="Abmelden"
+              >
+                Abmelden
+              </button>
+            </div>
+          ) : (
+            <a
+              href="/login"
+              className="text-white hover:text-[#FFC107] transition-colors flex items-center space-x-1"
+            >
+              <LogIn size={18} />
+              <span>Anmelden</span>
+            </a>
+          )}
         </nav>
 
         <button
@@ -91,6 +119,29 @@ export default function Header({ scrolled }) {
           >
             Angebot einholen
           </button>
+          {user ? (
+            <>
+              <a
+                href="/dashboard"
+                className="block text-white py-2 hover:text-[#FFC107]"
+              >
+                Dashboard
+              </a>
+              <button
+                onClick={logout}
+                className="block text-white py-2 hover:text-[#FFC107] w-full text-left"
+              >
+                Abmelden
+              </button>
+            </>
+          ) : (
+            <a
+              href="/login"
+              className="block text-white py-2 hover:text-[#FFC107]"
+            >
+              Anmelden
+            </a>
+          )}
         </div>
       )}
     </header>

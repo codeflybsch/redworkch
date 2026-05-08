@@ -28,7 +28,7 @@ export default function Footer() {
       .catch(() => {});
   }, []);
 
-  const quickLinks = ["Webdesign", "Softwareentwicklung", "SEO", "Online-Shops", "Mobile Apps", "Branding", "Hosting", "Beratung"];
+  const quickLinks = ["Webdesign", "Softwareentwicklung", "SEO", "Online-Shops", "Mobile Apps", "Branding", "Hosting", "Beratung", "Kundenportal"];
 
   return (
     <footer className="bg-[#0a0a0a] text-white pt-16 sm:pt-20 pb-8">
@@ -52,7 +52,7 @@ export default function Footer() {
           {quickLinks.map((link) => (
             <button
               key={link}
-              onClick={() => openQuote()}
+              onClick={() => link === "Kundenportal" ? window.location.href = "/login" : openQuote()}
               className="text-left text-white/75 hover:text-[#FFC107] transition-colors flex items-center gap-2"
             >
               <span className="text-[#E63946]">#</span>

@@ -1,14 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, UserPlus } from "lucide-react";
-import { registerAccount } from "../lib/accountStorage";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "", company: "", phone: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { customerRegister } = useAuth();
 
   const submit = async (e) => {
     e.preventDefault();
@@ -16,11 +17,11 @@ export default function Register() {
     setSuccess("");
     setSubmitting(true);
     try {
-      registerAccount(form);
+      await customerRegister(form);
       setSuccess("Ihr Konto wurde erfolgreich erstellt. Sie werden weitergeleitet...");
-      window.setTimeout(() => navigate("/account", { replace: true }), 1200);
+      window.setTimeout(() => navigate("/dashboard", { replace: true }), 1200);
     } catch (err) {
-      setError(err.message || "Registrierung fehlgeschlagen.");
+      setError(err.response?.data?.detail || "Registrierung fehlgeschlagen.");
     } finally {
       setSubmitting(false);
     }
@@ -38,22 +39,57 @@ export default function Register() {
         <form onSubmit={submit} className="space-y-6">
           <div className="grid gap-6 sm:grid-cols-2">
             <label className="block text-sm font-semibold text-[#0f172a]">
-              Name
+              Vorname
               <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                value={form.firstName}
+                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
                 type="text"
-                placeholder="Max Mustermann"
+                placeholder="Max"
+                required
                 className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0f172a] focus:border-[#E63946] outline-none"
               />
             </label>
             <label className="block text-sm font-semibold text-[#0f172a]">
-              E-Mail
+              Nachname
               <input
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                type="email"
-                placeholder="email@domain.com"
+                value={form.lastName}
+                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                type="text"
+                placeholder="Mustermann"
+                required
+                className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0f172a] focus:border-[#E63946] outline-none"
+              />
+            </label>
+          </div>
+          <label className="block text-sm font-semibold text-[#0f172a]">
+            E-Mail
+            <input
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              type="email"
+              placeholder="email@domain.com"
+              required
+              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0f172a] focus:border-[#E63946] outline-none"
+            />
+          </label>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <label className="block text-sm font-semibold text-[#0f172a]">
+              Firma (optional)
+              <input
+                value={form.company}
+                onChange={(e) => setForm({ ...form, company: e.target.value })}
+                type="text"
+                placeholder="Muster GmbH"
+                className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0f172a] focus:border-[#E63946] outline-none"
+              />
+            </label>
+            <label className="block text-sm font-semibold text-[#0f172a]">
+              Telefon (optional)
+              <input
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                type="tel"
+                placeholder="+41 79 123 45 67"
                 className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0f172a] focus:border-[#E63946] outline-none"
               />
             </label>
@@ -65,6 +101,7 @@ export default function Register() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               type="password"
               placeholder="Mindestens 8 Zeichen"
+              required
               className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0f172a] focus:border-[#E63946] outline-none"
             />
           </label>
@@ -81,7 +118,7 @@ export default function Register() {
               {submitting ? "Registriere..." : "Konto erstellen"}
               <ArrowRight size={18} />
             </button>
-            <Link to="/account" className="text-sm font-semibold text-[#0f172a] hover:text-[#E63946]">Bereits registriert? Anmelden</Link>
+            <Link to="/login" className="text-sm font-semibold text-[#0f172a] hover:text-[#E63946]">Bereits registriert? Anmelden</Link>
           </div>
         </form>
 
