@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import { Check, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useModals } from "../contexts/ModalContext";
+import { motion } from "framer-motion";
+import * as Slider from "@radix-ui/react-slider";
 
 const BASE_HOSTING_PLANS = [
   {
@@ -103,6 +105,27 @@ const FAQ_LIST = [
   { question: "Wie funktioniert der VPS-Konfigurator?", answer: "Wählen Sie CPU, RAM, Speicher, Betriebssystem und weitere Optionen. Der Preis aktualisiert sich sofort." },
 ];
 
+const TESTIMONIALS = [
+  {
+    name: "Max Müller",
+    role: "E-Commerce Inhaber",
+    content: "Seit dem Wechsel zu diesem Hosting läuft mein Online-Shop deutlich schneller. Die Unterstützung ist erstklassig.",
+    avatar: "MM",
+  },
+  {
+    name: "Anna Schmidt",
+    role: "Webentwicklerin",
+    content: "Die VPS-Optionen sind flexibel und leistungsstark. Perfekt für meine Projekte.",
+    avatar: "AS",
+  },
+  {
+    name: "Lukas Weber",
+    role: "Startup-Gründer",
+    content: "Kostengünstig und zuverlässig. Die monatlichen Backups geben mir Sicherheit.",
+    avatar: "LW",
+  },
+];
+
 export default function HostingPackages() {
   const [hostingSection, setHostingSection] = useState("webhosting");
   const [pricingMode, setPricingMode] = useState("monthly");
@@ -137,7 +160,13 @@ export default function HostingPackages() {
   })), [config]);
 
   return (
-    <section id="hosting" className="py-24 bg-slate-950 text-white overflow-hidden">
+    <motion.section
+      id="hosting"
+      className="py-24 bg-slate-950 text-white overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+    >
       <div className="max-w-[1400px] mx-auto px-6">
         <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] items-end">
           <div className="space-y-6">
@@ -145,16 +174,26 @@ export default function HostingPackages() {
             <h2 className="text-[38px] sm:text-[48px] lg:text-[62px] font-extrabold tracking-tight">Modernes Webhosting und VPS-Services für professionelle Anwender.</h2>
             <p className="max-w-2xl text-base leading-8 text-slate-300">Integrierte Webhosting- und VPS-Bereiche mit Premium-Design, dynamischer Konfiguration und deutscher Benutzerführung.</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+              <motion.div
+                className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
+              >
                 <p className="text-sm uppercase tracking-[0.25em] text-slate-400 mb-2">SLA</p>
                 <h3 className="text-2xl font-bold">99.99% Verfügbarkeit</h3>
                 <p className="mt-3 text-sm text-slate-300">Monitoring, DDoS-Schutz und 24/7 Support inklusive.</p>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+              </motion.div>
+              <motion.div
+                className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.6 }}
+              >
                 <p className="text-sm uppercase tracking-[0.25em] text-slate-400 mb-2">Zahlung</p>
                 <h3 className="text-2xl font-bold">Stripe + PayPal</h3>
                 <p className="mt-3 text-sm text-slate-300">Direkte Zahlungslösungen für nationale und internationale Kunden.</p>
-              </div>
+              </motion.div>
             </div>
           </div>
           <div className="rounded-[40px] border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-[0_30px_120px_rgba(15,23,42,0.35)]">
@@ -246,23 +285,34 @@ export default function HostingPackages() {
               <p className="mt-3 text-slate-300">Erstellen Sie Ihre persönliche Lösung mit Live-Preisberechnung.</p>
               <div className="mt-8 space-y-6">
                 {CONFIG_OPTIONS.map((option) => (
-                  <div key={option.key} className="grid gap-3 sm:grid-cols-[1fr_auto] items-center">
+                  <motion.div
+                    key={option.key}
+                    className="grid gap-3 sm:grid-cols-[1fr_auto] items-center"
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 * CONFIG_OPTIONS.indexOf(option), duration: 0.5 }}
+                  >
                     <div>
                       <p className="text-sm font-semibold text-white">{option.label}</p>
                       <p className="text-sm text-slate-400">Preis: CHF{option.price}{option.unit && ` / ${option.unit}`}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setConfig((prev) => ({ ...prev, [option.key]: Math.max(option.min, prev[option.key] - option.step) }))}
-                        className="h-10 w-10 rounded-xl bg-white/5 text-white hover:bg-white/10"
-                      >-</button>
+                      <Slider.Root
+                        className="relative flex items-center select-none touch-none w-[120px] h-5"
+                        value={[config[option.key]]}
+                        onValueChange={(value) => setConfig((prev) => ({ ...prev, [option.key]: value[0] }))}
+                        max={option.max}
+                        min={option.min}
+                        step={option.step}
+                      >
+                        <Slider.Track className="bg-slate-700 relative grow rounded-full h-[3px]">
+                          <Slider.Range className="absolute bg-[#E63946] rounded-full h-full" />
+                        </Slider.Track>
+                        <Slider.Thumb className="block w-4 h-4 bg-[#E63946] rounded-full shadow-[0_2px_10px] shadow-blackA7 hover:bg-[#c5303d] focus:outline-none focus:shadow-[0_0_0_5px] focus:shadow-blackA5" />
+                      </Slider.Root>
                       <span className="min-w-[60px] text-center text-sm font-semibold">{config[option.key]}{option.unit && ` ${option.unit}`}</span>
-                      <button
-                        onClick={() => setConfig((prev) => ({ ...prev, [option.key]: Math.min(option.max, prev[option.key] + option.step) }))}
-                        className="h-10 w-10 rounded-xl bg-white/5 text-white hover:bg-white/10"
-                      >+</button>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
               <div className="mt-8 rounded-3xl bg-slate-900 p-6 border border-white/10">
@@ -322,12 +372,52 @@ export default function HostingPackages() {
 
         <div className="mt-20 grid gap-6 lg:grid-cols-2">
           {FAQ_LIST.map((item) => (
-            <div key={item.question} className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+            <motion.div
+              key={item.question}
+              className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 * FAQ_LIST.indexOf(item), duration: 0.5 }}
+            >
               <h4 className="text-xl font-semibold text-white">{item.question}</h4>
               <p className="mt-3 text-slate-300">{item.answer}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
+
+        <motion.div
+          className="mt-20"
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.8 }}
+        >
+          <div className="text-center mb-10">
+            <span className="inline-flex rounded-full bg-[#E63946]/10 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#E63946] font-semibold">Kundenstimmen</span>
+            <h3 className="mt-4 text-3xl font-extrabold">Was unsere Kunden sagen</h3>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {TESTIMONIALS.map((testimonial, index) => (
+              <motion.div
+                key={testimonial.name}
+                className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1 + 0.2 * index, duration: 0.6 }}
+              >
+                <p className="text-slate-300 mb-4">"{testimonial.content}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#E63946] flex items-center justify-center text-white font-bold">
+                    {testimonial.avatar}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">{testimonial.name}</p>
+                    <p className="text-sm text-slate-400">{testimonial.role}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
 
         <div className="mt-20 rounded-[40px] bg-gradient-to-br from-[#0f172a]/90 to-[#111827]/80 p-10 shadow-[0_30px_120px_rgba(15,23,42,0.45)] border border-white/5">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -353,6 +443,6 @@ export default function HostingPackages() {
           </div>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
