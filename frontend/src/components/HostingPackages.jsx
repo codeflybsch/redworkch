@@ -168,7 +168,7 @@ export default function HostingPackages() {
       transition={{ duration: 0.8 }}
     >
       <div className="max-w-[1400px] mx-auto px-6">
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] items-end">
+        <div className="grid gap-10 lg:grid-cols-2 items-end">
           <div className="space-y-6">
             <span className="inline-flex rounded-full bg-[#E63946]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#E63946] font-semibold">Hosting & Server</span>
             <h2 className="text-[38px] sm:text-[48px] lg:text-[62px] font-extrabold tracking-tight">Modernes Webhosting und VPS-Services für professionelle Anwender.</h2>
@@ -245,39 +245,76 @@ export default function HostingPackages() {
         <div className="mt-20 grid gap-10">
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
             <div className="rounded-[40px] bg-white/5 p-8 shadow-[0_30px_120px_rgba(15,23,42,0.3)] border border-white/10">
-              <div className="flex flex-col gap-4 mb-8">
-                <span className="inline-flex rounded-full bg-[#E63946]/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-[#E63946]">Webhosting-Tarife</span>
-                <h3 className="text-3xl font-extrabold">Premium Webhosting-Pakete</h3>
-                <p className="text-slate-300">Wählen Sie aus hochverfügbaren Hosting-Paketen mit NVMe, LiteSpeed, Imunify360 und täglichen Backups.</p>
-              </div>
-              <div className="grid gap-6 lg:grid-cols-3">
-                {BASE_HOSTING_PLANS.map((plan) => (
-                  <article key={plan.id} className={`rounded-[32px] border p-6 shadow-xl ${plan.accent}`}>
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <p className="text-sm uppercase tracking-[0.28em] text-slate-500">{plan.title}</p>
-                        <h4 className="mt-3 text-2xl font-bold text-slate-950">CHF{plan.price}{plan.period}</h4>
-                      </div>
-                      {plan.popular && <span className="rounded-full bg-[#0f172a] px-3 py-1 text-xs font-semibold uppercase text-white">Beliebt</span>}
-                    </div>
-                    <p className="text-slate-600 mb-6">{plan.description}</p>
-                    <ul className="space-y-3 mb-8">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-3 text-slate-700">
-                          <Check size={18} className="mt-1 text-[#E63946]" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      onClick={() => openQuote()}
-                      className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#c5303d]"
-                    >
-                      Jetzt anfragen
-                    </button>
-                  </article>
-                ))}
-              </div>
+              {hostingSection === "webhosting" ? (
+                <>
+                  <div className="flex flex-col gap-4 mb-8">
+                    <span className="inline-flex rounded-full bg-[#E63946]/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-[#E63946]">Webhosting-Tarife</span>
+                    <h3 className="text-3xl font-extrabold">Premium Webhosting-Pakete</h3>
+                    <p className="text-slate-300">Wählen Sie aus hochverfügbaren Hosting-Paketen mit NVMe, LiteSpeed, Imunify360 und täglichen Backups.</p>
+                  </div>
+                  <div className="grid gap-6 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
+                    {BASE_HOSTING_PLANS.map((plan) => (
+                      <article key={plan.id} className={`rounded-[32px] border p-6 shadow-xl ${plan.accent}`}>
+                        <div className="flex items-center justify-between mb-6">
+                          <div>
+                            <p className="text-sm uppercase tracking-[0.28em] text-slate-500">{plan.title}</p>
+                            <h4 className="mt-3 text-2xl font-bold text-slate-950">CHF{plan.price}{plan.period}</h4>
+                          </div>
+                          {plan.popular && <span className="rounded-full bg-[#0f172a] px-3 py-1 text-xs font-semibold uppercase text-white">Beliebt</span>}
+                        </div>
+                        <p className="text-slate-600 mb-6">{plan.description}</p>
+                        <ul className="space-y-3 mb-8">
+                          {plan.features.map((feature) => (
+                            <li key={feature} className="flex items-start gap-3 text-slate-700">
+                              <Check size={18} className="mt-1 text-[#E63946]" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          onClick={() => openQuote()}
+                          className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#c5303d]"
+                        >
+                          Jetzt anfragen
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-4 mb-8">
+                    <span className="inline-flex rounded-full bg-[#ffffff1a] px-3 py-1 text-xs uppercase tracking-[0.3em] text-slate-300">VPS / Server</span>
+                    <h3 className="text-3xl font-extrabold">VPS-Tarife mit hoher Leistung</h3>
+                    <p className="text-slate-300">Wählen Sie aus leistungsstarken VPS-Angeboten mit NVMe, DDoS-Schutz und flexiblen Betriebssystem-Optionen.</p>
+                  </div>
+                  <div className="grid gap-6 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
+                    {BASE_VPS_PLANS.map((server) => (
+                      <article key={server.id} className={`rounded-[32px] border p-6 ${server.accent}`}>
+                        <div className="mb-5">
+                          <p className="text-sm uppercase tracking-[0.25em] text-slate-500">{server.title}</p>
+                          <h4 className="mt-3 text-2xl font-bold text-slate-950">CHF{server.price}{server.period}</h4>
+                        </div>
+                        <p className="text-slate-600 mb-6">{server.description}</p>
+                        <ul className="space-y-3 mb-8 text-slate-700">
+                          {server.features.map((feature) => (
+                            <li key={feature} className="flex items-start gap-3">
+                              <Check size={18} className="mt-1 text-[#E63946]" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          onClick={() => navigate("/account")}
+                          className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303c]"
+                        >
+                          Bestellen
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
             <div className="rounded-[40px] bg-white/5 p-8 border border-white/10 shadow-[0_30px_120px_rgba(15,23,42,0.25)]">
               <span className="inline-flex rounded-full bg-[#E63946]/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-[#E63946]">Konfigurator</span>
@@ -338,36 +375,7 @@ export default function HostingPackages() {
             </div>
           </div>
 
-          <div className="rounded-[40px] bg-white/5 p-8 shadow-[0_30px_100px_rgba(15,23,42,0.2)] border border-white/10">
-            <span className="inline-flex rounded-full bg-[#ffffff1a] px-3 py-1 text-xs uppercase tracking-[0.3em] text-slate-300">VPS / Server</span>
-            <h3 className="mt-4 text-3xl font-extrabold">VPS-Tarife mit hoher Leistung</h3>
-            <p className="mt-3 text-slate-300">Wählen Sie aus leistungsstarken VPS-Angeboten mit NVMe, DDoS-Schutz und flexiblen Betriebssystem-Optionen.</p>
-            <div className="grid gap-6 mt-8 lg:grid-cols-3">
-              {BASE_VPS_PLANS.map((server) => (
-                <article key={server.id} className={`rounded-[32px] border p-6 ${server.accent}`}>
-                  <div className="mb-5">
-                    <p className="text-sm uppercase tracking-[0.25em] text-slate-500">{server.title}</p>
-                    <h4 className="mt-3 text-2xl font-bold text-slate-950">CHF{server.price}{server.period}</h4>
-                  </div>
-                  <p className="text-slate-600 mb-6">{server.description}</p>
-                  <ul className="space-y-3 mb-8 text-slate-700">
-                    {server.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-3">
-                        <Check size={18} className="mt-1 text-[#E63946]" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    onClick={() => navigate("/account")}
-                    className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303c]"
-                  >
-                    Bestellen
-                  </button>
-                </article>
-              ))}
-            </div>
-          </div>
+
         </div>
 
         <div className="mt-20 grid gap-6 lg:grid-cols-2">

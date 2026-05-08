@@ -142,9 +142,9 @@ export default function Products() {
                 <div>
                   <h3 className="font-semibold text-[#0f172a] mb-3">Webhosting Paketleri</h3>
                   {[
-                    { id: "starter", name: "Webhosting Starter", price: 14 },
-                    { id: "business", name: "Professionelles Webhosting", price: 34 },
-                    { id: "enterprise", name: "Premium Hosting", price: 69 },
+                    { id: "starter", name: "Webhosting Starter", price: 3 },
+                    { id: "business", name: "Webhosting Premium", price: 4.90 },
+                    { id: "enterprise", name: "Webhosting Premium XL", price: 12.90 },
                   ].map((plan) => (
                     <div key={plan.id} className="border border-slate-200 rounded-lg p-4 mb-3">
                       <div className="flex justify-between items-center mb-2">
@@ -158,9 +158,9 @@ export default function Products() {
                 <div>
                   <h3 className="font-semibold text-[#0f172a] mb-3">VPS / Server Paketleri</h3>
                   {[
-                    { id: "vps-start", name: "VPS Starter", price: 54 },
-                    { id: "vps-business", name: "VPS Business", price: 109 },
-                    { id: "vps-enterprise", name: "VPS Enterprise", price: 199 },
+                    { id: "vps-start", name: "VPS Starter", price: 10 },
+                    { id: "vps-business", name: "VPS Business", price: 20 },
+                    { id: "vps-enterprise", name: "VPS Enterprise", price: 40 },
                   ].map((plan) => (
                     <div key={plan.id} className="border border-slate-200 rounded-lg p-4 mb-3">
                       <div className="flex justify-between items-center mb-2">
