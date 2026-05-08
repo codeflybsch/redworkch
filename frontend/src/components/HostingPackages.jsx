@@ -163,6 +163,10 @@ export default function HostingPackages() {
     setPaymentModal(true);
   };
 
+  const handleCheckout = (planId, price) => {
+    handlePaymentMethod(planId, price);
+  };
+
   const handleStripeCheckout = async (planId, price) => {
     setLoadingCheckout(planId);
     try {
