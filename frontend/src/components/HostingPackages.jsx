@@ -1,185 +1,355 @@
-import React, { useEffect, useState } from "react";
-import { API } from "../api";
-import { Check, ShieldCheck, CreditCard, Globe, ArrowRight } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Check, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useModals } from "../contexts/ModalContext";
 
-const FALLBACK_PLANS = [
+const BASE_HOSTING_PLANS = [
   {
     id: "starter",
-    title: "Kurumsal Starter Hosting",
-    price: "CHF 24",
-    period: "/ay",
-    description: "Hızlı kurulum, esnek trafik, SSL ve proaktif altyapı izlemesi.",
+    title: "Webhosting Starter",
+    price: 14,
+    period: "/Monat",
+    description: "Schnelles Webhosting für kleine Unternehmen mit SSL & täglicher Sicherung.",
     features: [
-      "15 GB NVMe depolama",
-      "99.99% SLA & sorunsuz çalışma süresi",
-      "Ücretsiz SSL ve CDN entegrasyonu",
-      "Günlük yedekleme ve restore opsiyonu",
-      "Panel üzerinden kolay yönetim",
+      "15 GB NVMe SSD",
+      "LiteSpeed & cPanel",
+      "Daily Backup",
+      "Imunify360 Security",
+      "99.99% Uptime SLA",
     ],
-    accent: "bg-[#0ea5e9]/10 border-[#0ea5e9] text-[#0c74a9]",
+    accent: "bg-gradient-to-br from-sky-100 via-slate-50 to-white border border-sky-200 text-slate-950",
   },
   {
     id: "business",
-    title: "Business Hosting",
-    price: "CHF 59",
-    period: "/ay",
-    description: "KOBİ'ler ve kurumsal siteler için güvenli performans ile ölçeklenebilir altyapı.",
+    title: "Professionelles Webhosting",
+    price: 34,
+    period: "/Monat",
+    description: "Premium Hosting mit erweiterter Performance, Backup und Support für Business-Websites.",
     features: [
-      "50 GB NVMe depolama",
-      "Tüm trafik için otomatik ölçekleme",
-      "Web uygulama güvenlik duvarı (WAF)",
-      "Twint, Stripe ve PayPal ödeme altyapısı",
-      "7/24 premium destek ve SLAs",
+      "50 GB NVMe SSD",
+      "LiteSpeed + cPanel",
+      "Tägliche Backups",
+      "Imunify360 und Firewall",
+      "Kostenloses SSL + CDN ready",
     ],
-    accent: "bg-[#22c55e]/10 border-[#22c55e] text-[#166534]",
+    accent: "bg-gradient-to-br from-emerald-100 via-slate-50 to-white border border-emerald-200 text-slate-950",
     popular: true,
   },
   {
     id: "enterprise",
-    title: "Enterprise Sunucu Paketi",
-    price: "CHF 129",
-    period: "/ay",
-    description: "Şirket ölçeğindeki projeler için özel sunucu performansı ve yönetilen servis.",
+    title: "Premium Hosting",
+    price: 69,
+    period: "/Monat",
+    description: "Skalierbare Hosting-Plattform für E-Commerce, Agenturen und große Webanwendungen.",
     features: [
-      "200 GB NVMe depolama",
-      "Dedike yönetilen sunucu ve altyapı",
-      "Özel IP, çoklu domain ve özel SSL",
-      "İleri seviye yedekleme & felaket kurtarma",
-      "Öncelikli 24/7 teknik yönetim",
+      "150 GB NVMe SSD",
+      "Dedizierter Ressourcenpool",
+      "Premium SLA & 24/7 Support",
+      "Multi-Domain & cPanel",
+      "Anti-DDoS Schutz",
     ],
-    accent: "bg-[#f97316]/10 border-[#f97316] text-[#9a3412]",
+    accent: "bg-gradient-to-br from-amber-100 via-slate-50 to-white border border-amber-200 text-slate-950",
   },
 ];
 
-function mapProductToPlan(item) {
-  return {
-    id: item.id,
-    title: item.name,
-    price: `CHF ${Number(item.unitPrice).toFixed(0)}`,
-    period: item.unit ? `/${item.unit}` : "/ay",
-    description: item.description || "Profesyonel hosting ve sunucu hizmetleri.",
-    features: [
-      item.description || "Profesyonel hosting ve sunucu hizmetleri.",
-      "Gelişmiş güvenlik ve otomatik yedekleme",
-      "Ödeme seçenekleri: TWINT, Stripe, PayPal",
-      "Panel üzerinden esnek paket yönetimi",
-    ],
-    accent: "bg-[#1E88E5]/10 border-[#1E88E5] text-[#1E3A8A]",
-    popular: item.categoryId ? false : false,
-  };
-}
+const BASE_VPS_PLANS = [
+  {
+    id: "vps-start",
+    title: "VPS Starter",
+    price: 54,
+    period: "/Monat",
+    description: "Kernserver mit 2 vCPU, 4 GB RAM und NVMe-Speicher für dynamische Projekte.",
+    features: ["2 vCPU", "4 GB RAM", "80 GB NVMe", "1 IPv4-Adresse", "Linux/Windows verfügbar"],
+    accent: "bg-gradient-to-br from-indigo-100 via-slate-50 to-white border border-indigo-200 text-slate-950",
+  },
+  {
+    id: "vps-business",
+    title: "VPS Business",
+    price: 109,
+    period: "/Monat",
+    description: "Stabile Serverlösung mit 4 vCPU, 8 GB RAM und hohem I/O für Produktivsysteme.",
+    features: ["4 vCPU", "8 GB RAM", "160 GB NVMe", "DDoS Basic", "Premium Support"],
+    accent: "bg-gradient-to-br from-fuchsia-100 via-slate-50 to-white border border-fuchsia-200 text-slate-950",
+    popular: true,
+  },
+  {
+    id: "vps-enterprise",
+    title: "VPS Enterprise",
+    price: 199,
+    period: "/Monat",
+    description: "High-End VPS mit 8 vCPU, 16 GB RAM, NVMe SSD und dedizierten Netzwerkressourcen.",
+    features: ["8 vCPU", "16 GB RAM", "320 GB NVMe", "Advanced DDoS", "Dedizierte IPs"],
+    accent: "bg-gradient-to-br from-yellow-100 via-slate-50 to-white border border-yellow-200 text-slate-950",
+  },
+];
+
+const CONFIG_OPTIONS = [
+  { key: "cpu", label: "CPU-Cores", unit: "Kerne", step: 1, min: 1, max: 16, price: 8 },
+  { key: "ram", label: "RAM", unit: "GB", step: 1, min: 2, max: 64, price: 6 },
+  { key: "storage", label: "NVMe SSD", unit: "GB", step: 10, min: 20, max: 500, price: 0.45 },
+  { key: "traffic", label: "Traffic", unit: "TB", step: 1, min: 1, max: 20, price: 4 },
+  { key: "domains", label: "Domain-Limit", unit: "Domains", step: 1, min: 1, max: 20, price: 1.5 },
+  { key: "emails", label: "E-Mail-Konten", unit: "Konten", step: 1, min: 5, max: 100, price: 0.6 },
+  { key: "backup", label: "Backup", unit: "Monate", step: 1, min: 0, max: 12, price: 7 },
+  { key: "ssl", label: "SSL-Zertifikat", unit: "", step: 1, min: 0, max: 1, price: 5 },
+  { key: "litespeed", label: "LiteSpeed", unit: "", step: 1, min: 0, max: 1, price: 9 },
+  { key: "extraIp", label: "Extra IPv4", unit: "IPs", step: 1, min: 0, max: 5, price: 4 },
+];
+
+const FAQ_LIST = [
+  { question: "Was ist im Webhosting enthalten?", answer: "Unsere Webhosting-Pakete umfassen NVMe-SSD, cPanel, SSL, tägliche Backups und Imunify360-Sicherheit." },
+  { question: "Kann ich monatlich auf jährlich wechseln?", answer: "Ja, jährliche Abonnements bieten einen zusätzlichen Rabatt von 10%." },
+  { question: "Welche Zahlungsarten sind verfügbar?", answer: "Stripe und PayPal sind integriert. Weitere Optionen können vom Backend hinzugefügt werden." },
+  { question: "Wie funktioniert der VPS-Konfigurator?", answer: "Wählen Sie CPU, RAM, Speicher, Betriebssystem und weitere Optionen. Der Preis aktualisiert sich sofort." },
+];
 
 export default function HostingPackages() {
-  const [plans, setPlans] = useState(FALLBACK_PLANS);
+  const [hostingSection, setHostingSection] = useState("webhosting");
+  const [pricingMode, setPricingMode] = useState("monthly");
+  const [config, setConfig] = useState({
+    cpu: 2,
+    ram: 4,
+    storage: 80,
+    traffic: 2,
+    domains: 5,
+    emails: 20,
+    backup: 1,
+    ssl: 1,
+    litespeed: 1,
+    extraIp: 0,
+    os: "Linux",
+    controlPanel: "cPanel",
+    location: "Frankfurt",
+  });
   const { openQuote } = useModals();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadHostingPlans = async () => {
-      try {
-        const [categoriesRes, productsRes] = await Promise.all([
-          fetch(`${API}/product-categories`),
-          fetch(`${API}/products`),
-        ]);
-        if (!categoriesRes.ok || !productsRes.ok) throw new Error("api");
+  const configuredTotal = useMemo(() => {
+    const add = CONFIG_OPTIONS.reduce((sum, option) => sum + config[option.key] * option.price, 0);
+    const base = 12;
+    const total = base + add;
+    return pricingMode === "yearly" ? Math.round(total * 12 * 0.9) : Math.round(total);
+  }, [config, pricingMode]);
 
-        const [categories, products] = await Promise.all([categoriesRes.json(), productsRes.json()]);
-        const hostingCategory = categories.find((c) => /hosting|wartung|server|infrastruktur/i.test(c.name.toLowerCase()));
-        let hostingProducts = [];
-
-        if (hostingCategory) {
-          hostingProducts = products.filter((item) => item.categoryId === hostingCategory.id && item.unitPrice >= 0);
-        }
-        if (hostingProducts.length === 0) {
-          hostingProducts = products.filter((item) => /hosting|server|vps|sunucu/i.test(item.name.toLowerCase()) && item.unitPrice >= 0);
-        }
-        if (hostingProducts.length > 0) {
-          setPlans(hostingProducts.map(mapProductToPlan));
-        }
-      } catch (error) {
-        // keep fallback plans
-      }
-    };
-    loadHostingPlans();
-  }, []);
+  const selectedSummary = useMemo(() => CONFIG_OPTIONS.filter((opt) => config[opt.key] > (opt.min || 0)).map((option) => ({
+    label: option.label,
+    value: `${config[option.key]} ${option.unit}`.trim(),
+  })), [config]);
 
   return (
-    <section id="hosting" className="py-24 bg-white overflow-hidden">
+    <section id="hosting" className="py-24 bg-slate-950 text-white overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6">
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <p className="text-[#E63946] uppercase tracking-[0.3em] font-semibold text-sm mb-3">Hosting Paketleri</p>
-          <h2 className="text-[32px] sm:text-[42px] md:text-[52px] font-extrabold text-[#0f172a]">
-            Kurumsal hosting ve sunucu paketleri ile altyapıyı tam kontrol edin.
-          </h2>
-          <p className="text-[#475569] text-base sm:text-lg mt-4 leading-relaxed">
-            Performans, güvenlik ve ödeme yönetimini aynı panelde toplayan bir çözüm. Paketler admin panelinde düzenlenebilir, teklif ve faturalandırma süreçleri hızlıca hazırlanır.
-          </p>
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] items-end">
+          <div className="space-y-6">
+            <span className="inline-flex rounded-full bg-[#E63946]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#E63946] font-semibold">Hosting & Server</span>
+            <h2 className="text-[38px] sm:text-[48px] lg:text-[62px] font-extrabold tracking-tight">Modernes Webhosting und VPS-Services für professionelle Anwender.</h2>
+            <p className="max-w-2xl text-base leading-8 text-slate-300">Integrierte Webhosting- und VPS-Bereiche mit Premium-Design, dynamischer Konfiguration und deutscher Benutzerführung.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+                <p className="text-sm uppercase tracking-[0.25em] text-slate-400 mb-2">SLA</p>
+                <h3 className="text-2xl font-bold">99.99% Verfügbarkeit</h3>
+                <p className="mt-3 text-sm text-slate-300">Monitoring, DDoS-Schutz und 24/7 Support inklusive.</p>
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+                <p className="text-sm uppercase tracking-[0.25em] text-slate-400 mb-2">Zahlung</p>
+                <h3 className="text-2xl font-bold">Stripe + PayPal</h3>
+                <p className="mt-3 text-sm text-slate-300">Direkte Zahlungslösungen für nationale und internationale Kunden.</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-[40px] border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-[0_30px_120px_rgba(15,23,42,0.35)]">
+            <div className="flex flex-col gap-4">
+              <span className="text-sm uppercase tracking-[0.3em] text-[#E63946] font-semibold">Konfiguration</span>
+              <div className="flex flex-wrap gap-3">
+                {[{ key: "webhosting", label: "Webhosting" }, { key: "vps", label: "VPS / Server" }].map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setHostingSection(item.key)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${hostingSection === item.key ? "bg-[#E63946] text-white" : "bg-white/10 text-slate-100 hover:bg-white/20"}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-3xl bg-slate-900 p-6">
+                  <p className="text-sm uppercase tracking-[0.25em] text-slate-400 mb-2">Konfigurierter Preis</p>
+                  <div className="flex items-end gap-2">
+                    <span className="text-5xl font-extrabold">€{configuredTotal}</span>
+                    <span className="text-sm text-slate-400">{pricingMode === "yearly" ? "/Jahr" : "/Monat"}</span>
+                  </div>
+                  <p className="mt-3 text-sm text-slate-400">Der Betrag passt sich automatisch an Ihre Auswahl an.</p>
+                </div>
+                <div className="rounded-3xl bg-slate-900 p-6">
+                  <p className="text-sm uppercase tracking-[0.25em] text-slate-400 mb-2">Abrechnung</p>
+                  <div className="flex gap-3">
+                    {[
+                      { key: "monthly", label: "Monatlich" },
+                      { key: "yearly", label: "Jährlich" },
+                    ].map((option) => (
+                      <button
+                        key={option.key}
+                        onClick={() => setPricingMode(option.key)}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${pricingMode === option.key ? "bg-white text-slate-950" : "bg-white/10 text-slate-200 hover:bg-white/20"}`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-sm text-slate-400">Jahrespläne erhalten 10% Rabatt.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <div key={plan.id} className={`rounded-[32px] border p-7 shadow-[0_20px_80px_rgba(15,23,42,0.08)] ${plan.accent}`}>
-              <div className="flex items-center justify-between gap-3 mb-6">
-                <div>
-                  <div className="text-sm uppercase tracking-[0.22em] font-semibold text-[#64748b]">{plan.title}</div>
-                  <p className="mt-2 text-sm text-[#475569]">{plan.description}</p>
-                </div>
-                {plan.popular && <span className="rounded-full bg-[#E63946] px-3 py-1 text-[11px] font-bold text-white uppercase">En çok tercih edilen</span>}
+        <div className="mt-20 grid gap-10">
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-[40px] bg-white/5 p-8 shadow-[0_30px_120px_rgba(15,23,42,0.3)] border border-white/10">
+              <div className="flex flex-col gap-4 mb-8">
+                <span className="inline-flex rounded-full bg-[#E63946]/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-[#E63946]">Webhosting-Tarife</span>
+                <h3 className="text-3xl font-extrabold">Premium Webhosting-Pakete</h3>
+                <p className="text-slate-300">Wählen Sie aus hochverfügbaren Hosting-Paketen mit NVMe, LiteSpeed, Imunify360 und täglichen Backups.</p>
               </div>
-              <div className="flex items-end gap-2">
-                <div className="text-[42px] font-extrabold text-[#0f172a] leading-none">{plan.price}</div>
-                <span className="text-sm text-[#64748b] pb-1">{plan.period}</span>
+              <div className="grid gap-6 lg:grid-cols-3">
+                {BASE_HOSTING_PLANS.map((plan) => (
+                  <article key={plan.id} className={`rounded-[32px] border p-6 shadow-xl ${plan.accent}`}>
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <p className="text-sm uppercase tracking-[0.28em] text-slate-500">{plan.title}</p>
+                        <h4 className="mt-3 text-2xl font-bold text-slate-950">€{plan.price}{plan.period}</h4>
+                      </div>
+                      {plan.popular && <span className="rounded-full bg-[#0f172a] px-3 py-1 text-xs font-semibold uppercase text-white">Beliebt</span>}
+                    </div>
+                    <p className="text-slate-600 mb-6">{plan.description}</p>
+                    <ul className="space-y-3 mb-8">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-3 text-slate-700">
+                          <Check size={18} className="mt-1 text-[#E63946]" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => openQuote()}
+                      className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#c5303d]"
+                    >
+                      Jetzt anfragen
+                    </button>
+                  </article>
+                ))}
               </div>
-              <div className="mt-6 space-y-4">
-                {plan.features.map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <Check size={18} className="mt-1 text-[#E63946]" />
-                    <p className="text-sm text-[#475569] leading-relaxed">{feature}</p>
+            </div>
+            <div className="rounded-[40px] bg-white/5 p-8 border border-white/10 shadow-[0_30px_120px_rgba(15,23,42,0.25)]">
+              <span className="inline-flex rounded-full bg-[#E63946]/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-[#E63946]">Konfigurator</span>
+              <h3 className="mt-4 text-3xl font-extrabold">Individueller Hosting-Konfigurator</h3>
+              <p className="mt-3 text-slate-300">Erstellen Sie Ihre persönliche Lösung mit Live-Preisberechnung.</p>
+              <div className="mt-8 space-y-6">
+                {CONFIG_OPTIONS.map((option) => (
+                  <div key={option.key} className="grid gap-3 sm:grid-cols-[1fr_auto] items-center">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{option.label}</p>
+                      <p className="text-sm text-slate-400">Preis: €{option.price}{option.unit && ` / ${option.unit}`}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setConfig((prev) => ({ ...prev, [option.key]: Math.max(option.min, prev[option.key] - option.step) }))}
+                        className="h-10 w-10 rounded-xl bg-white/5 text-white hover:bg-white/10"
+                      >-</button>
+                      <span className="min-w-[60px] text-center text-sm font-semibold">{config[option.key]}{option.unit && ` ${option.unit}`}</span>
+                      <button
+                        onClick={() => setConfig((prev) => ({ ...prev, [option.key]: Math.min(option.max, prev[option.key] + option.step) }))}
+                        className="h-10 w-10 rounded-xl bg-white/5 text-white hover:bg-white/10"
+                      >+</button>
+                    </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-8 flex flex-col gap-3">
-                <button
-                  onClick={() => navigate("/account")}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E63946] px-5 py-3 text-sm font-bold text-white hover:bg-[#c5303d] transition-colors"
-                >
-                  Paket Seç
-                  <ArrowRight size={18} />
-                </button>
+              <div className="mt-8 rounded-3xl bg-slate-900 p-6 border border-white/10">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm uppercase tracking-[0.28em] text-slate-400">Zusammenfassung</p>
+                  <p className="text-3xl font-extrabold">€{configuredTotal}{pricingMode === "yearly" ? "/Jahr" : "/Monat"}</p>
+                </div>
+                <div className="mt-5 grid gap-3 text-slate-300">
+                  {selectedSummary.map((item) => (
+                    <div key={item.label} className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <span>{item.label}</span>
+                      <span className="font-semibold text-white">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
                 <button
                   onClick={() => openQuote()}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[#0f172a] px-5 py-3 text-sm font-semibold text-[#0f172a] hover:bg-slate-100 transition-colors"
+                  className="mt-8 w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303d]"
                 >
-                  Teklif Al
+                  Angebot anfordern
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-[40px] bg-white/5 p-8 shadow-[0_30px_100px_rgba(15,23,42,0.2)] border border-white/10">
+            <span className="inline-flex rounded-full bg-[#ffffff1a] px-3 py-1 text-xs uppercase tracking-[0.3em] text-slate-300">VPS / Server</span>
+            <h3 className="mt-4 text-3xl font-extrabold">VPS-Tarife mit hoher Leistung</h3>
+            <p className="mt-3 text-slate-300">Wählen Sie aus leistungsstarken VPS-Angeboten mit NVMe, DDoS-Schutz und flexiblen Betriebssystem-Optionen.</p>
+            <div className="grid gap-6 mt-8 lg:grid-cols-3">
+              {BASE_VPS_PLANS.map((server) => (
+                <article key={server.id} className={`rounded-[32px] border p-6 ${server.accent}`}>
+                  <div className="mb-5">
+                    <p className="text-sm uppercase tracking-[0.25em] text-slate-500">{server.title}</p>
+                    <h4 className="mt-3 text-2xl font-bold text-slate-950">€{server.price}{server.period}</h4>
+                  </div>
+                  <p className="text-slate-600 mb-6">{server.description}</p>
+                  <ul className="space-y-3 mb-8 text-slate-700">
+                    {server.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-3">
+                        <Check size={18} className="mt-1 text-[#E63946]" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => navigate("/account")}
+                    className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303c]"
+                  >
+                    Bestellen
+                  </button>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-20 grid gap-6 lg:grid-cols-2">
+          {FAQ_LIST.map((item) => (
+            <div key={item.question} className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+              <h4 className="text-xl font-semibold text-white">{item.question}</h4>
+              <p className="mt-3 text-slate-300">{item.answer}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-14 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 p-6 bg-slate-50">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#0E7490]/10 text-[#0E7490] mb-4">
-              <CreditCard size={22} />
+        <div className="mt-20 rounded-[40px] bg-gradient-to-br from-[#0f172a]/90 to-[#111827]/80 p-10 shadow-[0_30px_120px_rgba(15,23,42,0.45)] border border-white/5">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Premium Hosting</p>
+              <h3 className="mt-3 text-4xl font-extrabold">Jetzt professionelle Hosting-Lösungen buchen</h3>
+              <p className="mt-4 text-slate-300 max-w-2xl">Schaffen Sie eine leistungsstarke Infrastruktur mit modernster Technik, schnellen Ladezeiten und professionellem Service.</p>
             </div>
-            <h3 className="text-lg font-bold text-[#0f172a]">Ödeme Esnekliği</h3>
-            <p className="mt-2 text-sm text-[#475569]">TWINT, Stripe ve PayPal ile yerel ve uluslararası ödeme akışlarını destekler.</p>
-          </div>
-          <div className="rounded-3xl border border-slate-200 p-6 bg-slate-50">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#16A34A]/10 text-[#16A34A] mb-4">
-              <ShieldCheck size={22} />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => openQuote()}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E63946] px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303d]"
+              >
+                Angebot anfordern
+              </button>
+              <button
+                onClick={() => navigate("/account")}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-white/10"
+              >
+                Kundenbereich öffnen
+              </button>
             </div>
-            <h3 className="text-lg font-bold text-[#0f172a]">Güvenlik ve Uyumluluk</h3>
-            <p className="mt-2 text-sm text-[#475569]">ISO uyumlu altyapı, SSL yönetimi ve 7/24 izleme ile kurumsal güvenlik sunar.</p>
-          </div>
-          <div className="rounded-3xl border border-slate-200 p-6 bg-slate-50">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#F59E0B]/10 text-[#F59E0B] mb-4">
-              <Globe size={22} />
-            </div>
-            <h3 className="text-lg font-bold text-[#0f172a]">Hızlı Yayına Alma</h3>
-            <p className="mt-2 text-sm text-[#475569]">Paket seçimi sonrası hızlı devreye alma ve profesyonel altyapı hazırlığı sağlanır.</p>
           </div>
         </div>
       </div>
