@@ -175,7 +175,7 @@ export default function HostingPackages() {
                 <div className="rounded-3xl bg-slate-900 p-6">
                   <p className="text-sm uppercase tracking-[0.25em] text-slate-400 mb-2">Konfigurierter Preis</p>
                   <div className="flex items-end gap-2">
-                    <span className="text-5xl font-extrabold">€{configuredTotal}</span>
+                    <span className="text-5xl font-extrabold">CHF{configuredTotal}</span>
                     <span className="text-sm text-slate-400">{pricingMode === "yearly" ? "/Jahr" : "/Monat"}</span>
                   </div>
                   <p className="mt-3 text-sm text-slate-400">Der Betrag passt sich automatisch an Ihre Auswahl an.</p>
@@ -217,7 +217,7 @@ export default function HostingPackages() {
                     <div className="flex items-center justify-between mb-6">
                       <div>
                         <p className="text-sm uppercase tracking-[0.28em] text-slate-500">{plan.title}</p>
-                        <h4 className="mt-3 text-2xl font-bold text-slate-950">€{plan.price}{plan.period}</h4>
+                        <h4 className="mt-3 text-2xl font-bold text-slate-950">CHF{plan.price}{plan.period}</h4>
                       </div>
                       {plan.popular && <span className="rounded-full bg-[#0f172a] px-3 py-1 text-xs font-semibold uppercase text-white">Beliebt</span>}
                     </div>
@@ -249,7 +249,7 @@ export default function HostingPackages() {
                   <div key={option.key} className="grid gap-3 sm:grid-cols-[1fr_auto] items-center">
                     <div>
                       <p className="text-sm font-semibold text-white">{option.label}</p>
-                      <p className="text-sm text-slate-400">Preis: €{option.price}{option.unit && ` / ${option.unit}`}</p>
+                      <p className="text-sm text-slate-400">Preis: CHF{option.price}{option.unit && ` / ${option.unit}`}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
@@ -268,7 +268,7 @@ export default function HostingPackages() {
               <div className="mt-8 rounded-3xl bg-slate-900 p-6 border border-white/10">
                 <div className="flex items-center justify-between gap-4">
                   <p className="text-sm uppercase tracking-[0.28em] text-slate-400">Zusammenfassung</p>
-                  <p className="text-3xl font-extrabold">€{configuredTotal}{pricingMode === "yearly" ? "/Jahr" : "/Monat"}</p>
+                  <p className="text-3xl font-extrabold">CHF{configuredTotal}{pricingMode === "yearly" ? "/Jahr" : "/Monat"}</p>
                 </div>
                 <div className="mt-5 grid gap-3 text-slate-300">
                   {selectedSummary.map((item) => (
@@ -297,7 +297,7 @@ export default function HostingPackages() {
                 <article key={server.id} className={`rounded-[32px] border p-6 ${server.accent}`}>
                   <div className="mb-5">
                     <p className="text-sm uppercase tracking-[0.25em] text-slate-500">{server.title}</p>
-                    <h4 className="mt-3 text-2xl font-bold text-slate-950">€{server.price}{server.period}</h4>
+                    <h4 className="mt-3 text-2xl font-bold text-slate-950">CHF{server.price}{server.period}</h4>
                   </div>
                   <p className="text-slate-600 mb-6">{server.description}</p>
                   <ul className="space-y-3 mb-8 text-slate-700">
