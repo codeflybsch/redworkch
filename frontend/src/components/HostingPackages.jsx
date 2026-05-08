@@ -209,13 +209,19 @@ export default function HostingPackages() {
   return (
     <motion.section
       id="hosting"
-      className="py-24 bg-slate-950 text-white overflow-hidden"
+      className="py-24 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
     >
+      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}></div>
       <div className="max-w-[1400px] mx-auto px-6">
-        <div className="grid gap-10 lg:grid-cols-2 items-end">
+        <motion.div
+          className="grid gap-10 lg:grid-cols-2 items-start"
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.8 }}
+        >
           <div className="space-y-6">
             <span className="inline-flex rounded-full bg-[#E63946]/15 px-4 py-2 text-sm uppercase tracking-[0.3em] text-[#E63946] font-semibold">Hosting & Server</span>
             <h2 className="text-[38px] sm:text-[48px] lg:text-[62px] font-extrabold tracking-tight">Modernes Webhosting und VPS-Services für professionelle Anwender.</h2>
@@ -337,29 +343,37 @@ export default function HostingPackages() {
                     <p className="text-slate-300">Wählen Sie aus leistungsstarken VPS-Angeboten mit NVMe, DDoS-Schutz und flexiblen Betriebssystem-Optionen.</p>
                   </div>
                   <div className="grid gap-6 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
-                    {BASE_VPS_PLANS.map((server) => (
-                      <article key={server.id} className={`rounded-[32px] border p-6 ${server.accent}`}>
+                    {BASE_VPS_PLANS.map((server, index) => (
+                      <motion.article
+                        key={server.id}
+                        className={`rounded-[32px] border p-6 ${server.accent} relative overflow-hidden`}
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.2 * index, duration: 0.6 }}
+                        whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                      >
+                        <div className="absolute top-4 right-4 text-2xl">{server.icon}</div>
                         <div className="mb-5">
-                          <p className="text-sm uppercase tracking-[0.25em] text-slate-500">{server.title}</p>
-                          <h4 className="mt-3 text-2xl font-bold text-slate-950">CHF{server.price}{server.period}</h4>
+                          <p className="text-sm uppercase tracking-[0.25em] text-slate-600">{server.title}</p>
+                          <h4 className="mt-3 text-3xl font-bold text-slate-950">CHF{server.price}{server.period}</h4>
                         </div>
-                        <p className="text-slate-600 mb-6">{server.description}</p>
-                        <ul className="space-y-3 mb-8 text-slate-700">
+                        <p className="text-slate-700 mb-6">{server.description}</p>
+                        <ul className="space-y-3 mb-8 text-slate-800">
                           {server.features.map((feature) => (
                             <li key={feature} className="flex items-start gap-3">
-                              <Check size={18} className="mt-1 text-[#E63946]" />
+                              <Check size={18} className="mt-1 text-green-600" />
                               <span>{feature}</span>
                             </li>
                           ))}
                         </ul>
                         <button
-                          onClick={() => handleCheckout(server.id, server.price)}
+                          onClick={() => handlePaymentMethod(server.id, server.price)}
                           disabled={loadingCheckout === server.id}
-                          className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303c] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          className="w-full rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
                         >
                           {loadingCheckout === server.id ? <Loader2 size={16} className="animate-spin" /> : "Jetzt kaufen"}
                         </button>
-                      </article>
+                      </motion.article>
                     ))}
                   </div>
                 </>
@@ -504,6 +518,57 @@ export default function HostingPackages() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {paymentModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPaymentModal(false)}
+          >
+            <motion.div
+              className="relative max-w-md w-full mx-4 rounded-3xl bg-white p-8 shadow-2xl"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setPaymentModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+              >
+                <X size={24} />
+              </button>
+              <div className="text-center mb-6">
+                <Smartphone size={48} className="mx-auto mb-4 text-blue-600" />
+                <h3 className="text-2xl font-bold text-slate-900">Zahlungsmethode wählen</h3>
+                <p className="text-slate-600 mt-2">Wählen Sie Ihre bevorzugte Zahlungsmethode für {selectedPlanForPayment?.planId}</p>
+              </div>
+              <div className="space-y-4">
+                <button
+                  onClick={() => handleStripeCheckout(selectedPlanForPayment.planId, selectedPlanForPayment.price)}
+                  disabled={loadingCheckout === selectedPlanForPayment.planId}
+                  className="w-full flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white font-semibold hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingCheckout === selectedPlanForPayment.planId ? <Loader2 size={20} className="animate-spin" /> : "💳"}
+                  Stripe (Kreditkarte)
+                </button>
+                <button
+                  onClick={handleTwintCheckout}
+                  className="w-full flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white font-semibold hover:from-green-700 hover:to-green-800"
+                >
+                  📱 TWINT
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-4 text-center">
+                TWINT öffnet automatisch Ihre SMS-App mit der Nachricht an 076 610 61 08
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.section>
   );
 }
