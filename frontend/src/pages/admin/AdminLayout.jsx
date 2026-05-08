@@ -38,8 +38,8 @@ const groups = [
     label: "Buchhaltung",
     links: [
       { to: "/admin/companies", label: "Firmen / Logos", icon: Building2 },
-      { to: "/admin/hosting", label: "Hosting Paketleri", icon: Server },
-      { to: "/admin/products", label: "Ürünler / Katalog", icon: Package },
+      { to: "/admin/hosting", label: "Hosting-Pakete", icon: Server },
+      { to: "/admin/products", label: "Produkte / Katalog", icon: Package },
       { to: "/admin/invoices", label: "Rechnungen", icon: Receipt },
       { to: "/admin/offers", label: "Offerten", icon: FileSignature },
       { to: "/admin/invoice-templates", label: "Rechnungs-Vorlagen", icon: FileText },

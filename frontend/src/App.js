@@ -26,6 +26,7 @@ import ContactModal from "./components/ContactModal";
 
 import AdminLogin from "./pages/admin/AdminLogin";
 import MembershipPanel from "./pages/MembershipPanel";
+import Register from "./pages/Register";
 import AdminLayout from "./pages/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Quotes from "./pages/admin/Quotes";
@@ -95,6 +96,7 @@ function App() {
               <Route path="/" element={<PublicSite />} />
 
               <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/account" element={<MembershipPanel />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Dashboard />} />

@@ -87,6 +87,7 @@ export const navItems = [
   { label: "blog", href: "#blog" },
   { label: "über uns", href: "#ueber" },
   { label: "Kundenbereich", href: "/account" },
+  { label: "Registrieren", href: "/register" },
   { label: "FAQ", href: "#faq" },
   { label: "kontakt", href: "#kontakt" },
 ];
