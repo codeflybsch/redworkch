@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Check, ArrowRight, Loader2 } from "lucide-react";
+import { Check, ArrowRight, Loader2, X, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useModals } from "../contexts/ModalContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import * as Slider from "@radix-ui/react-slider";
 import { loadStripe } from "@stripe/stripe-js";
 import api from "../api";
@@ -21,7 +21,8 @@ const BASE_HOSTING_PLANS = [
       "Imunify360 Security",
       "99.99% Uptime SLA",
     ],
-    accent: "bg-gradient-to-br from-sky-100 via-slate-50 to-white border border-sky-200 text-slate-950",
+    accent: "bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-100 border border-blue-300 text-slate-900",
+    icon: "🚀",
   },
   {
     id: "business",
@@ -36,7 +37,8 @@ const BASE_HOSTING_PLANS = [
       "Imunify360 und Firewall",
       "Kostenloses SSL + CDN ready",
     ],
-    accent: "bg-gradient-to-br from-emerald-100 via-slate-50 to-white border border-emerald-200 text-slate-950",
+    accent: "bg-gradient-to-br from-emerald-400 via-teal-300 to-green-100 border border-emerald-300 text-slate-900",
+    icon: "⭐",
     popular: true,
   },
   {
@@ -52,7 +54,8 @@ const BASE_HOSTING_PLANS = [
       "Multi-Domain & cPanel",
       "Anti-DDoS Schutz",
     ],
-    accent: "bg-gradient-to-br from-amber-100 via-slate-50 to-white border border-amber-200 text-slate-950",
+    accent: "bg-gradient-to-br from-orange-400 via-yellow-300 to-orange-100 border border-orange-300 text-slate-900",
+    icon: "👑",
   },
 ];
 
@@ -64,7 +67,8 @@ const BASE_VPS_PLANS = [
     period: "/Monat",
     description: "Grundlegender VPS mit 1 vCPU, 2 GB RAM und NVMe-Speicher für einfache Projekte.",
     features: ["1 vCPU", "2 GB RAM", "40 GB NVMe", "1 IPv4-Adresse", "Linux/Windows verfügbar"],
-    accent: "bg-gradient-to-br from-indigo-100 via-slate-50 to-white border border-indigo-200 text-slate-950",
+    accent: "bg-gradient-to-br from-violet-400 via-purple-300 to-violet-100 border border-violet-300 text-slate-900",
+    icon: "⚡",
   },
   {
     id: "vps-business",
@@ -73,7 +77,8 @@ const BASE_VPS_PLANS = [
     period: "/Monat",
     description: "Stabile VPS-Lösung mit 2 vCPU, 4 GB RAM und hohem I/O für Produktivsysteme.",
     features: ["2 vCPU", "4 GB RAM", "80 GB NVMe", "DDoS Basic", "Premium Support"],
-    accent: "bg-gradient-to-br from-fuchsia-100 via-slate-50 to-white border border-fuchsia-200 text-slate-950",
+    accent: "bg-gradient-to-br from-pink-400 via-rose-300 to-pink-100 border border-pink-300 text-slate-900",
+    icon: "🔥",
     popular: true,
   },
   {
@@ -83,7 +88,8 @@ const BASE_VPS_PLANS = [
     period: "/Monat",
     description: "High-End VPS mit 4 vCPU, 8 GB RAM, NVMe SSD und dedizierten Netzwerkressourcen.",
     features: ["4 vCPU", "8 GB RAM", "160 GB NVMe", "Advanced DDoS", "Dedizierte IPs"],
-    accent: "bg-gradient-to-br from-yellow-100 via-slate-50 to-white border border-yellow-200 text-slate-950",
+    accent: "bg-gradient-to-br from-indigo-400 via-blue-300 to-indigo-100 border border-indigo-300 text-slate-900",
+    icon: "💎",
   },
 ];
 
@@ -132,6 +138,8 @@ export default function HostingPackages() {
   const [hostingSection, setHostingSection] = useState("webhosting");
   const [pricingMode, setPricingMode] = useState("monthly");
   const [loadingCheckout, setLoadingCheckout] = useState(null);
+  const [paymentModal, setPaymentModal] = useState(null);
+  const [selectedPlanForPayment, setSelectedPlanForPayment] = useState(null);
   const [config, setConfig] = useState({
     cpu: 2,
     ram: 4,
@@ -150,7 +158,12 @@ export default function HostingPackages() {
   const { openQuote } = useModals();
   const navigate = useNavigate();
 
-  const handleCheckout = async (planId, price) => {
+  const handlePaymentMethod = (planId, price) => {
+    setSelectedPlanForPayment({ planId, price });
+    setPaymentModal(true);
+  };
+
+  const handleStripeCheckout = async (planId, price) => {
     setLoadingCheckout(planId);
     try {
       const stripe = await loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
@@ -172,6 +185,13 @@ export default function HostingPackages() {
     } finally {
       setLoadingCheckout(null);
     }
+  };
+
+  const handleTwintCheckout = () => {
+    const message = `Hallo, ich möchte ${selectedPlanForPayment.planId} buchen. Gesamtpreis: CHF ${selectedPlanForPayment.price}`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`sms:07661061008?body=${encodedMessage}`);
+    setPaymentModal(false);
   };
 
   const configuredTotal = useMemo(() => {
