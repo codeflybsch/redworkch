@@ -90,6 +90,7 @@ export default function Products() {
       <div className="flex flex-col gap-4 mt-5 md:flex-row md:items-center md:justify-between">
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => setTab("products")} className={`px-4 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-2 ${tab === "products" ? "bg-[#0f172a] text-white" : "bg-slate-100 text-[#0f172a]"}`}><Package size={14} /> Paketler ({filteredProds.length})</button>
+          <button onClick={() => setTab("hosting")} className={`px-4 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-2 ${tab === "hosting" ? "bg-[#0f172a] text-white" : "bg-slate-100 text-[#0f172a]"}`}><Package size={14} /> Hosting Paketleri</button>
           <button onClick={() => setTab("categories")} className={`px-4 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-2 ${tab === "categories" ? "bg-[#0f172a] text-white" : "bg-slate-100 text-[#0f172a]"}`}><Layers size={14} /> Kategoriler ({cats.length})</button>
         </div>
         {tab === "products" && (
@@ -133,6 +134,45 @@ export default function Products() {
                 </table>
               </div>
             )
+          ) : tab === "hosting" ? (
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-[#0f172a] mb-4">Hosting Paketlerini Düzenle</h2>
+              <p className="text-[#64748b] mb-6">Bu bölümde webhosting ve VPS paketlerinin fiyatlarını ve özelliklerini güncelleyebilirsiniz. Değişiklikler anında siteye yansır.</p>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <h3 className="font-semibold text-[#0f172a] mb-3">Webhosting Paketleri</h3>
+                  {[
+                    { id: "starter", name: "Webhosting Starter", price: 14 },
+                    { id: "business", name: "Professionelles Webhosting", price: 34 },
+                    { id: "enterprise", name: "Premium Hosting", price: 69 },
+                  ].map((plan) => (
+                    <div key={plan.id} className="border border-slate-200 rounded-lg p-4 mb-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold">{plan.name}</span>
+                        <input type="number" defaultValue={plan.price} className={inp} placeholder="Fiyat" />
+                      </div>
+                      <button className="w-full bg-[#E63946] text-white py-2 rounded-lg hover:bg-[#c5303d]">Güncelle</button>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[#0f172a] mb-3">VPS / Server Paketleri</h3>
+                  {[
+                    { id: "vps-start", name: "VPS Starter", price: 54 },
+                    { id: "vps-business", name: "VPS Business", price: 109 },
+                    { id: "vps-enterprise", name: "VPS Enterprise", price: 199 },
+                  ].map((plan) => (
+                    <div key={plan.id} className="border border-slate-200 rounded-lg p-4 mb-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold">{plan.name}</span>
+                        <input type="number" defaultValue={plan.price} className={inp} placeholder="Fiyat" />
+                      </div>
+                      <button className="w-full bg-[#E63946] text-white py-2 rounded-lg hover:bg-[#c5303d]">Güncelle</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           ) : (
             cats.length === 0 ? <div className="p-12 text-center text-[#64748b]">Henüz kategori yok.</div> : (
               <ul className="divide-y divide-slate-100">{cats.map((c) => (
