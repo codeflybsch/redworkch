@@ -3,7 +3,7 @@ import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Inbox, FolderKanban, FileText, MessageSquareQuote,
   Wrench, LogOut, Mail, Loader2, ExternalLink, Settings, HelpCircle,
-  Receipt, FileSignature, Building2, Package, Menu, X,
+  Receipt, FileSignature, Building2, Package, Server, Menu, X,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import Logo from "../../components/Logo";
@@ -38,7 +38,8 @@ const groups = [
     label: "Buchhaltung",
     links: [
       { to: "/admin/companies", label: "Firmen / Logos", icon: Building2 },
-      { to: "/admin/products", label: "Produkte / Katalog", icon: Package },
+      { to: "/admin/hosting", label: "Hosting Paketleri", icon: Server },
+      { to: "/admin/products", label: "Ürünler / Katalog", icon: Package },
       { to: "/admin/invoices", label: "Rechnungen", icon: Receipt },
       { to: "/admin/offers", label: "Offerten", icon: FileSignature },
       { to: "/admin/invoice-templates", label: "Rechnungs-Vorlagen", icon: FileText },

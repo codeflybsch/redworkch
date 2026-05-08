@@ -9,6 +9,7 @@ const inp = "w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:border-
 
 export default function Products() {
   const [tab, setTab] = useState("products");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [cats, setCats] = useState([]);
   const [prods, setProds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,10 @@ export default function Products() {
   useEffect(() => { load(); }, [load]);
 
   const catName = useMemo(() => Object.fromEntries(cats.map((c) => [c.id, c.name])), [cats]);
+  const filteredProds = useMemo(
+    () => (categoryFilter ? prods.filter((p) => p.categoryId === categoryFilter) : prods),
+    [prods, categoryFilter]
+  );
 
   const saveProd = async () => {
     const { id, createdAt, ...rest } = editingProd;
@@ -43,7 +48,7 @@ export default function Products() {
     setEditingProd(null);
   };
   const removeProd = async (id) => {
-    if (!window.confirm("Produkt löschen?")) return;
+    if (!window.confirm("Bu paketi silmek istediğinizden emin misiniz?")) return;
     await api.delete(`/admin/products/${id}`);
     setProds((arr) => arr.filter((x) => x.id !== id));
   };
@@ -61,7 +66,7 @@ export default function Products() {
     setEditingCat(null);
   };
   const removeCat = async (id) => {
-    if (!window.confirm("Kategorie löschen? Produkte verlieren die Zuordnung.")) return;
+    if (!window.confirm("Bu kategoriyi silmek istediğinizden emin misiniz? Ürünlerin kategori ataması silinecektir.")) return;
     await api.delete(`/admin/product-categories/${id}`);
     setCats((arr) => arr.filter((x) => x.id !== id));
   };
@@ -70,37 +75,50 @@ export default function Products() {
     <div data-testid="products-page">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-extrabold text-[#0f172a]">Produkte & Katalog</h1>
-          <p className="text-[#64748b] mt-1">Definiere Kategorien und Produkte / Dienstleistungen mit Festpreisen für Rechnungen und Offerten.</p>
+          <h1 className="text-3xl font-extrabold text-[#0f172a]">Hosting, Sunucu Paketleri ve Ürün Kataloğu</h1>
+          <p className="text-[#64748b] mt-1">Bu panelden tüm hosting paketlerini, sunucu hizmetlerini ve genel ürün kataloğunu kontrol edebilirsiniz. Hosting & Wartung kategorisinde paketleri profesyonelce güncelleyin ve hızlı teklif üretimi sağlayın.</p>
         </div>
         <button
           onClick={() => tab === "products" ? setEditingProd({ ...EMPTY_PROD }) : setEditingCat({ ...EMPTY_CAT })}
           data-testid={tab === "products" ? "new-product-btn" : "new-cat-btn"}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#E63946] hover:bg-[#c5303d] text-white font-bold text-sm"
         >
-          <Plus size={15} /> {tab === "products" ? "Neues Produkt" : "Neue Kategorie"}
+          <Plus size={15} /> {tab === "products" ? "Yeni Paket / Ürün" : "Yeni Kategori"}
         </button>
       </div>
 
-      <div className="flex gap-2 mt-5">
-        <button onClick={() => setTab("products")} className={`px-4 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-2 ${tab === "products" ? "bg-[#0f172a] text-white" : "bg-slate-100 text-[#0f172a]"}`}><Package size={14} /> Produkte ({prods.length})</button>
-        <button onClick={() => setTab("categories")} className={`px-4 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-2 ${tab === "categories" ? "bg-[#0f172a] text-white" : "bg-slate-100 text-[#0f172a]"}`}><Layers size={14} /> Kategorien ({cats.length})</button>
+      <div className="flex flex-col gap-4 mt-5 md:flex-row md:items-center md:justify-between">
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setTab("products")} className={`px-4 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-2 ${tab === "products" ? "bg-[#0f172a] text-white" : "bg-slate-100 text-[#0f172a]"}`}><Package size={14} /> Paketler ({filteredProds.length})</button>
+          <button onClick={() => setTab("categories")} className={`px-4 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-2 ${tab === "categories" ? "bg-[#0f172a] text-white" : "bg-slate-100 text-[#0f172a]"}`}><Layers size={14} /> Kategoriler ({cats.length})</button>
+        </div>
+        {tab === "products" && (
+          <div className="flex items-center gap-3 text-sm text-[#64748b]">
+            <span>Kategori filtrele:</span>
+            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-[#0f172a]">
+              <option value="">Tümü</option>
+              {cats.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-card overflow-hidden mt-4">
         {loading ? <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto" /></div> :
           tab === "products" ? (
-            prods.length === 0 ? <div className="p-12 text-center text-[#64748b]">Noch keine Produkte angelegt.</div> : (
+            filteredProds.length === 0 ? <div className="p-12 text-center text-[#64748b]">Bu filtreye ait ürün veya hosting paketi bulunamadı.</div> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-[#f8fafc] border-b border-slate-200"><tr>
-                    <th className="p-3 text-xs uppercase font-bold text-[#64748b]">Name</th>
-                    <th className="p-3 text-xs uppercase font-bold text-[#64748b] hidden md:table-cell">Kategorie</th>
-                    <th className="p-3 text-xs uppercase font-bold text-[#64748b] text-right">Preis</th>
-                    <th className="p-3 text-xs uppercase font-bold text-[#64748b]">Einheit</th>
-                    <th className="p-3 text-right text-xs uppercase font-bold text-[#64748b]">Aktionen</th>
+                    <th className="p-3 text-xs uppercase font-bold text-[#64748b]">Ürün</th>
+                    <th className="p-3 text-xs uppercase font-bold text-[#64748b] hidden md:table-cell">Kategori</th>
+                    <th className="p-3 text-xs uppercase font-bold text-[#64748b] text-right">Fiyat</th>
+                    <th className="p-3 text-xs uppercase font-bold text-[#64748b]">Birim</th>
+                    <th className="p-3 text-right text-xs uppercase font-bold text-[#64748b]">İşlemler</th>
                   </tr></thead>
-                  <tbody>{prods.map((p) => (
+                  <tbody>{filteredProds.map((p) => (
                     <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="p-3"><div className="font-semibold text-[#0f172a] text-sm">{p.name}</div>{p.description && <div className="text-xs text-[#64748b] truncate max-w-md">{p.description}</div>}</td>
                       <td className="p-3 text-xs hidden md:table-cell"><span className="px-2 py-0.5 bg-slate-100 rounded">{catName[p.categoryId] || "—"}</span></td>
@@ -116,7 +134,7 @@ export default function Products() {
               </div>
             )
           ) : (
-            cats.length === 0 ? <div className="p-12 text-center text-[#64748b]">Noch keine Kategorien.</div> : (
+            cats.length === 0 ? <div className="p-12 text-center text-[#64748b]">Henüz kategori yok.</div> : (
               <ul className="divide-y divide-slate-100">{cats.map((c) => (
                 <li key={c.id} className="p-4 flex items-center justify-between gap-4">
                   <div><div className="font-bold text-[#0f172a]">{c.name}</div><div className="text-xs text-[#64748b]">{c.description}</div></div>
@@ -131,7 +149,7 @@ export default function Products() {
       </div>
 
       {editingProd && (
-        <Modal title={editingProd.id ? "Produkt bearbeiten" : "Neues Produkt"} onClose={() => setEditingProd(null)}>
+        <Modal title={editingProd.id ? "Paket düzenle" : "Yeni Paket"} onClose={() => setEditingProd(null)}>
           <Field label="Name *"><input value={editingProd.name} onChange={(e) => setEditingProd({ ...editingProd, name: e.target.value })} data-testid="product-name" className={inp} /></Field>
           <Field label="Beschreibung"><textarea value={editingProd.description || ""} onChange={(e) => setEditingProd({ ...editingProd, description: e.target.value })} rows={3} className={inp} /></Field>
           <div className="grid grid-cols-3 gap-3">
@@ -146,19 +164,19 @@ export default function Products() {
             </select>
           </Field>
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-            <button onClick={() => setEditingProd(null)} className="px-4 py-2.5 rounded-lg bg-slate-100 text-[#0f172a] font-bold text-sm">Abbrechen</button>
-            <button onClick={saveProd} disabled={!editingProd.name} data-testid="save-product-btn" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#E63946] hover:bg-[#c5303d] disabled:opacity-50 text-white font-bold text-sm"><Save size={15} /> Speichern</button>
+            <button onClick={() => setEditingProd(null)} className="px-4 py-2.5 rounded-lg bg-slate-100 text-[#0f172a] font-bold text-sm">İptal</button>
+            <button onClick={saveProd} disabled={!editingProd.name} data-testid="save-product-btn" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#E63946] hover:bg-[#c5303d] disabled:opacity-50 text-white font-bold text-sm"><Save size={15} /> Kaydet</button>
           </div>
         </Modal>
       )}
 
       {editingCat && (
-        <Modal title={editingCat.id ? "Kategorie bearbeiten" : "Neue Kategorie"} onClose={() => setEditingCat(null)}>
+        <Modal title={editingCat.id ? "Kategori düzenle" : "Yeni Kategori"} onClose={() => setEditingCat(null)}>
           <Field label="Name *"><input value={editingCat.name} onChange={(e) => setEditingCat({ ...editingCat, name: e.target.value })} data-testid="cat-name" className={inp} /></Field>
           <Field label="Beschreibung"><textarea value={editingCat.description || ""} onChange={(e) => setEditingCat({ ...editingCat, description: e.target.value })} rows={2} className={inp} /></Field>
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-            <button onClick={() => setEditingCat(null)} className="px-4 py-2.5 rounded-lg bg-slate-100 text-[#0f172a] font-bold text-sm">Abbrechen</button>
-            <button onClick={saveCat} disabled={!editingCat.name} data-testid="save-cat-btn" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#E63946] hover:bg-[#c5303d] disabled:opacity-50 text-white font-bold text-sm"><Save size={15} /> Speichern</button>
+            <button onClick={() => setEditingCat(null)} className="px-4 py-2.5 rounded-lg bg-slate-100 text-[#0f172a] font-bold text-sm">İptal</button>
+            <button onClick={saveCat} disabled={!editingCat.name} data-testid="save-cat-btn" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#E63946] hover:bg-[#c5303d] disabled:opacity-50 text-white font-bold text-sm"><Save size={15} /> Kaydet</button>
           </div>
         </Modal>
       )}

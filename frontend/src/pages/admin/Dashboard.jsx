@@ -13,7 +13,8 @@ const cards = [
   { key: "testimonials", label: "Bewertungen", icon: MessageSquareQuote, color: "#A855F7", to: "/admin/testimonials" },
   { key: "services", label: "Dienstleistungen", icon: Wrench, color: "#06B6D4", to: "/admin/services" },
   { key: "faqs", label: "FAQ-Einträge", icon: HelpCircle, color: "#A855F7", to: "/admin/faqs" },
-  { key: "products", label: "Produkte / Katalog", icon: Package, color: "#F97316", to: "/admin/products" },
+  { key: "products", label: "Ürünler / Katalog", icon: Package, color: "#F97316", to: "/admin/products" },
+  { key: "hosting", label: "Hosting Paketleri", icon: Package, color: "#22C55E", to: "/admin/hosting" },
   { key: "companies", label: "Firmen", icon: Building2, color: "#0f172a", to: "/admin/companies" },
 ];
 

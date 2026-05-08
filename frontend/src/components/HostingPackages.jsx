@@ -1,94 +1,108 @@
 import React, { useEffect, useState } from "react";
 import { API } from "../api";
-import { Check, ShieldCheck, CreditCard, Globe, ArrowRight, Zap } from "lucide-react";
+import { Check, ShieldCheck, CreditCard, Globe, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useModals } from "../contexts/ModalContext";
 
 const FALLBACK_PLANS = [
   {
     id: "starter",
-    title: "Starter Hosting",
-    price: "CHF 17",
-    period: "/Monat",
-    description: "Kleine Website, schnelle Ladezeiten, SSL und tägliche Backups.",
+    title: "Kurumsal Starter Hosting",
+    price: "CHF 24",
+    period: "/ay",
+    description: "Hızlı kurulum, esnek trafik, SSL ve proaktif altyapı izlemesi.",
     features: [
-      "10 GB SSD Speicher",
-      "99.99% Uptime SLA",
-      "SSL + CDN-ready",
-      "Twint / Stripe / PayPal Zahlungsoptionen",
-      "12 Monate kostenloser Support",
+      "15 GB NVMe depolama",
+      "99.99% SLA & sorunsuz çalışma süresi",
+      "Ücretsiz SSL ve CDN entegrasyonu",
+      "Günlük yedekleme ve restore opsiyonu",
+      "Panel üzerinden kolay yönetim",
     ],
     accent: "bg-[#0ea5e9]/10 border-[#0ea5e9] text-[#0c74a9]",
   },
   {
     id: "business",
     title: "Business Hosting",
-    price: "CHF 49",
-    period: "/Monat",
-    description: "Professionelles Hosting für Markensites und Webshops mit modernem Support.",
+    price: "CHF 59",
+    period: "/ay",
+    description: "KOBİ'ler ve kurumsal siteler için güvenli performans ile ölçeklenebilir altyapı.",
     features: [
-      "50 GB NVMe Speicher",
-      "Tägliche Backups + Restore",
-      "Managed Security & Firewall",
-      "Stripe, PayPal & Twint Zahlungen",
-      "Persönlicher Kundenbereich",
+      "50 GB NVMe depolama",
+      "Tüm trafik için otomatik ölçekleme",
+      "Web uygulama güvenlik duvarı (WAF)",
+      "Twint, Stripe ve PayPal ödeme altyapısı",
+      "7/24 premium destek ve SLAs",
     ],
     accent: "bg-[#22c55e]/10 border-[#22c55e] text-[#166534]",
     popular: true,
   },
   {
     id: "enterprise",
-    title: "Enterprise Hosting",
-    price: "CHF 99",
-    period: "/Monat",
-    description: "Skalierbares Hosting mit SLA, Multi-Domain-Support und dediziertem Kundenmanager.",
+    title: "Enterprise Sunucu Paketi",
+    price: "CHF 129",
+    period: "/ay",
+    description: "Şirket ölçeğindeki projeler için özel sunucu performansı ve yönetilen servis.",
     features: [
-      "200 GB NVMe Speicher",
-      "Premium SLA & Performance",
-      "Dedizierter Account Manager",
-      "Einrichtung von TWINT & PayPal Premium",
-      "Priorisierter 24/7 Support",
+      "200 GB NVMe depolama",
+      "Dedike yönetilen sunucu ve altyapı",
+      "Özel IP, çoklu domain ve özel SSL",
+      "İleri seviye yedekleme & felaket kurtarma",
+      "Öncelikli 24/7 teknik yönetim",
     ],
     accent: "bg-[#f97316]/10 border-[#f97316] text-[#9a3412]",
   },
 ];
 
+function mapProductToPlan(item) {
+  return {
+    id: item.id,
+    title: item.name,
+    price: `CHF ${Number(item.unitPrice).toFixed(0)}`,
+    period: item.unit ? `/${item.unit}` : "/ay",
+    description: item.description || "Profesyonel hosting ve sunucu hizmetleri.",
+    features: [
+      item.description || "Profesyonel hosting ve sunucu hizmetleri.",
+      "Gelişmiş güvenlik ve otomatik yedekleme",
+      "Ödeme seçenekleri: TWINT, Stripe, PayPal",
+      "Panel üzerinden esnek paket yönetimi",
+    ],
+    accent: "bg-[#1E88E5]/10 border-[#1E88E5] text-[#1E3A8A]",
+    popular: item.categoryId ? false : false,
+  };
+}
+
 export default function HostingPackages() {
   const [plans, setPlans] = useState(FALLBACK_PLANS);
-  const [ready, setReady] = useState(false);
   const { openQuote } = useModals();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${API}/products`)
-      .then((res) => {
-        if (!res.ok) throw new Error("no products");
-        return res.json();
-      })
-      .then((data) => {
-        if (!data || !Array.isArray(data) || data.length === 0) throw new Error("empty");
-        setPlans(
-          data
-            .filter((item) => item.unitPrice >= 0)
-            .map((item) => ({
-              id: item.id,
-              title: item.name,
-              price: `CHF ${Number(item.unitPrice).toFixed(0)}`,
-              period: item.unit ? `/${item.unit}` : "/Monat",
-              description: item.description || "Professionelles Hosting mit Sicherheits- und Supportservice.",
-              features: [
-                item.description || "Professionelles Hosting mit Sicherheits- und Supportservice.",
-                "Stripe, Twint & PayPal verfügbar",
-                "Sichere SSL- und Firewall-Optionen",
-                "Verwaltung über den Kundenbereich",
-              ],
-              accent: "bg-[#1E88E5]/10 border-[#1E88E5] text-[#1E3A8A]",
-              popular: item.categoryId ? false : false,
-            }))
-        );
-      })
-      .catch(() => {})
-      .finally(() => setReady(true));
+    const loadHostingPlans = async () => {
+      try {
+        const [categoriesRes, productsRes] = await Promise.all([
+          fetch(`${API}/product-categories`),
+          fetch(`${API}/products`),
+        ]);
+        if (!categoriesRes.ok || !productsRes.ok) throw new Error("api");
+
+        const [categories, products] = await Promise.all([categoriesRes.json(), productsRes.json()]);
+        const hostingCategory = categories.find((c) => /hosting|wartung|server|infrastruktur/i.test(c.name.toLowerCase()));
+        let hostingProducts = [];
+
+        if (hostingCategory) {
+          hostingProducts = products.filter((item) => item.categoryId === hostingCategory.id && item.unitPrice >= 0);
+        }
+        if (hostingProducts.length === 0) {
+          hostingProducts = products.filter((item) => /hosting|server|vps|sunucu/i.test(item.name.toLowerCase()) && item.unitPrice >= 0);
+        }
+        if (hostingProducts.length > 0) {
+          setPlans(hostingProducts.map(mapProductToPlan));
+        }
+      } catch (error) {
+        // keep fallback plans
+      }
+    };
+    loadHostingPlans();
   }, []);
 
   return (
@@ -97,10 +111,10 @@ export default function HostingPackages() {
         <div className="text-center max-w-3xl mx-auto mb-14">
           <p className="text-[#E63946] uppercase tracking-[0.3em] font-semibold text-sm mb-3">Hosting Paketleri</p>
           <h2 className="text-[32px] sm:text-[42px] md:text-[52px] font-extrabold text-[#0f172a]">
-            Güvenli, hızlı ve ödeme destekli hosting planları.
+            Kurumsal hosting ve sunucu paketleri ile altyapıyı tam kontrol edin.
           </h2>
           <p className="text-[#475569] text-base sm:text-lg mt-4 leading-relaxed">
-            Stripe, TWINT ve PayPal ile ödeme desteği gösteren, ayrıca profesyonel müşteri paneliyle yönetilen hosting satış sayfası. Satışa hazır paketler ve premium destek farkı.
+            Performans, güvenlik ve ödeme yönetimini aynı panelde toplayan bir çözüm. Paketler admin panelinde düzenlenebilir, teklif ve faturalandırma süreçleri hızlıca hazırlanır.
           </p>
         </div>
 
@@ -150,22 +164,22 @@ export default function HostingPackages() {
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#0E7490]/10 text-[#0E7490] mb-4">
               <CreditCard size={22} />
             </div>
-            <h3 className="text-lg font-bold text-[#0f172a]">Ödeme Seçenekleri</h3>
-            <p className="mt-2 text-sm text-[#475569]">Stripe, PayPal ve TWINT ile sorunsuz ödeme akışı ve güvenli fatura altyapısı.</p>
+            <h3 className="text-lg font-bold text-[#0f172a]">Ödeme Esnekliği</h3>
+            <p className="mt-2 text-sm text-[#475569]">TWINT, Stripe ve PayPal ile yerel ve uluslararası ödeme akışlarını destekler.</p>
           </div>
           <div className="rounded-3xl border border-slate-200 p-6 bg-slate-50">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#16A34A]/10 text-[#16A34A] mb-4">
               <ShieldCheck size={22} />
             </div>
-            <h3 className="text-lg font-bold text-[#0f172a]">Profesyonel Destek</h3>
-            <p className="mt-2 text-sm text-[#475569]">12 ay ücretsiz destek, SLA garantisi ve müşteriye özel yönetici paneli.</p>
+            <h3 className="text-lg font-bold text-[#0f172a]">Güvenlik ve Uyumluluk</h3>
+            <p className="mt-2 text-sm text-[#475569]">ISO uyumlu altyapı, SSL yönetimi ve 7/24 izleme ile kurumsal güvenlik sunar.</p>
           </div>
           <div className="rounded-3xl border border-slate-200 p-6 bg-slate-50">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#F59E0B]/10 text-[#F59E0B] mb-4">
               <Globe size={22} />
             </div>
-            <h3 className="text-lg font-bold text-[#0f172a]">Hemen Yayın</h3>
-            <p className="mt-2 text-sm text-[#475569]">Tüm paketlerde hızlı setup, global CDN ve yüksek performanslı hosting altyapısı.</p>
+            <h3 className="text-lg font-bold text-[#0f172a]">Hızlı Yayına Alma</h3>
+            <p className="mt-2 text-sm text-[#475569]">Paket seçimi sonrası hızlı devreye alma ve profesyonel altyapı hazırlığı sağlanır.</p>
           </div>
         </div>
       </div>
