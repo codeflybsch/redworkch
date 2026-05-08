@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useModals } from "../contexts/ModalContext";
 import { motion } from "framer-motion";
 import * as Slider from "@radix-ui/react-slider";
+import { loadStripe } from "@stripe/stripe-js";
+import api from "../api";
 
 const BASE_HOSTING_PLANS = [
   {
@@ -129,6 +131,7 @@ const TESTIMONIALS = [
 export default function HostingPackages() {
   const [hostingSection, setHostingSection] = useState("webhosting");
   const [pricingMode, setPricingMode] = useState("monthly");
+  const [loadingCheckout, setLoadingCheckout] = useState(null);
   const [config, setConfig] = useState({
     cpu: 2,
     ram: 4,
@@ -146,6 +149,30 @@ export default function HostingPackages() {
   });
   const { openQuote } = useModals();
   const navigate = useNavigate();
+
+  const handleCheckout = async (planId, price) => {
+    setLoadingCheckout(planId);
+    try {
+      const stripe = await loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+      const response = await api.post("/checkout/create-checkout-session", {
+        planId,
+        price: Math.round(price * 100),
+        planType: hostingSection,
+        currency: "chf",
+      });
+
+      const { sessionId } = response.data;
+      const result = await stripe.redirectToCheckout({ sessionId });
+
+      if (result.error) {
+        alert("Fehler: " + result.error.message);
+      }
+    } catch (error) {
+      alert("Checkout fehlgeschlagen: " + (error.response?.data?.detail || error.message));
+    } finally {
+      setLoadingCheckout(null);
+    }
+  };
 
   const configuredTotal = useMemo(() => {
     const add = CONFIG_OPTIONS.reduce((sum, option) => sum + config[option.key] * option.price, 0);
@@ -272,10 +299,11 @@ export default function HostingPackages() {
                           ))}
                         </ul>
                         <button
-                          onClick={() => openQuote()}
-                          className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#c5303d]"
+                          onClick={() => handleCheckout(plan.id, plan.price)}
+                          disabled={loadingCheckout === plan.id}
+                          className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-[#c5303d] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                          Jetzt anfragen
+                          {loadingCheckout === plan.id ? <Loader2 size={16} className="animate-spin" /> : "Jetzt kaufen"}
                         </button>
                       </article>
                     ))}
@@ -305,10 +333,11 @@ export default function HostingPackages() {
                           ))}
                         </ul>
                         <button
-                          onClick={() => navigate("/account")}
-                          className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303c]"
+                          onClick={() => handleCheckout(server.id, server.price)}
+                          disabled={loadingCheckout === server.id}
+                          className="w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303c] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                          Bestellen
+                          {loadingCheckout === server.id ? <Loader2 size={16} className="animate-spin" /> : "Jetzt kaufen"}
                         </button>
                       </article>
                     ))}
@@ -366,10 +395,11 @@ export default function HostingPackages() {
                   ))}
                 </div>
                 <button
-                  onClick={() => openQuote()}
-                  className="mt-8 w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303d]"
+                  onClick={() => handleCheckout("custom-" + hostingSection, configuredTotal)}
+                  disabled={loadingCheckout === "custom-" + hostingSection}
+                  className="mt-8 w-full rounded-full bg-[#E63946] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303d] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Angebot anfordern
+                  {loadingCheckout === "custom-" + hostingSection ? <Loader2 size={16} className="animate-spin" /> : "Jetzt kaufen"}
                 </button>
               </div>
             </div>
@@ -436,10 +466,13 @@ export default function HostingPackages() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
-                onClick={() => openQuote()}
+                onClick={() => {
+                  document.getElementById("hosting")?.scrollIntoView({ behavior: "smooth" });
+                  setHostingSection("webhosting");
+                }}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[#E63946] px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#c5303d]"
               >
-                Angebot anfordern
+                Jetzt starten
               </button>
               <button
                 onClick={() => navigate("/account")}
