@@ -293,7 +293,7 @@ export default function HostingPackages() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className="mt-20 grid gap-10">
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
