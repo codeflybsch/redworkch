@@ -1119,18 +1119,6 @@ Ihr redwork.ch Team"""
     return {"message": "Falls die E-Mail-Adresse registriert ist, wurde eine E-Mail mit Anweisungen gesendet."}
 
 
-@api_router.post("/auth/password-reset")
-async def password_reset(payload: PasswordReset):
-    user = await db.users.find_one({"passwordResetToken": payload.token})
-    if not user or not user.get("passwordResetExpires") or user["passwordResetExpires"] < now_utc():
-        raise HTTPException(status_code=400, detail="Ungültiger oder abgelaufener Token")
-    
-    hashed = pwd_context.hash(payload.newPassword)
-    await db.users.update_one({"id": user["id"]}, {"$set": {"passwordHash": hashed, "passwordResetToken": None, "passwordResetExpires": None}})
-    
-    return {"message": "Passwort erfolgreich zurückgesetzt"}
-
-
 @api_router.get("/auth/verify-email")
 async def verify_email(token: str):
     user = await db.users.find_one({"emailVerificationToken": token})
@@ -1141,25 +1129,6 @@ async def verify_email(token: str):
     
     return {"message": "E-Mail-Adresse erfolgreich verifiziert"}
 
-
-@api_router.patch("/auth/profile")
-async def update_profile(payload: UserUpdate, user=Depends(require_customer)):
-    update = {k: v for k, v in payload.dict().items() if v is not None}
-    if update:
-        await db.users.update_one({"id": user["id"]}, {"$set": update})
-    return {"message": "Profil aktualisiert"}
-
-
-@api_router.post("/auth/change-password")
-async def change_password(oldPassword: str, newPassword: str, user=Depends(require_customer)):
-    db_user = await db.users.find_one({"id": user["id"]})
-    if not pwd_context.verify(oldPassword, db_user["passwordHash"]):
-        raise HTTPException(status_code=400, detail="Altes Passwort ist falsch")
-    
-    hashed = pwd_context.hash(newPassword)
-    await db.users.update_one({"id": user["id"]}, {"$set": {"passwordHash": hashed}})
-    
-    return {"message": "Passwort geändert"}
 
 
 # ----------------------------------------------------------------------------
