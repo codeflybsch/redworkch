@@ -5,6 +5,7 @@ import { ArrowUp } from "lucide-react";
 
 import { ModalProvider } from "./contexts/ModalContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { CustomerRoute, AdminRoute } from "./components/ProtectedRoute";
 
 import Header from "./components/Header";
 import Hero from "./components/Hero";
@@ -29,6 +30,7 @@ import MembershipPanel from "./pages/MembershipPanel";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import Products from "./pages/Products";
 import Support from "./pages/Support";
 import TicketDetail from "./pages/TicketDetail";
@@ -106,15 +108,21 @@ function App() {
             <Routes>
               <Route path="/" element={<PublicSite />} />
 
+              {/* Auth Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+
+              {/* Customer Routes */}
+              <Route path="/dashboard" element={<CustomerRoute><Dashboard /></CustomerRoute>} />
+              <Route path="/profile" element={<CustomerRoute><Profile /></CustomerRoute>} />
               <Route path="/products" element={<Products />} />
               <Route path="/support" element={<Support />} />
               <Route path="/tickets/:ticketId" element={<TicketDetail />} />
               <Route path="/account" element={<MembershipPanel />} />
-              <Route path="/admin" element={<AdminLayout />}>
+
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="site" element={<SiteSettings />} />
                 <Route path="customers" element={<Customers />} />

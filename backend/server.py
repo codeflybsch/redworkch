@@ -485,8 +485,8 @@ class InvoiceSendIn(BaseModel):
     toEmail: Optional[str] = ""
 
 
-# ----- User (Customer) -----
-class UserIn(BaseModel):
+# ----- User (Customer) - MongoDB Compatible -----
+class UserRegisterIn(BaseModel):
     email: EmailStr
     password: str
     firstName: str
@@ -495,41 +495,86 @@ class UserIn(BaseModel):
     phone: Optional[str] = ""
 
 
-class User(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    email: EmailStr
-    passwordHash: str
-    firstName: str
-    lastName: str
-    company: Optional[str] = ""
-    phone: Optional[str] = ""
-    emailVerified: bool = False
-    emailVerificationToken: Optional[str] = None
-    passwordResetToken: Optional[str] = None
-    passwordResetExpires: Optional[datetime] = None
-    createdAt: datetime = Field(default_factory=now_utc)
-    lastLogin: Optional[datetime] = None
-
-
-class UserLogin(BaseModel):
+class UserLoginIn(BaseModel):
     email: EmailStr
     password: str
 
 
-class UserUpdate(BaseModel):
+class UserUpdateIn(BaseModel):
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     company: Optional[str] = None
     phone: Optional[str] = None
 
 
-class PasswordResetRequest(BaseModel):
+class PasswordResetRequestIn(BaseModel):
     email: EmailStr
 
 
-class PasswordReset(BaseModel):
+class PasswordResetIn(BaseModel):
     token: str
     newPassword: str
+
+
+class UserResponse(BaseModel):
+    id: str  # Returns _id as id
+    email: str
+    firstName: str
+    lastName: str
+    company: Optional[str]
+    phone: Optional[str]
+    emailVerified: bool
+    createdAt: datetime
+    lastLogin: Optional[datetime]
+    role: str = "customer"
+
+
+# MongoDB User Document Structure
+def create_user_doc(
+    email: str,
+    password_hash: str,
+    first_name: str,
+    last_name: str,
+    company: str = "",
+    phone: str = ""
+) -> dict:
+    """Create a new user document for MongoDB."""
+    return {
+        "_id": str(uuid.uuid4()),
+        "email": email,
+        "passwordHash": password_hash,
+        "firstName": first_name,
+        "lastName": last_name,
+        "company": company or "",
+        "phone": phone or "",
+        "emailVerified": True,  # Auto-verify for now
+        "emailVerificationToken": None,
+        "passwordResetToken": None,
+        "passwordResetExpires": None,
+        "createdAt": now_utc(),
+        "lastLogin": None,
+        "role": "customer",
+        "deleted": False
+    }
+
+
+# Helper to convert MongoDB doc to response
+def user_doc_to_response(doc: dict) -> dict:
+    """Convert MongoDB user document to response format."""
+    if not doc:
+        return None
+    return {
+        "id": doc.get("_id"),
+        "email": doc.get("email"),
+        "firstName": doc.get("firstName"),
+        "lastName": doc.get("lastName"),
+        "company": doc.get("company"),
+        "phone": doc.get("phone"),
+        "emailVerified": doc.get("emailVerified", False),
+        "createdAt": doc.get("createdAt"),
+        "lastLogin": doc.get("lastLogin"),
+        "role": doc.get("role", "customer")
+    }
 
 
 # ----- Order (Customer Orders) -----
@@ -608,6 +653,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 
 async def require_admin(token: Optional[str] = Depends(oauth2_scheme)):
+    """Validate admin token and return admin user info."""
     if not token:
         raise HTTPException(status_code=401, detail="Nicht authentifiziert")
     try:
@@ -615,29 +661,31 @@ async def require_admin(token: Optional[str] = Depends(oauth2_scheme)):
         username = payload.get("sub")
         role = payload.get("role")
         if role != "admin" or username != ADMIN_USER:
-            raise HTTPException(status_code=401, detail="Ungültiges Token")
+            raise HTTPException(status_code=403, detail="Admin-Zugriff erforderlich")
     except JWTError:
         raise HTTPException(status_code=401, detail="Ungültiges Token")
-    return {"username": username}
+    return {"username": username, "role": "admin"}
 
 
 async def require_customer(token: Optional[str] = Depends(oauth2_scheme)):
+    """Validate customer token and return user info from database."""
     if not token:
         raise HTTPException(status_code=401, detail="Nicht authentifiziert")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         role = payload.get("role")
-        email = payload.get("email")
         if role != "customer":
-            raise HTTPException(status_code=401, detail="Ungültiges Token")
+            raise HTTPException(status_code=403, detail="Kundenbereich erforderlich")
     except JWTError:
         raise HTTPException(status_code=401, detail="Ungültiges Token")
-    # Fetch user to ensure exists
-    user = await db.users.find_one({"id": user_id})
-    if not user:
+    
+    # Fetch user from database using _id
+    user = await db.users.find_one({"_id": user_id})
+    if not user or user.get("deleted"):
         raise HTTPException(status_code=401, detail="Benutzer nicht gefunden")
-    return {"id": user_id, "email": email, "firstName": user["firstName"], "lastName": user["lastName"]}
+    
+    return user_doc_to_response(user)
 
 
 def clean(d):
@@ -854,80 +902,191 @@ async def admin_me(user=Depends(require_admin)):
 # ----------------------------------------------------------------------------
 # Routes : Customer Auth
 # ----------------------------------------------------------------------------
-@api_router.post("/auth/register", response_model=TokenOut)
-async def customer_register(payload: UserIn):
-    # Check if email exists
-    existing = await db.users.find_one({"email": payload.email})
+@api_router.post("/auth/register")
+async def customer_register(payload: UserRegisterIn):
+    """Register a new customer account."""
+    # Check if email already exists
+    existing = await db.users.find_one({"email": payload.email.lower(), "deleted": False})
     if existing:
         raise HTTPException(status_code=400, detail="E-Mail-Adresse bereits registriert")
     
+    # Validate password strength
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=400, detail="Passwort muss mindestens 8 Zeichen lang sein")
+    
     # Hash password
-    hashed = pwd_context.hash(payload.password)
+    hashed_password = pwd_context.hash(payload.password)
     
-    # Generate verification token
-    verification_token = uuid.uuid4().hex
-    
-    user = User(
-        email=payload.email,
-        passwordHash=hashed,
-        firstName=payload.firstName,
-        lastName=payload.lastName,
+    # Create user document
+    user_doc = create_user_doc(
+        email=payload.email.lower(),
+        password_hash=hashed_password,
+        first_name=payload.firstName,
+        last_name=payload.lastName,
         company=payload.company,
-        phone=payload.phone,
-        emailVerificationToken=verification_token
+        phone=payload.phone
     )
     
-    await db.users.insert_one(user.dict())
+    # Insert into database
+    await db.users.insert_one(user_doc)
     
-    # Send verification email
-    subject = "E-Mail-Verifizierung - redwork.ch"
-    body = f"""Hallo {user.firstName},
+    # Send verification email (async, don't block)
+    user_id = user_doc["_id"]
+    try:
+        subject = "Willkommen bei redwork.ch"
+        body = f"""Hallo {payload.firstName},
 
 Vielen Dank für Ihre Registrierung bei redwork.ch!
 
-Bitte verifizieren Sie Ihre E-Mail-Adresse, indem Sie auf den folgenden Link klicken:
-{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/verify-email?token={verification_token}
-
-Falls Sie sich nicht registriert haben, ignorieren Sie diese E-Mail.
+Ihr Konto wurde erfolgreich erstellt. Sie können sich jetzt anmelden.
 
 Mit freundlichen Grüßen,
 Ihr redwork.ch Team"""
+        _send_email_smtp(payload.email, f"{payload.firstName} {payload.lastName}", subject, body)
+    except Exception as e:
+        logger.warning(f"Welcome email failed: {e}")
     
-    success, error = _send_email_smtp(user.email, f"{user.firstName} {user.lastName}", subject, body)
-    if not success:
-        logger.warning(f"Verification email failed: {error}")
-    
-    # For now, auto-verify for simplicity, or require verification
-    # To make it work, let's auto-verify
-    await db.users.update_one({"id": user.id}, {"$set": {"emailVerified": True}})
-    
-    token = create_access_token({"sub": user.id, "role": "customer", "email": user.email})
-    return TokenOut(access_token=token, user={"id": user.id, "email": user.email, "firstName": user.firstName, "lastName": user.lastName})
+    # Create and return token
+    token = create_access_token({"sub": user_id, "role": "customer"})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user_doc_to_response(user_doc)
+    }
 
 
-@api_router.post("/auth/login", response_model=TokenOut)
-async def customer_login(payload: UserLogin):
-    user = await db.users.find_one({"email": payload.email})
-    if not user or not pwd_context.verify(payload.password, user["passwordHash"]):
-        raise HTTPException(status_code=401, detail="Ungültige E-Mail oder Passwort")
+@api_router.post("/auth/login")
+async def customer_login(payload: UserLoginIn):
+    """Customer login with email and password."""
+    # Find user by email
+    user = await db.users.find_one({"email": payload.email.lower(), "deleted": False})
+    if not user:
+        raise HTTPException(status_code=401, detail="E-Mail oder Passwort ungültig")
     
+    # Verify password
+    if not pwd_context.verify(payload.password, user.get("passwordHash", "")):
+        raise HTTPException(status_code=401, detail="E-Mail oder Passwort ungültig")
+    
+    # Check if email verified
     if not user.get("emailVerified", False):
-        raise HTTPException(status_code=401, detail="E-Mail-Adresse nicht verifiziert")
+        raise HTTPException(status_code=403, detail="E-Mail-Adresse nicht verifiziert. Bitte überprüfen Sie Ihre E-Mails.")
     
     # Update last login
-    await db.users.update_one({"id": user["id"]}, {"$set": {"lastLogin": now_utc()}})
+    await db.users.update_one({"_id": user["_id"]}, {"$set": {"lastLogin": now_utc()}})
     
-    token = create_access_token({"sub": user["id"], "role": "customer", "email": user["email"]})
-    return TokenOut(access_token=token, user={"id": user["id"], "email": user["email"], "firstName": user["firstName"], "lastName": user["lastName"]})
+    # Create token
+    token = create_access_token({"sub": user["_id"], "role": "customer"})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user_doc_to_response(user)
+    }
 
 
 @api_router.get("/auth/me")
-async def customer_me(user=Depends(require_customer)):
+async def customer_me(user: dict = Depends(require_customer)):
+    """Get current customer profile."""
     return user
 
 
+@api_router.put("/auth/profile")
+async def update_profile(payload: UserUpdateIn, user: dict = Depends(require_customer)):
+    """Update customer profile."""
+    update_data = {}
+    if payload.firstName:
+        update_data["firstName"] = payload.firstName
+    if payload.lastName:
+        update_data["lastName"] = payload.lastName
+    if payload.company is not None:
+        update_data["company"] = payload.company
+    if payload.phone is not None:
+        update_data["phone"] = payload.phone
+    
+    if update_data:
+        await db.users.update_one({"_id": user["id"]}, {"$set": update_data})
+    
+    # Return updated user
+    updated = await db.users.find_one({"_id": user["id"]})
+    return user_doc_to_response(updated)
+
+
 @api_router.post("/auth/password-reset-request")
-async def password_reset_request(payload: PasswordResetRequest):
+async def password_reset_request(payload: PasswordResetRequestIn):
+    """Request password reset via email."""
+    user = await db.users.find_one({"email": payload.email.lower(), "deleted": False})
+    if not user:
+        # Don't reveal if email exists (security)
+        return {"message": "Wenn diese E-Mail-Adresse existiert, erhalten Sie eine E-Mail zum Zurücksetzen des Passworts."}
+    
+    # Generate reset token
+    reset_token = uuid.uuid4().hex
+    expiry = now_utc() + timedelta(hours=24)
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"passwordResetToken": reset_token, "passwordResetExpires": expiry}}
+    )
+    
+    # Send reset email
+    try:
+        subject = "Passwort zurücksetzen - redwork.ch"
+        body = f"""Hallo {user["firstName"]},
+
+Sie haben eine Anfrage zum Zurücksetzen Ihres Passworts gestellt.
+
+Klicken Sie auf den folgenden Link, um Ihr Passwort zu ändern:
+{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token={reset_token}
+
+Dieser Link ist 24 Stunden gültig.
+
+Falls Sie diese Anfrage nicht gestellt haben, ignorieren Sie diese E-Mail.
+
+Mit freundlichen Grüßen,
+Ihr redwork.ch Team"""
+        _send_email_smtp(user["email"], f"{user['firstName']} {user['lastName']}", subject, body)
+    except Exception as e:
+        logger.warning(f"Password reset email failed: {e}")
+    
+    return {"message": "Wenn diese E-Mail-Adresse existiert, erhalten Sie eine E-Mail zum Zurücksetzen des Passworts."}
+
+
+@api_router.post("/auth/password-reset")
+async def password_reset(payload: PasswordResetIn):
+    """Reset password with token."""
+    # Find user with valid reset token
+    user = await db.users.find_one({
+        "passwordResetToken": payload.token,
+        "passwordResetExpires": {"$gt": now_utc()},
+        "deleted": False
+    })
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Reset-Token ist ungültig oder abgelaufen")
+    
+    # Validate new password
+    if len(payload.newPassword) < 8:
+        raise HTTPException(status_code=400, detail="Passwort muss mindestens 8 Zeichen lang sein")
+    
+    # Hash and update password
+    hashed_password = pwd_context.hash(payload.newPassword)
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {
+            "passwordHash": hashed_password,
+            "passwordResetToken": None,
+            "passwordResetExpires": None
+        }}
+    )
+    
+    return {"message": "Passwort erfolgreich zurückgesetzt"}
+
+
+@api_router.post("/auth/logout")
+async def customer_logout(user: dict = Depends(require_customer)):
+    """Logout customer (token invalidation on frontend)."""
+    # Note: JWT tokens are stateless, so logout happens on frontend
+    # We could maintain a blacklist, but for now just return success
+    return {"message": "Erfolgreich abgemeldet"}
     user = await db.users.find_one({"email": payload.email})
     if not user:
         # Don't reveal if email exists
@@ -1389,33 +1548,58 @@ async def reorder_items(collection: str, payload: ReorderIn, user=Depends(requir
 # ----------------------------------------------------------------------------
 @api_router.get("/admin/customers")
 async def list_customers(user=Depends(require_admin)):
-    customers = await db.users.find().sort("createdAt", -1).to_list(1000)
-    return [clean(c) for c in customers]
+    """List all customers."""
+    customers = await db.users.find({"deleted": False}).sort("createdAt", -1).to_list(1000)
+    return [user_doc_to_response(c) for c in customers]
 
 
 @api_router.get("/admin/customers/{customer_id}")
 async def get_customer(customer_id: str, user=Depends(require_admin)):
-    customer = await db.users.find_one({"id": customer_id})
+    """Get customer details."""
+    customer = await db.users.find_one({"_id": customer_id, "deleted": False})
     if not customer:
         raise HTTPException(404, "Kunde nicht gefunden")
-    return clean(customer)
+    return user_doc_to_response(customer)
 
 
-@api_router.patch("/admin/customers/{customer_id}")
-async def update_customer(customer_id: str, payload: UserUpdate, user=Depends(require_admin)):
-    update = {k: v for k, v in payload.dict().items() if v is not None}
-    if update:
-        await db.users.update_one({"id": customer_id}, {"$set": update})
-    return {"message": "Kunde aktualisiert"}
+@api_router.put("/admin/customers/{customer_id}")
+async def update_customer(customer_id: str, payload: UserUpdateIn, user=Depends(require_admin)):
+    """Update customer profile."""
+    customer = await db.users.find_one({"_id": customer_id, "deleted": False})
+    if not customer:
+        raise HTTPException(404, "Kunde nicht gefunden")
+    
+    update_data = {}
+    if payload.firstName:
+        update_data["firstName"] = payload.firstName
+    if payload.lastName:
+        update_data["lastName"] = payload.lastName
+    if payload.company is not None:
+        update_data["company"] = payload.company
+    if payload.phone is not None:
+        update_data["phone"] = payload.phone
+    
+    if update_data:
+        await db.users.update_one({"_id": customer_id}, {"$set": update_data})
+    
+    updated = await db.users.find_one({"_id": customer_id})
+    return user_doc_to_response(updated)
 
 
 @api_router.delete("/admin/customers/{customer_id}")
 async def delete_customer(customer_id: str, user=Depends(require_admin)):
-    await db.users.delete_one({"id": customer_id})
-    # Also delete orders and tickets?
-    await db.orders.delete_many({"userId": customer_id})
-    await db.tickets.delete_many({"userId": customer_id})
-    await db.ticket_replies.delete_many({"userId": customer_id})
+    """Soft delete a customer."""
+    customer = await db.users.find_one({"_id": customer_id})
+    if not customer:
+        raise HTTPException(404, "Kunde nicht gefunden")
+    
+    # Soft delete
+    await db.users.update_one({"_id": customer_id}, {"$set": {"deleted": True}})
+    
+    # Optionally clean up related data
+    # await db.orders.delete_many({"userId": customer_id})
+    # await db.tickets.delete_many({"userId": customer_id})
+    
     return {"message": "Kunde gelöscht"}
 
 

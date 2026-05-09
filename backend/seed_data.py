@@ -345,6 +345,7 @@ DEFAULT_COMPANIES = []
 # ---------------------------------------------------------------------------
 DEFAULT_TEST_USERS = [
     {
+        "_id": "test-user-001",
         "email": "kunde@test.ch",
         "passwordHash": "$2b$12$znweUVivpdw/cG05XW3Wv.la.pn7/P6CH5lK3x8k25unEJKMME2sG",
         "firstName": "Max",
@@ -352,10 +353,13 @@ DEFAULT_TEST_USERS = [
         "company": "Test GmbH",
         "phone": "+41 79 123 45 67",
         "emailVerified": True,
+        "role": "customer",
+        "deleted": False,
         "createdAt": "2024-01-01T00:00:00Z",
         "lastLogin": None
     },
     {
+        "_id": "test-user-002",
         "email": "anna@test.ch",
         "passwordHash": "$2b$12$znweUVivpdw/cG05XW3Wv.la.pn7/P6CH5lK3x8k25unEJKMME2sG",
         "firstName": "Anna",
@@ -363,10 +367,13 @@ DEFAULT_TEST_USERS = [
         "company": "Anna's Boutique",
         "phone": "+41 79 987 65 43",
         "emailVerified": True,
+        "role": "customer",
+        "deleted": False,
         "createdAt": "2024-01-15T00:00:00Z",
         "lastLogin": None
     },
     {
+        "_id": "test-user-003",
         "email": "peter@test.ch",
         "passwordHash": "$2b$12$znweUVivpdw/cG05XW3Wv.la.pn7/P6CH5lK3x8k25unEJKMME2sG",
         "firstName": "Peter",
@@ -374,6 +381,8 @@ DEFAULT_TEST_USERS = [
         "company": "Weber Consulting",
         "phone": "+41 44 555 12 34",
         "emailVerified": True,
+        "role": "customer",
+        "deleted": False,
         "createdAt": "2024-02-01T00:00:00Z",
         "lastLogin": None
     }
