@@ -97,7 +97,7 @@ export default function Hero() {
   const slide = slides[idx % slides.length];
 
   return (
-    <section id="top" className="relative min-h-[100svh] sm:min-h-screen bg-[#020617] overflow-hidden flex items-start sm:items-center justify-center pt-24 sm:pt-0 pb-32 sm:pb-0">
+    <section id="top" className="relative min-h-[75vh] sm:min-h-[80vh] bg-[#020617] overflow-hidden flex items-start sm:items-center justify-center py-16 sm:py-20">
       <MatrixBg />
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
@@ -123,14 +123,14 @@ export default function Hero() {
       )}
 
       <div className="relative z-30 text-center px-4 sm:px-6 max-w-5xl w-full">
-        <div className="min-h-[80px] sm:min-h-[120px] md:min-h-[160px] flex items-center justify-center">
-          <h1 key={idx} className="fade-in text-[28px] sm:text-[40px] md:text-[68px] font-extrabold tracking-tight text-balance leading-tight">
+        <div className="flex items-center justify-center">
+          <h1 key={idx} className="fade-in text-[30px] sm:text-[42px] md:text-[56px] lg:text-[66px] font-extrabold tracking-tight text-balance leading-[1.05]">
             <span className="text-[#1E88E5]">{slide.highlight}</span>
             <span className="text-white"> {slide.word}</span>
           </h1>
         </div>
 
-        <p className="text-white/85 text-[14px] sm:text-[16px] md:text-[20px] mt-3 sm:mt-4 leading-relaxed max-w-3xl mx-auto px-2">
+        <p className="text-white/85 text-[14px] sm:text-[15px] md:text-[18px] mt-3 sm:mt-4 leading-7 md:leading-8 max-w-3xl mx-auto px-2">
           {renderRich(s.heroSubtitle)}
         </p>
         {s.heroTagline && (

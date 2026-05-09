@@ -80,16 +80,12 @@ export const reasons = [
 ];
 
 export const navItems = [
-  { label: "start", href: "#top" },
-  { label: "leistungen", href: "#leistungen" },
-  { label: "hosting", href: "#hosting" },
-  { label: "projekte", href: "#projekte" },
-  { label: "blog", href: "#blog" },
-  { label: "über uns", href: "#ueber" },
-  { label: "Kundenbereich", href: "/account" },
-  { label: "Registrieren", href: "/register" },
-  { label: "FAQ", href: "#faq" },
-  { label: "kontakt", href: "#kontakt" },
+  { label: "Start", href: "#top" },
+  { label: "Leistungen", href: "#leistungen" },
+  { label: "Hosting", href: "#hosting" },
+  { label: "Projekte", href: "#projekte" },
+  { label: "Über uns", href: "#ueber" },
+  { label: "Kontakt", href: "#kontakt" },
 ];
 
 export const footerLinks = [

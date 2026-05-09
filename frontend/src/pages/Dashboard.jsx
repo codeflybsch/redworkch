@@ -81,7 +81,7 @@ export default function Dashboard() {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{data.invoices.length}</div>
             </CardContent>
           </Card>
         </div>
@@ -200,6 +200,56 @@ export default function Dashboard() {
                 </Button>
               </Link>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Invoices */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Rechnungen
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.invoices.length === 0 ? (
+              <p className="text-gray-500">Keine Rechnungen vorhanden</p>
+            ) : (
+              <div className="space-y-4">
+                {data.invoices.map((invoice) => {
+                  const statusColors = {
+                    draft: "bg-gray-100 text-gray-800",
+                    sent: "bg-blue-100 text-blue-800",
+                    paid: "bg-green-100 text-green-800",
+                    overdue: "bg-red-100 text-red-800",
+                    reminder_sent: "bg-yellow-100 text-yellow-800",
+                    dunning_sent: "bg-orange-100 text-orange-800",
+                    collection_warning: "bg-red-100 text-red-800"
+                  };
+                  const statusLabels = {
+                    draft: "Entwurf",
+                    sent: "Gesendet",
+                    paid: "Bezahlt",
+                    overdue: "Überfällig",
+                    reminder_sent: "Erinnerung gesendet",
+                    dunning_sent: "Mahnung gesendet",
+                    collection_warning: "Inkasso-Warnung"
+                  };
+                  return (
+                    <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">Rechnung {invoice.number}</h3>
+                        <p className="text-sm text-gray-600">CHF {invoice.total?.toFixed(2)}</p>
+                        <p className="text-sm text-gray-600">Fällig: {new Date(invoice.dueDate).toLocaleDateString('de-DE')}</p>
+                      </div>
+                      <Badge className={statusColors[invoice.status] || "bg-gray-100 text-gray-800"}>
+                        {statusLabels[invoice.status] || invoice.status}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

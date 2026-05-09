@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response, WebSocket
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -20,8 +20,10 @@ from email.utils import formataddr
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
-from seed_data import DEFAULT_FAQS, DEFAULT_EMAIL_TEMPLATES, DEFAULT_PRODUCT_CATEGORIES, DEFAULT_PRODUCTS, DEFAULT_PROJECTS, DEFAULT_BLOGS, DEFAULT_TESTIMONIALS, DEFAULT_SERVICES, DEFAULT_COMPANIES
+from seed_data import DEFAULT_FAQS, DEFAULT_EMAIL_TEMPLATES, DEFAULT_RESPONSE_TEMPLATES, DEFAULT_PRODUCT_CATEGORIES, DEFAULT_PRODUCTS, DEFAULT_PROJECTS, DEFAULT_BLOGS, DEFAULT_TESTIMONIALS, DEFAULT_SERVICES, DEFAULT_COMPANIES, DEFAULT_TEST_USERS
 from qr_invoice import build_invoice_pdf, build_offer_pdf, render_invoice_html, render_offer_html
 
 ROOT_DIR = Path(__file__).parent
@@ -46,6 +48,30 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/admin/login", auto_error=Fals
 
 app = FastAPI(title="redwork.ch API")
 api_router = APIRouter(prefix="/api")
+
+# Scheduler for automated tasks
+scheduler = AsyncIOScheduler()
+
+# WebSocket connections for real-time notifications
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except:
+                self.disconnect(connection)
+
+manager = ConnectionManager()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -311,6 +337,34 @@ class EmailTemplate(EmailTemplateIn):
     createdAt: datetime = Field(default_factory=now_utc)
 
 
+# ----- Response Template -----
+class ResponseTemplateIn(BaseModel):
+    name: str
+    category: str = "Allgemein"  # "Kontakt" or "Ticket"
+    subject: Optional[str] = ""  # For tickets
+    body: str
+
+
+class ResponseTemplate(ResponseTemplateIn):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    createdAt: datetime = Field(default_factory=now_utc)
+
+
+# ----- Newsletter Campaign -----
+class NewsletterIn(BaseModel):
+    subject: str
+    body: str
+    targetGroup: str = "all"  # all, active_customers, etc.
+    htmlBody: Optional[str] = ""
+
+
+class Newsletter(NewsletterIn):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sentAt: Optional[datetime] = None
+    recipientCount: int = 0
+    createdAt: datetime = Field(default_factory=now_utc)
+
+
 # ----- Company (multiple per invoice setting) -----
 class CompanyIn(BaseModel):
     name: str
@@ -377,6 +431,7 @@ class InvoiceItem(BaseModel):
 
 class InvoiceIn(BaseModel):
     companyId: Optional[str] = ""  # which of our companies
+    userId: Optional[str] = ""  # optional customer relation
     title: Optional[str] = ""
     intro: Optional[str] = ""
     notes: Optional[str] = ""
@@ -392,8 +447,10 @@ class InvoiceIn(BaseModel):
     vatRate: Optional[float] = None
     currency: Optional[str] = "CHF"
     reference: Optional[str] = ""
-    status: str = "draft"  # draft | sent | paid | overdue
+    status: str = "draft"  # draft | sent | paid | overdue | reminder_sent | dunning_sent | collection_warning
     type: str = "invoice"  # "invoice" | "offer"
+    reminderCount: int = 0
+    lastReminderAt: Optional[datetime] = None
     # Recurring
     recurring: bool = False
     recurringInterval: Optional[str] = "monthly"  # monthly | quarterly | yearly
@@ -410,6 +467,7 @@ class Invoice(InvoiceIn):
     total: float = 0.0
     sentAt: Optional[datetime] = None
     paidAt: Optional[datetime] = None
+    invoiceLogs: List[dict] = []
     # Public signing (offers)
     publicToken: str = Field(default_factory=lambda: uuid.uuid4().hex)
     signedAt: Optional[datetime] = None
@@ -437,9 +495,14 @@ class UserIn(BaseModel):
     phone: Optional[str] = ""
 
 
-class User(UserIn):
+class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    email: EmailStr
     passwordHash: str
+    firstName: str
+    lastName: str
+    company: Optional[str] = ""
+    phone: Optional[str] = ""
     emailVerified: bool = False
     emailVerificationToken: Optional[str] = None
     passwordResetToken: Optional[str] = None
@@ -647,6 +710,124 @@ def _send_email_smtp(to_email: str, to_name: str, subject: str, body: str,
     except Exception as e:
         logger.exception("SMTP send failed")
         return False, str(e)
+
+
+# ----------------------------------------------------------------------------
+# Automated Dunning System
+# ----------------------------------------------------------------------------
+async def process_dunning_reminders():
+    """Daily job to send automated payment reminders and dunning notices."""
+    logger.info("Starting daily dunning reminder process")
+    today = datetime.now(timezone.utc).date()
+    
+    # Find overdue invoices
+    cursor = db.invoices.find({
+        "type": "invoice",
+        "status": {"$in": ["sent", "overdue", "reminder_sent", "dunning_sent"]},
+        "dueDate": {"$exists": True}
+    })
+    
+    async for invoice in cursor:
+        due_date = datetime.fromisoformat(invoice["dueDate"]).date() if isinstance(invoice["dueDate"], str) else invoice["dueDate"].date()
+        reminder_count = invoice.get("reminderCount", 0)
+        last_reminder = invoice.get("lastReminderAt")
+        if last_reminder:
+            last_reminder = datetime.fromisoformat(last_reminder).date() if isinstance(last_reminder, str) else last_reminder.date()
+        
+        client_email = invoice.get("clientEmail", "")
+        client_name = invoice.get("clientName", "")
+        invoice_number = invoice.get("number", "")
+        total = invoice.get("total", 0)
+        
+        if not client_email or not client_name:
+            continue
+        
+        # First reminder: on due date
+        if reminder_count == 0 and due_date <= today:
+            template = next((t for t in DEFAULT_EMAIL_TEMPLATES if t["name"] == "Zahlungserinnerung freundlich"), None)
+            if template:
+                subject = template["subject"].replace("___", invoice_number)
+                body = template["body"].replace("{{name}}", client_name).replace("___", invoice_number).replace("CHF ___", f"CHF {total:.2f}")
+                success, error = _send_email_smtp(client_email, client_name, subject, body)
+                if success:
+                    # Update invoice
+                    log_entry = {
+                        "timestamp": datetime.now(timezone.utc),
+                        "action": "reminder_sent",
+                        "details": "Freundliche Zahlungserinnerung gesendet"
+                    }
+                    await db.invoices.update_one(
+                        {"id": invoice["id"]},
+                        {
+                            "$set": {
+                                "status": "reminder_sent",
+                                "reminderCount": 1,
+                                "lastReminderAt": datetime.now(timezone.utc)
+                            },
+                            "$push": {"invoiceLogs": log_entry}
+                        }
+                    )
+                    logger.info(f"Sent first reminder for invoice {invoice_number}")
+        
+        # Second dunning: 3 days after first reminder
+        elif reminder_count == 1 and last_reminder and (today - last_reminder).days >= 3:
+            template = next((t for t in DEFAULT_EMAIL_TEMPLATES if t["name"] == "Mahnung 1. Stufe"), None)
+            if template:
+                # Add CHF 20 fee
+                new_total = total + 20
+                subject = template["subject"].replace("___", invoice_number)
+                body = template["body"].replace("{{name}}", client_name).replace("___", invoice_number).replace("CHF ___", f"CHF {new_total:.2f}")
+                success, error = _send_email_smtp(client_email, client_name, subject, body)
+                if success:
+                    log_entry = {
+                        "timestamp": datetime.now(timezone.utc),
+                        "action": "dunning_sent",
+                        "details": "Mahnung Stufe 1 gesendet, CHF 20 Gebühr hinzugefügt"
+                    }
+                    await db.invoices.update_one(
+                        {"id": invoice["id"]},
+                        {
+                            "$set": {
+                                "status": "dunning_sent",
+                                "reminderCount": 2,
+                                "lastReminderAt": datetime.now(timezone.utc),
+                                "total": new_total
+                            },
+                            "$push": {"invoiceLogs": log_entry}
+                        }
+                    )
+                    logger.info(f"Sent second dunning for invoice {invoice_number}")
+        
+        # Third collection warning: 7 days after second dunning
+        elif reminder_count == 2 and last_reminder and (today - last_reminder).days >= 7:
+            template = next((t for t in DEFAULT_EMAIL_TEMPLATES if t["name"] == "Mahnung 2. Stufe"), None)
+            if template:
+                # Add CHF 60 fee
+                new_total = total + 60
+                subject = template["subject"].replace("___", invoice_number)
+                body = template["body"].replace("{{name}}", client_name).replace("___", invoice_number).replace("CHF ___", f"CHF {new_total:.2f}")
+                success, error = _send_email_smtp(client_email, client_name, subject, body)
+                if success:
+                    log_entry = {
+                        "timestamp": datetime.now(timezone.utc),
+                        "action": "collection_warning",
+                        "details": "Inkasso-Warnung gesendet, CHF 60 Gebühr hinzugefügt"
+                    }
+                    await db.invoices.update_one(
+                        {"id": invoice["id"]},
+                        {
+                            "$set": {
+                                "status": "collection_warning",
+                                "reminderCount": 3,
+                                "lastReminderAt": datetime.now(timezone.utc),
+                                "total": new_total
+                            },
+                            "$push": {"invoiceLogs": log_entry}
+                        }
+                    )
+                    logger.info(f"Sent collection warning for invoice {invoice_number}")
+    
+    logger.info("Dunning reminder process completed")
 
 
 # ----------------------------------------------------------------------------
@@ -864,6 +1045,9 @@ async def create_order(payload: OrderIn, user=Depends(require_customer)):
     
     await db.orders.insert_one(order.dict())
     
+    # Broadcast notification
+    await manager.broadcast(f"Neue Bestellung: {product['name']} von {user['firstName']} {user['lastName']}")
+    
     return order
 
 
@@ -884,6 +1068,16 @@ async def list_user_orders(user=Depends(require_customer)):
 
 
 # ----------------------------------------------------------------------------
+# Routes : Checkout
+# ----------------------------------------------------------------------------
+@api_router.post("/checkout/create-checkout-session")
+async def create_checkout_session(payload: dict, user=Depends(require_customer)):
+    # Mock checkout session for now
+    # In production, integrate with Stripe
+    return {"sessionId": "mock_session_" + str(uuid.uuid4())}
+
+
+# ----------------------------------------------------------------------------
 # Routes : Customer Tickets
 # ----------------------------------------------------------------------------
 @api_router.post("/tickets", response_model=Ticket)
@@ -897,6 +1091,9 @@ async def create_ticket(payload: TicketIn, user=Depends(require_customer)):
     )
     
     await db.tickets.insert_one(ticket.dict())
+    
+    # Broadcast notification
+    await manager.broadcast(f"Neues Support-Ticket: {payload.subject} von {user['firstName']} {user['lastName']}")
     
     return ticket
 
@@ -955,12 +1152,17 @@ async def customer_dashboard(user=Depends(require_customer)):
     # Open tickets
     open_tickets = await db.tickets.find({"userId": user["id"], "status": {"$nin": ["closed"]}}).sort("updatedAt", -1).to_list(10)
     
+    # Invoices
+    invoices = await db.invoices.find({"userId": user["id"], "type": "invoice"}).sort("createdAt", -1).to_list(20)
+    
     # Recent activities (simplified)
     activities = []
     for o in recent_orders[:3]:
         activities.append({"type": "order", "message": f"Bestellung {o['id']} erstellt", "date": o["createdAt"]})
     for t in open_tickets[:2]:
         activities.append({"type": "ticket", "message": f"Ticket '{t['subject']}' aktualisiert", "date": t["updatedAt"]})
+    for inv in invoices[:2]:
+        activities.append({"type": "invoice", "message": f"Rechnung {inv['number']} erstellt", "date": inv["createdAt"]})
     
     activities.sort(key=lambda x: x["date"], reverse=True)
     
@@ -968,6 +1170,7 @@ async def customer_dashboard(user=Depends(require_customer)):
         "activeOrders": [clean(o) for o in active_orders],
         "recentOrders": [clean(o) for o in recent_orders],
         "openTickets": [clean(o) for o in open_tickets],
+        "invoices": [clean(inv) for inv in invoices],
         "recentActivities": activities[:5]
     }
 
@@ -979,6 +1182,10 @@ async def customer_dashboard(user=Depends(require_customer)):
 async def create_quote(payload: QuoteIn):
     q = Quote(**payload.dict())
     await db.quotes.insert_one(q.dict())
+    
+    # Broadcast notification
+    await manager.broadcast(f"Neue Kontaktanfrage: {payload.serviceType} von {payload.fullName}")
+    
     return q
 
 
@@ -1292,6 +1499,13 @@ async def add_admin_ticket_reply(ticket_id: str, payload: TicketReplyIn, user=De
     new_status = "answered" if ticket["status"] in ["open", "in_progress"] else ticket["status"]
     await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": now_utc(), "status": new_status}})
     
+    # Send email notification to customer
+    customer = await db.users.find_one({"id": ticket["userId"]})
+    if customer and customer.get("email"):
+        subject = f"Update zu Ihrem Support-Ticket #{ticket_id}"
+        body = f"Hallo {customer['firstName']},\n\nwir haben auf Ihr Support-Ticket geantwortet.\n\n{payload.message}\n\nSie können die Details in Ihrem Kundenbereich einsehen.\n\nFreundliche Grüsse\nIhr redwork.ch-Team"
+        asyncio.create_task(_send_email_smtp(customer["email"], f"{customer['firstName']} {customer['lastName']}", subject, body))
+    
     return {"message": "Antwort hinzugefügt"}
 
 
@@ -1406,6 +1620,82 @@ async def update_email_template(tid: str, payload: EmailTemplateIn, user=Depends
 async def delete_email_template(tid: str, user=Depends(require_admin)):
     await db.email_templates.delete_one({"id": tid})
     return {"ok": True}
+
+
+# ----------------------------------------------------------------------------
+# Routes : Response Templates
+# ----------------------------------------------------------------------------
+@api_router.get("/admin/response-templates", response_model=List[ResponseTemplate])
+async def list_response_templates(user=Depends(require_admin)):
+    items = await db.response_templates.find().sort([("category", 1), ("name", 1)]).to_list(500)
+    return [ResponseTemplate(**clean(i)) for i in items]
+
+
+@api_router.post("/admin/response-templates", response_model=ResponseTemplate)
+async def create_response_template(payload: ResponseTemplateIn, user=Depends(require_admin)):
+    obj = ResponseTemplate(**payload.dict())
+    await db.response_templates.insert_one(obj.dict())
+    return obj
+
+
+@api_router.put("/admin/response-templates/{tid}", response_model=ResponseTemplate)
+async def update_response_template(tid: str, payload: ResponseTemplateIn, user=Depends(require_admin)):
+    existing = await db.response_templates.find_one({"id": tid})
+    if not existing:
+        raise HTTPException(404, "Vorlage nicht gefunden")
+    merged = {**clean(existing), **payload.dict(), "id": tid}
+    await db.response_templates.update_one({"id": tid}, {"$set": payload.dict()})
+    return ResponseTemplate(**merged)
+
+
+@api_router.delete("/admin/response-templates/{tid}")
+async def delete_response_template(tid: str, user=Depends(require_admin)):
+    await db.response_templates.delete_one({"id": tid})
+    return {"ok": True}
+
+
+# ----------------------------------------------------------------------------
+# Routes : Newsletter Campaigns
+# ----------------------------------------------------------------------------
+@api_router.get("/admin/newsletters", response_model=List[Newsletter])
+async def list_newsletters(user=Depends(require_admin)):
+    items = await db.newsletters.find().sort("createdAt", -1).to_list(500)
+    return [Newsletter(**clean(i)) for i in items]
+
+
+@api_router.post("/admin/newsletters", response_model=Newsletter)
+async def create_newsletter(payload: NewsletterIn, user=Depends(require_admin)):
+    obj = Newsletter(**payload.dict())
+    await db.newsletters.insert_one(obj.dict())
+    return obj
+
+
+@api_router.post("/admin/newsletters/{nid}/send")
+async def send_newsletter(nid: str, user=Depends(require_admin)):
+    newsletter = await db.newsletters.find_one({"id": nid})
+    if not newsletter:
+        raise HTTPException(404, "Newsletter nicht gefunden")
+    
+    # Get recipients
+    if newsletter["targetGroup"] == "all":
+        recipients = await db.users.find({"email": {"$exists": True, "$ne": ""}}).to_list(10000)
+    else:
+        # For now, all customers
+        recipients = await db.users.find({"email": {"$exists": True, "$ne": ""}}).to_list(10000)
+    
+    sent_count = 0
+    for recipient in recipients:
+        success, error = _send_email_smtp(
+            recipient["email"],
+            f"{recipient['firstName']} {recipient['lastName']}",
+            newsletter["subject"],
+            newsletter.get("htmlBody") or newsletter["body"]
+        )
+        if success:
+            sent_count += 1
+    
+    await db.newsletters.update_one({"id": nid}, {"$set": {"sentAt": now_utc(), "recipientCount": sent_count}})
+    return {"sent": sent_count}
 
 
 # ----------------------------------------------------------------------------
@@ -1995,8 +2285,12 @@ DEFAULT_PROJECTS = [
 DEFAULT_BLOGS = [
     {"title": "Was ist Webdesign und warum ist es wichtig?", "category": "Webdesign", "img": "https://images.unsplash.com/photo-1547658719-da2b51169166?w=600&q=80", "excerpt": "Erfahren Sie, warum gutes Webdesign der Schlüssel zum Online-Erfolg ist.", "date": "15. März 2026", "order": 1},
     {"title": "Die besten Webdesign-Trends für 2026", "category": "Webdesign", "img": "https://images.unsplash.com/photo-1559028012-481c04fa702d?w=600&q=80", "excerpt": "Die wichtigsten Designtrends, die Sie kennen sollten.", "date": "10. März 2026", "order": 2},
-    {"title": "SEO-Strategien für nachhaltigen Erfolg", "category": "SEO", "img": "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?w=600&q=80", "excerpt": "Effektive SEO-Methoden für Ihre Website.", "date": "01. März 2026", "order": 4},
-    {"title": "React vs. Next.js – Welches ist besser?", "category": "Softwareentwicklung", "img": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&q=80", "excerpt": "Ein detaillierter Vergleich beider Frameworks.", "date": "25. Februar 2026", "order": 5},
+    {"title": "SEO-Strategien für nachhaltigen Erfolg", "category": "SEO", "img": "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?w=600&q=80", "excerpt": "Effektive SEO-Methoden für Ihre Website.", "date": "01. März 2026", "order": 3},
+    {"title": "React vs. Next.js – Welches ist besser?", "category": "Softwareentwicklung", "img": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&q=80", "excerpt": "Ein detaillierter Vergleich beider Frameworks.", "date": "25. Februar 2026", "order": 4},
+    {"title": "Schweizer Hosting: Was muss ein Business-Paket können?", "category": "Hosting", "img": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80", "excerpt": "Wählen Sie das richtige Hosting-Paket für Performance, Sicherheit und DSGVO-konforme Speicherung.", "date": "05. Februar 2026", "order": 5},
+    {"title": "Datensicherheit in der Schweiz: 5 wichtige Punkte", "category": "Sicherheit", "img": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&q=80", "excerpt": "So schützen Sie Ihre Kundendaten und Ihr Hosting vor ungewollten Zugriffen.", "date": "22. Januar 2026", "order": 6},
+    {"title": "Mehr Traffic mit lokaler SEO für Schweizer Unternehmen", "category": "Marketing", "img": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&q=80", "excerpt": "Lokale SEO richtig einsetzen, um mehr Kunden aus Ihrer Region zu gewinnen.", "date": "10. Januar 2026", "order": 7},
+    {"title": "Richtige Domainwahl: Tipps für Ihre .ch-Webseite", "category": "Domain", "img": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80", "excerpt": "So wählen Sie eine Domain, die gut merkbar und vertrauenswürdig ist.", "date": "02. Januar 2026", "order": 8},
 ]
 
 DEFAULT_TESTIMONIALS = [
@@ -2069,6 +2363,7 @@ async def seed_default_content():
         ("services", DEFAULT_SERVICES, Service),
         ("faqs", DEFAULT_FAQS, FAQ),
         ("email_templates", DEFAULT_EMAIL_TEMPLATES, EmailTemplate),
+        ("response_templates", DEFAULT_RESPONSE_TEMPLATES, ResponseTemplate),
         ("companies", DEFAULT_COMPANIES, Company),
     ]
     for col, defaults, Model in seeders:
@@ -2078,11 +2373,50 @@ async def seed_default_content():
                 obj = Model(**d)
                 await db[col].insert_one(obj.dict())
             logger.info(f"Seeded {len(defaults)} entries to {col}")
+        elif col == "blogs" and count < len(DEFAULT_BLOGS):
+            existing_titles = {b["title"] for b in await db.blogs.find().to_list(1000)}
+            inserted = 0
+            for d in DEFAULT_BLOGS:
+                if d["title"] not in existing_titles:
+                    obj = Blog(**d)
+                    await db.blogs.insert_one(obj.dict())
+                    inserted += 1
+            if inserted:
+                logger.info(f"Restored {inserted} fehlende Blog-Einträge in {col}")
+
+    # Special handling for test users - always ensure they exist
+    if DEFAULT_TEST_USERS:
+        existing_emails = {u["email"] for u in await db.users.find({}, {"email": 1}).to_list(100)}
+        inserted = 0
+        for user_data in DEFAULT_TEST_USERS:
+            if user_data["email"] not in existing_emails:
+                obj = User(**user_data)
+                await db.users.insert_one(obj.dict())
+                inserted += 1
+        if inserted:
+            logger.info(f"Seeded {inserted} test users")
+
+    # Start the scheduler for automated tasks
+    scheduler.add_job(process_dunning_reminders, CronTrigger(hour=9, minute=0))  # Daily at 9 AM
+    scheduler.start()
+    logger.info("Scheduler started for automated dunning reminders")
 
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    scheduler.shutdown()
     client.close()
+
+
+@app.websocket("/ws/notifications")
+async def websocket_notifications(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Keep connection alive
+    except:
+        manager.disconnect(websocket)
 
 
 # ----------------------------------------------------------------------------

@@ -4,10 +4,17 @@ import api from "../api";
 
 export default function BlogPosts() {
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [start, setStart] = useState(0);
 
   useEffect(() => {
-    api.get("/blogs").then((r) => setPosts(r.data)).catch(() => {});
+    api.get("/blogs").then((r) => {
+      setPosts(r.data);
+      setLoading(false);
+    }).catch((err) => {
+      console.error("Failed to load blogs:", err);
+      setLoading(false);
+    });
   }, []);
 
   const visible = 3;
@@ -16,6 +23,26 @@ export default function BlogPosts() {
     for (let i = 0; i < Math.min(visible, posts.length); i++) {
       items.push(posts[(start + i) % posts.length]);
     }
+  }
+
+  if (loading) {
+    return (
+      <section id="blog" className="py-24 bg-[#f1f5fb]">
+        <div className="max-w-[1400px] mx-auto px-6 text-center">
+          <p>Lade Blog-Beiträge...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <section id="blog" className="py-24 bg-[#f1f5fb]">
+        <div className="max-w-[1400px] mx-auto px-6 text-center">
+          <p>Keine Blog-Beiträge verfügbar.</p>
+        </div>
+      </section>
+    );
   }
 
   return (

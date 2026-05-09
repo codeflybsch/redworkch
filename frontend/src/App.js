@@ -74,10 +74,13 @@ function PublicSite() {
       <StatsBar />
       <HowWeWork />
       <Projects />
+      <WhyUs />
       <BlogPosts />
       <Services />
       <HostingPackages />
       <QuoteWizard />
+      <ContactSection />
+      <Footer />
       <ContactModal />
 
       {showTop && (

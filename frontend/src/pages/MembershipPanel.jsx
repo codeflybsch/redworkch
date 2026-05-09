@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { ShieldCheck, Wallet, FileText, HelpCircle, ArrowRight, CreditCard, Star, CheckCircle } from "lucide-react";
 import { useModals } from "../contexts/ModalContext";
 

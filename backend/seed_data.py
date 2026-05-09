@@ -21,6 +21,8 @@ DEFAULT_EMAIL_TEMPLATES = [
     {"name": "Go-Live Bestätigung", "category": "Projekt", "subject": "🎉 Ihre Website ist live!", "body": "Hallo {{name}},\n\nherzlichen Glückwunsch – Ihre neue Website ist seit heute online unter ___ erreichbar!\n\nDie nächsten 12 Monate Support sind inklusive.\n\nFreundliche Grüsse"},
     {"name": "Rechnung versendet", "category": "Rechnung", "subject": "Ihre Rechnung von redwork.ch", "body": "Hallo {{name}},\n\nim Anhang erhalten Sie wie vereinbart unsere Rechnung Nr. ___ über CHF ___.\n\nZahlbar bis ___ via QR-Code direkt im E-Banking.\n\nFreundliche Grüsse"},
     {"name": "Zahlungserinnerung freundlich", "category": "Rechnung", "subject": "Freundliche Zahlungserinnerung – Rechnung Nr. ___", "body": "Hallo {{name}},\n\nuns ist aufgefallen, dass die Rechnung Nr. ___ über CHF ___ noch offen ist. Falls bereits beglichen, betrachten Sie diese Mail bitte als gegenstandslos.\n\nFreundliche Grüsse"},
+    {"name": "Mahnung 1. Stufe", "category": "Rechnung", "subject": "Mahnung – Rechnung Nr. ___ (CHF 20 Mahngebühr)", "body": "Hallo {{name}},\n\nleider ist die Rechnung Nr. ___ über CHF ___ noch nicht beglichen. Wir senden Ihnen hiermit die erste Mahnung und erheben eine Mahngebühr von CHF 20.\n\nBitte überweisen Sie den Betrag von CHF ___ bis zum ___ auf unser Konto.\n\nFreundliche Grüsse"},
+    {"name": "Mahnung 2. Stufe", "category": "Rechnung", "subject": "Zweite Mahnung – Rechnung Nr. ___ (CHF 60 Mahngebühr + Inkassowarnung)", "body": "Hallo {{name}},\n\nobwohl wir Ihnen bereits eine erste Mahnung gesendet haben, ist die Rechnung Nr. ___ über CHF ___ noch immer offen. Wir erheben eine zweite Mahngebühr von CHF 60 und warnen Sie, dass wir bei weiterer Nichtzahlung das Inkasso-Verfahren einleiten werden.\n\nBitte überweisen Sie den Gesamtbetrag von CHF ___ bis zum ___ auf unser Konto.\n\nFreundliche Grüsse"},
     {"name": "Wartungserinnerung", "category": "Wartung", "subject": "Geplante Wartung Ihrer Website", "body": "Hallo {{name}},\n\nim Rahmen unseres Wartungsvertrags planen wir am ___ zwischen ___ und ___ Uhr ein Wartungsfenster.\n\nKurze Unterbrechungen möglich, alle Daten werden vorher gesichert.\n\nFreundliche Grüsse"},
     {"name": "Anfrage abgelehnt – höflich", "category": "Allgemein", "subject": "Zu Ihrer Anfrage", "body": "Hallo {{name}},\n\nvielen Dank, dass Sie uns für Ihr Vorhaben in Betracht gezogen haben. Leider sind unsere Kapazitäten in den nächsten Monaten bereits ausgebucht.\n\nGerne empfehle ich Ihnen Partner-Agenturen.\n\nFreundliche Grüsse"},
     {"name": "Beratung statt Auftrag", "category": "Beratung", "subject": "Buchung einer kostenpflichtigen Beratung", "body": "Hallo {{name}},\n\nfür Ihre Anfrage ist eine 60-minütige Strategie-Beratung möglicherweise zielführender als ein direkter Projektauftrag.\n\nKosten: CHF 240 (wird bei späterem Auftrag verrechnet).\n\nFreundliche Grüsse"},
@@ -31,6 +33,21 @@ DEFAULT_EMAIL_TEMPLATES = [
     {"name": "Abwesenheitsnotiz", "category": "Allgemein", "subject": "Aktuell ausser Haus – Antwort ab ___", "body": "Hallo {{name}},\n\nvielen Dank für Ihre Nachricht. Ich bin bis ___ ausser Haus.\n\nIn dringenden Fällen wenden Sie sich bitte an ___@redwork.ch.\n\nFreundliche Grüsse"},
     {"name": "Jahreswechsel-Gruss", "category": "Allgemein", "subject": "Frohes neues Jahr und vielen Dank!", "body": "Hallo {{name}},\n\nbevor das Jahr endet, möchten wir uns für die vertrauensvolle Zusammenarbeit bedanken.\n\nWir wünschen erholsame Festtage und einen erfolgreichen Start ins neue Jahr!\n\nHerzliche Grüsse\nIhr redwork.ch-Team"},
     {"name": "Projekt-Pause", "category": "Projekt", "subject": "Bestätigung der vorübergehenden Projekt-Pause", "body": "Hallo {{name}},\n\nwie besprochen pausieren wir Ihr Projekt vom ___ bis ___. In dieser Zeit fallen keine Stunden an.\n\nFreundliche Grüsse"},
+]
+
+
+# ---------------------------------------------------------------------------
+# Response Templates for Contacts & Tickets
+# ---------------------------------------------------------------------------
+DEFAULT_RESPONSE_TEMPLATES = [
+    {"name": "Eingangsbestätigung Kontakt", "category": "Kontakt", "body": "Hallo {{name}},\n\nvielen Dank für Ihre Kontaktanfrage. Wir haben Ihre Nachricht erhalten und werden uns innerhalb von 24 Stunden bei Ihnen melden.\n\nFreundliche Grüsse\nIhr redwork.ch-Team"},
+    {"name": "Angebot-Anfrage", "category": "Kontakt", "body": "Hallo {{name}},\n\nvielen Dank für Ihr Interesse. Basierend auf Ihrer Beschreibung erstellen wir ein individuelles Angebot. Sie erhalten dieses in den nächsten 2-3 Arbeitstagen.\n\nFreundliche Grüsse"},
+    {"name": "Projekt-Start", "category": "Kontakt", "body": "Hallo {{name}},\n\nwir freuen uns, dass Sie sich für uns entschieden haben! Als nächstes senden wir Ihnen den Vertrag und die Rechnung. Nach Zahlungseingang starten wir sofort mit Ihrem Projekt.\n\nFreundliche Grüsse"},
+    {"name": "Ticket Eingangsbestätigung", "category": "Ticket", "subject": "Ihr Support-Ticket wurde erstellt", "body": "Hallo {{name}},\n\nIhr Support-Ticket wurde erfolgreich erstellt. Wir bearbeiten es innerhalb von 24 Stunden.\n\nTicket-ID: {{ticket_id}}\n\nFreundliche Grüsse"},
+    {"name": "Ticket in Bearbeitung", "category": "Ticket", "subject": "Update zu Ihrem Support-Ticket", "body": "Hallo {{name}},\n\nIhr Ticket ist nun in Bearbeitung. Wir halten Sie auf dem Laufenden.\n\nFreundliche Grüsse"},
+    {"name": "Ticket gelöst", "category": "Ticket", "subject": "Ihr Support-Ticket wurde gelöst", "body": "Hallo {{name}},\n\nIhr Support-Ticket wurde erfolgreich gelöst. Falls weitere Fragen auftauchen, können Sie jederzeit ein neues Ticket erstellen.\n\nFreundliche Grüsse"},
+    {"name": "Hosting-Problem", "category": "Ticket", "subject": "Update zu Ihrem Hosting-Problem", "body": "Hallo {{name}},\n\nwir haben das Problem identifiziert und arbeiten an der Lösung. Ihr Hosting sollte in Kürze wieder normal funktionieren.\n\nFreundliche Grüsse"},
+    {"name": "Domain-Problem", "category": "Ticket", "subject": "Update zu Ihrer Domain-Anfrage", "body": "Hallo {{name}},\n\nwir haben Ihre Domain-Anfrage bearbeitet. Die Änderungen sollten innerhalb von 24-48 Stunden wirksam werden.\n\nFreundliche Grüsse"},
 ]
 
 
@@ -322,3 +339,42 @@ DEFAULT_BLOGS = []
 DEFAULT_TESTIMONIALS = []
 DEFAULT_SERVICES = []
 DEFAULT_COMPANIES = []
+
+# ---------------------------------------------------------------------------
+# Test Users for Development
+# ---------------------------------------------------------------------------
+DEFAULT_TEST_USERS = [
+    {
+        "email": "kunde@test.ch",
+        "passwordHash": "$2b$12$znweUVivpdw/cG05XW3Wv.la.pn7/P6CH5lK3x8k25unEJKMME2sG",
+        "firstName": "Max",
+        "lastName": "Mustermann",
+        "company": "Test GmbH",
+        "phone": "+41 79 123 45 67",
+        "emailVerified": True,
+        "createdAt": "2024-01-01T00:00:00Z",
+        "lastLogin": None
+    },
+    {
+        "email": "anna@test.ch",
+        "passwordHash": "$2b$12$znweUVivpdw/cG05XW3Wv.la.pn7/P6CH5lK3x8k25unEJKMME2sG",
+        "firstName": "Anna",
+        "lastName": "Schmidt",
+        "company": "Anna's Boutique",
+        "phone": "+41 79 987 65 43",
+        "emailVerified": True,
+        "createdAt": "2024-01-15T00:00:00Z",
+        "lastLogin": None
+    },
+    {
+        "email": "peter@test.ch",
+        "passwordHash": "$2b$12$znweUVivpdw/cG05XW3Wv.la.pn7/P6CH5lK3x8k25unEJKMME2sG",
+        "firstName": "Peter",
+        "lastName": "Weber",
+        "company": "Weber Consulting",
+        "phone": "+41 44 555 12 34",
+        "emailVerified": True,
+        "createdAt": "2024-02-01T00:00:00Z",
+        "lastLogin": None
+    }
+]
