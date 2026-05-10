@@ -1,0 +1,41 @@
+{
+  "summary": "Tested redwork.ch full backend (25 pytest tests, 100% pass) and frontend admin + public pages. All critical flows working: admin login, sidebar nav (FAQ/Antwortvorlagen/Firmen/Produkte/Rechnungen/Offerten), companies CRUD, products CRUD, FAQ admin (500 rendered), invoice/offer editor with 'Aus Katalog' button, mobile responsive admin drawer, public FAQ section (987 entries) and Contact section with map.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin login form", "issues": ["Username and password inputs have no name/id/data-testid attributes – makes E2E testing harder. Suggest adding data-testid='admin-username', 'admin-password', 'admin-login-submit'."]},
+      {"screen": "Public FAQ contact section map", "issues": ["A black square overlay sits to the right of the OSM map iframe on desktop (visible in screenshot). May be a layout/iframe sizing issue – consider verifying iframe width/responsive container."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Add data-testid attributes to admin login inputs and submit button (admin-username, admin-password, admin-login-submit) for testability.",
+    "Investigate the black square overlay next to the contact map iframe on desktop view (homepage Kontakt section).",
+    "Optionally add data-testid attributes to sidebar nav items, invoice/offer editor fields, and product picker for more robust automation."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 1184 lines – consider splitting into modules (auth, invoices, faqs, etc.) for maintainability (>700 lines threshold).",
+    "Backend uses snake_case in some places but API schema is camelCase – consistent and well documented via Pydantic; good.",
+    "PDF generation (qr_invoice.build_invoice_pdf / build_offer_pdf) returns valid %PDF bytes for both invoices and offers – no 500 errors observed.",
+    "SMTP send endpoint correctly returns ok=false (200) with 'SMTP not configured' – graceful degradation as expected.",
+    "FAQ admin caps render at 500 even though 987 are seeded – good for performance; ensure search filters across all 987 (server returns all, client filters)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (created)"
+  ],
+  "success_rate": {"backend": "100% (25/25)", "frontend": "100% of tested flows"},
+  "test_credentials": "Admin login: admin / Blevh4np1@@ (no /app/memory/test_credentials.md file – created none, used credentials from review request)",
+  "seed_data_creation": "Created and cleaned-up TEST_ prefixed companies, products, FAQs. Test invoices and offers remain (will accumulate over iterations – consider cleanup fixture if needed).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest suite at /app/backend/tests/backend_test.py covers 25 tests across auth, stats, companies, products, FAQs, email templates, site settings, invoices (incl. PDF/preview/send/mark-paid), offers (incl. PDF/preview). All passing. Note that Invoice/Offer schema uses camelCase (clientName, clientStreet, clientZip, clientCity, items[].unitPrice, vatRate) NOT nested 'client'. SMTP send expects body {subject, message, toEmail}. PDFs return real %PDF bytes. Admin login form inputs lack name/id – use page.query_selector_all('input') and fill by index. Mobile hamburger only renders one top-bar button which opens full drawer. No /app/memory/test_credentials.md file exists.",
+  "rca of the issue": "N/A – no bugs found that block usage. Only enhancement suggestions (testability data-testids and contact-map overlay)."
+}
