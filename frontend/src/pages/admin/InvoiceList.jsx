@@ -58,8 +58,10 @@ export default function InvoiceList({ kind = "invoice" }) {
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.text())
       .then((html) => {
-        const w = window.open("", "_blank");
-        if (w) { w.document.open(); w.document.write(html); w.document.close(); }
+        const blob = new Blob([html], { type: "text/html" });
+        const objUrl = URL.createObjectURL(blob);
+        window.open(objUrl, "_blank");
+        setTimeout(() => URL.revokeObjectURL(objUrl), 60000);
       });
   };
 

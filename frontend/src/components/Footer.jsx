@@ -12,6 +12,7 @@ const FALLBACK = {
   footerPhone: "+41 44 000 00 00",
   footerEmail: "info@redwork.ch",
   footerCopyright: "© 2026 redwork.ch – Alle Rechte vorbehalten",
+  footerSlogan: "12 Monate kostenloser Support für alle unsere Kunden inklusive!",
   footerSocial: { facebook: "", twitter: "", instagram: "", youtube: "", linkedin: "" },
   partners: [],
   contactWhatsapp: "",
@@ -39,7 +40,7 @@ export default function Footer() {
 
         <div className="max-w-3xl mx-auto text-center text-[14px] sm:text-[15px] text-white/80 leading-relaxed">
           <p>{s.footerAbout}</p>
-          <p className="mt-4 text-[#FFC107] font-semibold">12 Monate kostenloser Support für alle unsere Kunden inklusive!</p>
+          {s.footerSlogan && <p className="mt-4 text-[#FFC107] font-semibold">{s.footerSlogan}</p>}
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-8 sm:mt-10">

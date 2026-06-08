@@ -276,6 +276,7 @@ export default function SiteSettings() {
         {tab === "footer" && (
           <div className="space-y-4">
             <Field label="Über-Text"><TextArea rows={3} value={data.footerAbout} onChange={(e) => update("footerAbout", e.target.value)} /></Field>
+            <Field label="✨ Slogan (gelb hervorgehoben)" hint="Erscheint groß und gelb unter dem Über-Text."><Input value={data.footerSlogan || ""} onChange={(e) => update("footerSlogan", e.target.value)} data-testid="footer-slogan-input" placeholder="12 Monate kostenloser Support inklusive!" /></Field>
             <div className="grid md:grid-cols-2 gap-4">
               <Field label="Adresse"><Input value={data.footerAddress} onChange={(e) => update("footerAddress", e.target.value)} /></Field>
               <Field label="Telefon"><Input value={data.footerPhone} onChange={(e) => update("footerPhone", e.target.value)} /></Field>

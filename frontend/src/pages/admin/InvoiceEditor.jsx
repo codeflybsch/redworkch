@@ -115,8 +115,10 @@ export default function InvoiceEditor({ mode = "invoice" }) {
       const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (action === "preview") {
         const html = await r.text();
-        const w = window.open("", "_blank");
-        if (w) { w.document.open(); w.document.write(html); w.document.close(); }
+        const blob = new Blob([html], { type: "text/html" });
+        const objUrl = URL.createObjectURL(blob);
+        window.open(objUrl, "_blank");
+        setTimeout(() => URL.revokeObjectURL(objUrl), 60000);
       } else {
         if (!r.ok) {
           let msg = `HTTP ${r.status}`; try { msg = (await r.json()).detail || msg; } catch (e) { /* ignore */ }
