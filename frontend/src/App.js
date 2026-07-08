@@ -6,6 +6,8 @@ import { ArrowUp } from "lucide-react";
 import { ModalProvider } from "./contexts/ModalContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CustomerRoute, AdminRoute } from "./components/ProtectedRoute";
+import { Toaster } from "./components/ui/toaster";
+import SupportRealtimeBridge from "./components/SupportRealtimeBridge";
 
 import Header from "./components/Header";
 import Hero from "./components/Hero";
@@ -36,6 +38,7 @@ import Products from "./pages/Products";
 import Support from "./pages/Support";
 import TicketDetail from "./pages/TicketDetail";
 import OrderPage from "./pages/OrderPage";
+import QuoteSignature from "./pages/QuoteSignature";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Quotes from "./pages/admin/Quotes";
@@ -109,11 +112,14 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <ModalProvider>
+            <SupportRealtimeBridge />
+            <Toaster />
             <Routes>
               <Route path="/" element={<PublicSite />} />
               <Route path="/hosting" element={<PublicSite />} />
               <Route path="/domains" element={<PublicSite />} />
               <Route path="/order" element={<OrderPage />} />
+              <Route path="/angebot-unterschreiben/:token" element={<QuoteSignature />} />
 
               {/* Auth Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response, WebSocket
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response, WebSocket, Request
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -7,12 +7,14 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 import os
+import json
 import logging
 import uuid
 import smtplib
 import ssl
 import asyncio
 import base64
+import hashlib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -86,6 +88,11 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
+async def broadcast_support_event(event_type: str, payload: dict):
+    message = {"type": event_type, "timestamp": now_utc(), **payload}
+    await manager.broadcast(json.dumps(message, default=str))
+
+
 # ----------------------------------------------------------------------------
 # Models
 # ----------------------------------------------------------------------------
@@ -122,10 +129,31 @@ class Quote(QuoteIn):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     status: str = "new"
     createdAt: datetime = Field(default_factory=now_utc)
+    decisionReason: Optional[str] = ""
+    decisionAt: Optional[datetime] = None
+    signatureToken: Optional[str] = None
+    signatureUrl: Optional[str] = None
+    emailSent: bool = False
+    emailError: Optional[str] = None
+    signedAt: Optional[datetime] = None
+    signerName: Optional[str] = None
+    documentHash: Optional[str] = None
 
 
 class QuoteUpdate(BaseModel):
     status: Optional[str] = None
+
+
+class QuoteDecisionIn(BaseModel):
+    status: str
+    reason: str
+    sendEmail: bool = True
+
+
+class QuoteSignatureIn(BaseModel):
+    signerName: str
+    accepted: bool
+    signatureData: str
 
 
 # ----- Contact -----
@@ -636,6 +664,8 @@ class Ticket(TicketIn):
     status: str = "open"  # open | in_progress | answered | closed
     createdAt: datetime = Field(default_factory=now_utc)
     updatedAt: datetime = Field(default_factory=now_utc)
+    lastCustomerSeenAt: Optional[datetime] = None
+    lastStaffReplyAt: Optional[datetime] = None
 
 
 class TicketReplyIn(BaseModel):
@@ -1360,7 +1390,15 @@ async def create_ticket(payload: TicketIn, user=Depends(require_customer)):
     await db.tickets.insert_one(ticket.dict())
     
     # Broadcast notification
-    await manager.broadcast(f"Neues Support-Ticket: {payload.subject} von {user['firstName']} {user['lastName']}")
+    await broadcast_support_event("ticket_created", {
+        "ticket": clean(ticket.dict()),
+        "user": {
+            "id": user["id"],
+            "name": f"{user['firstName']} {user['lastName']}",
+            "email": user.get("email", ""),
+        },
+        "message": f"Neues Support-Ticket: {payload.subject} von {user['firstName']} {user['lastName']}",
+    })
     
     return ticket
 
@@ -1380,6 +1418,7 @@ async def get_ticket(ticket_id: str, user=Depends(require_customer)):
     replies = await db.ticket_replies.find({"ticketId": ticket_id}).sort("createdAt", 1).to_list(1000)
     
     clean(ticket)
+    await db.tickets.update_one({"id": ticket_id, "userId": user["id"]}, {"$set": {"lastCustomerSeenAt": now_utc()}})
     ticket["replies"] = [clean(r) for r in replies]
     
     return ticket
@@ -1400,7 +1439,20 @@ async def add_ticket_reply(ticket_id: str, payload: TicketReplyIn, user=Depends(
     await db.ticket_replies.insert_one(reply.dict())
     
     # Update ticket updatedAt
-    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": now_utc(), "status": "answered" if ticket["status"] == "open" else ticket["status"]}})
+    current_time = now_utc()
+    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": current_time, "lastCustomerSeenAt": current_time, "status": "answered" if ticket["status"] == "open" else ticket["status"]}})
+    updated_ticket = await db.tickets.find_one({"id": ticket_id})
+    await broadcast_support_event("ticket_replied", {
+        "ticket": clean(updated_ticket),
+        "reply": clean(reply.dict()),
+        "actor": "customer",
+        "user": {
+            "id": user["id"],
+            "name": f"{user['firstName']} {user['lastName']}",
+            "email": user.get("email", ""),
+        },
+        "message": f"Neuer Kundenbeitrag im Ticket {ticket_id}",
+    })
     
     return {"message": "Antwort hinzugefügt"}
 
@@ -1418,6 +1470,10 @@ async def customer_dashboard(user=Depends(require_customer)):
     
     # Open tickets
     open_tickets = await db.tickets.find({"userId": user["id"], "status": {"$nin": ["closed"]}}).sort("updatedAt", -1).to_list(10)
+    new_support_messages = [
+        clean(ticket) for ticket in open_tickets
+        if ticket.get("lastStaffReplyAt") and (not ticket.get("lastCustomerSeenAt") or ticket.get("lastStaffReplyAt") > ticket.get("lastCustomerSeenAt"))
+    ]
     
     # Invoices
     invoices = await db.invoices.find({"userId": user["id"], "type": "invoice"}).sort("createdAt", -1).to_list(20)
@@ -1441,6 +1497,10 @@ async def customer_dashboard(user=Depends(require_customer)):
         "invoices": [clean(inv) for inv in invoices],
         "recentActivities": activities[:5],
         "referrals": [clean(ref) for ref in referrals],
+        "support": {
+            "newMessages": len(new_support_messages),
+            "newMessageTickets": new_support_messages,
+        },
         "referral": {
             "code": f"RED-{user['id'][:8].upper()}",
             "rewardPerFriend": 25,
@@ -1513,6 +1573,117 @@ async def update_quote(quote_id: str, payload: QuoteUpdate, user=Depends(require
     if res.matched_count == 0:
         raise HTTPException(404, "Anfrage nicht gefunden")
     return {"ok": True}
+
+
+@api_router.post("/admin/quotes/{quote_id}/decision")
+async def decide_quote(quote_id: str, payload: QuoteDecisionIn, user=Depends(require_admin)):
+    if payload.status not in {"accepted", "rejected"}:
+        raise HTTPException(400, "Status muss accepted oder rejected sein")
+    reason = payload.reason.strip()
+    if len(reason) < 10:
+        raise HTTPException(400, "Bitte geben Sie eine aussagekräftige Begründung ein")
+    quote = await db.quotes.find_one({"id": quote_id})
+    if not quote:
+        raise HTTPException(404, "Anfrage nicht gefunden")
+
+    update = {
+        "status": payload.status,
+        "decisionReason": reason,
+        "decisionAt": now_utc(),
+        "emailSent": False,
+        "emailError": None,
+    }
+    signature_url = None
+    if payload.status == "accepted":
+        token = quote.get("signatureToken") or uuid.uuid4().hex + uuid.uuid4().hex
+        signature_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/angebot-unterschreiben/{token}"
+        document_source = "|".join([
+            quote_id, quote.get("fullName", ""), quote.get("email", ""),
+            quote.get("serviceType", ""), quote.get("projectDetails", ""),
+            quote.get("budget", ""), quote.get("timeline", ""), reason,
+        ])
+        update.update({
+            "signatureToken": token,
+            "signatureUrl": signature_url,
+            "documentHash": hashlib.sha256(document_source.encode("utf-8")).hexdigest(),
+            "signedAt": None,
+            "signerName": None,
+        })
+
+    if payload.sendEmail:
+        if payload.status == "accepted":
+            subject = "Ihr Projekt wurde angenommen – Angebot online bestätigen"
+            body = (
+                f"Hallo {quote.get('fullName', '')},\n\n"
+                "wir freuen uns, Ihnen mitzuteilen, dass wir Ihre Projektanfrage annehmen.\n\n"
+                f"Hinweise zum Angebot:\n{reason}\n\n"
+                "Bitte prüfen und unterschreiben Sie das Angebot sicher über diesen Link:\n"
+                f"{signature_url}\n\n"
+                "Freundliche Grüsse\nIhr redwork.ch Team"
+            )
+        else:
+            subject = "Rückmeldung zu Ihrer Projektanfrage"
+            body = (
+                f"Hallo {quote.get('fullName', '')},\n\n"
+                "vielen Dank für Ihre Anfrage. Leider können wir das Projekt derzeit nicht annehmen.\n\n"
+                f"Begründung:\n{reason}\n\n"
+                "Freundliche Grüsse\nIhr redwork.ch Team"
+            )
+        sent, error = await asyncio.to_thread(
+            _send_email_smtp, quote["email"], quote.get("fullName", ""), subject, body
+        )
+        update["emailSent"] = sent
+        update["emailError"] = error if not sent else None
+
+    await db.quotes.update_one({"id": quote_id}, {"$set": update})
+    updated = await db.quotes.find_one({"id": quote_id})
+    return clean(updated)
+
+
+@api_router.get("/quotes/sign/{token}")
+async def get_quote_for_signature(token: str):
+    quote = await db.quotes.find_one({"signatureToken": token})
+    if not quote:
+        raise HTTPException(404, "Signaturlink ungültig oder abgelaufen")
+    return {
+        "id": quote["id"], "fullName": quote["fullName"], "company": quote.get("company", ""),
+        "serviceType": quote["serviceType"], "projectDetails": quote["projectDetails"],
+        "budget": quote["budget"], "timeline": quote["timeline"],
+        "decisionReason": quote.get("decisionReason", ""), "status": quote.get("status", "accepted"),
+        "documentHash": quote.get("documentHash", ""), "signedAt": quote.get("signedAt"),
+        "signerName": quote.get("signerName"),
+    }
+
+
+@api_router.post("/quotes/sign/{token}")
+async def sign_quote(token: str, payload: QuoteSignatureIn, request: Request):
+    quote = await db.quotes.find_one({"signatureToken": token})
+    if not quote:
+        raise HTTPException(404, "Signaturlink ungültig oder abgelaufen")
+    if quote.get("signedAt"):
+        raise HTTPException(409, "Dieses Angebot wurde bereits unterschrieben")
+    if quote.get("status") != "accepted":
+        raise HTTPException(400, "Dieses Angebot kann nicht unterschrieben werden")
+    signer_name = payload.signerName.strip()
+    if not payload.accepted or len(signer_name) < 3:
+        raise HTTPException(400, "Name und Zustimmung sind erforderlich")
+    if not payload.signatureData.startswith("data:image/png;base64,"):
+        raise HTTPException(400, "Eine gültige handschriftliche Signatur ist erforderlich")
+    if len(payload.signatureData) > 500_000:
+        raise HTTPException(400, "Signaturdatei ist zu gross")
+    signed_at = now_utc()
+    await db.quotes.update_one({"id": quote["id"]}, {"$set": {
+        "status": "signed", "signedAt": signed_at, "signerName": signer_name,
+        "signatureData": payload.signatureData,
+        "signatureIp": request.client.host if request.client else "",
+        "signatureUserAgent": request.headers.get("user-agent", ""),
+    }})
+    await asyncio.to_thread(
+        _send_email_smtp, quote["email"], quote.get("fullName", ""),
+        "Ihr Angebot wurde erfolgreich unterschrieben",
+        f"Hallo {quote.get('fullName', '')},\n\nIhre digitale Unterschrift wurde am {signed_at.strftime('%d.%m.%Y %H:%M UTC')} erfolgreich erfasst.\n\nDokument-ID: {quote.get('documentHash', '')}\n\nFreundliche Grüsse\nIhr redwork.ch Team",
+    )
+    return {"ok": True, "signedAt": signed_at, "documentHash": quote.get("documentHash", "")}
 
 
 @api_router.delete("/admin/quotes/{quote_id}")
@@ -1787,11 +1958,14 @@ async def update_order(order_id: str, status: str, user=Depends(require_admin)):
 async def list_tickets(user=Depends(require_admin)):
     tickets = await db.tickets.find().sort("updatedAt", -1).to_list(1000)
     users = await db.users.find().to_list(1000)
-    user_dict = {u["id"]: f"{u['firstName']} {u['lastName']}" for u in users}
+    user_dict = {
+        str(u.get("_id") or u.get("id")): f"{u.get('firstName', '')} {u.get('lastName', '')}".strip()
+        for u in users if u.get("_id") or u.get("id")
+    }
     
     for t in tickets:
         clean(t)
-        t["userName"] = user_dict.get(t["userId"], "")
+        t["userName"] = user_dict.get(str(t.get("userId")), "Unbekannter Kunde")
     
     return tickets
 
@@ -1804,14 +1978,17 @@ async def get_admin_ticket(ticket_id: str, user=Depends(require_admin)):
     
     replies = await db.ticket_replies.find({"ticketId": ticket_id}).sort("createdAt", 1).to_list(1000)
     users = await db.users.find().to_list(1000)
-    user_dict = {u["id"]: f"{u['firstName']} {u['lastName']}" for u in users}
+    user_dict = {
+        str(u.get("_id") or u.get("id")): f"{u.get('firstName', '')} {u.get('lastName', '')}".strip()
+        for u in users if u.get("_id") or u.get("id")
+    }
     
     clean(ticket)
-    ticket["userName"] = user_dict.get(ticket["userId"], "")
+    ticket["userName"] = user_dict.get(str(ticket.get("userId")), "Unbekannter Kunde")
     ticket["replies"] = []
     for r in replies:
         clean(r)
-        r["userName"] = user_dict.get(r.get("userId"), "Admin") if r.get("userId") else "Admin"
+        r["userName"] = user_dict.get(str(r.get("userId")), "Kunde") if r.get("userId") else "Admin"
         ticket["replies"].append(r)
     
     return ticket
@@ -1833,21 +2010,49 @@ async def add_admin_ticket_reply(ticket_id: str, payload: TicketReplyIn, user=De
     
     # Update ticket
     new_status = "answered" if ticket["status"] in ["open", "in_progress"] else ticket["status"]
-    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": now_utc(), "status": new_status}})
+    current_time = now_utc()
+    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": current_time, "lastStaffReplyAt": current_time, "status": new_status}})
     
     # Send email notification to customer
-    customer = await db.users.find_one({"id": ticket["userId"]})
+    customer = await db.users.find_one({"_id": ticket["userId"]})
     if customer and customer.get("email"):
         subject = f"Update zu Ihrem Support-Ticket #{ticket_id}"
         body = f"Hallo {customer['firstName']},\n\nwir haben auf Ihr Support-Ticket geantwortet.\n\n{payload.message}\n\nSie können die Details in Ihrem Kundenbereich einsehen.\n\nFreundliche Grüsse\nIhr redwork.ch-Team"
-        asyncio.create_task(_send_email_smtp(customer["email"], f"{customer['firstName']} {customer['lastName']}", subject, body))
+        asyncio.create_task(asyncio.to_thread(
+            _send_email_smtp, customer["email"],
+            f"{customer['firstName']} {customer['lastName']}", subject, body
+        ))
+
+    updated_ticket = await db.tickets.find_one({"id": ticket_id})
+    await broadcast_support_event("ticket_replied", {
+        "ticket": clean(updated_ticket),
+        "reply": clean(reply.dict()),
+        "actor": "admin",
+        "user": {
+            "id": user.get("id"),
+            "name": user.get("username", "Admin"),
+            "email": user.get("email", ""),
+        },
+        "message": f"Support-Antwort im Ticket {ticket_id}",
+    })
     
     return {"message": "Antwort hinzugefügt"}
 
 
 @api_router.patch("/admin/tickets/{ticket_id}")
-async def update_ticket_status(ticket_id: str, status: str, user=Depends(require_admin)):
-    await db.tickets.update_one({"id": ticket_id}, {"$set": {"status": status, "updatedAt": now_utc()}})
+async def update_ticket_status(ticket_id: str, payload: dict, user=Depends(require_admin)):
+    status = str(payload.get("status", ""))
+    if status not in {"open", "in_progress", "answered", "closed"}:
+        raise HTTPException(400, "Ungültiger Ticket-Status")
+    result = await db.tickets.update_one({"id": ticket_id}, {"$set": {"status": status, "updatedAt": now_utc()}})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Ticket nicht gefunden")
+    updated_ticket = await db.tickets.find_one({"id": ticket_id})
+    await broadcast_support_event("ticket_updated", {
+        "ticket": clean(updated_ticket),
+        "actor": "admin",
+        "message": f"Ticket {ticket_id} Status auf {status} gesetzt",
+    })
     return {"message": "Ticket aktualisiert"}
 
 

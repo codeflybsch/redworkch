@@ -6,7 +6,7 @@ const resolveBackendUrl = () => {
 
   const isLocalhost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
   if (isLocalhost && window.location.port && Number(window.location.port) >= 3000) {
-    return "http://127.0.0.1:8002";
+    return "http://127.0.0.1:8005";
   }
 
   return window.location.origin;

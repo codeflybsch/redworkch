@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../api";
@@ -15,11 +15,7 @@ export default function TicketDetail() {
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
 
-  useEffect(() => {
-    fetchTicket();
-  }, [ticketId]);
-
-  const fetchTicket = async () => {
+  const fetchTicket = useCallback(async () => {
     try {
       const res = await api.get(`/tickets/${ticketId}`);
       setTicket(res.data);
@@ -28,7 +24,24 @@ export default function TicketDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [ticketId]);
+
+  useEffect(() => {
+    fetchTicket();
+  }, [fetchTicket]);
+
+  useEffect(() => {
+    const handleRealtime = (event) => {
+      const payload = event.detail || {};
+      const ticket = payload.ticket || {};
+      if (String(ticket.id || "") === String(ticketId) || String(ticket.userId || "") === String(user?.id)) {
+        fetchTicket();
+      }
+    };
+
+    window.addEventListener("support-realtime", handleRealtime);
+    return () => window.removeEventListener("support-realtime", handleRealtime);
+  }, [fetchTicket, ticketId, user?.id]);
 
   const sendReply = async (e) => {
     e.preventDefault();

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../api";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -11,6 +12,7 @@ import { MessageSquare, Plus, Send } from "lucide-react";
 
 export default function Support() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewTicket, setShowNewTicket] = useState(false);
@@ -23,9 +25,22 @@ export default function Support() {
 
   useEffect(() => {
     fetchTickets();
-  }, []);
+  }, [fetchTickets]);
 
-  const fetchTickets = async () => {
+  useEffect(() => {
+    const handleRealtime = (event) => {
+      const payload = event.detail || {};
+      const ticket = payload.ticket || {};
+      if (ticket.userId && String(ticket.userId) === String(user?.id)) {
+        fetchTickets();
+      }
+    };
+
+    window.addEventListener("support-realtime", handleRealtime);
+    return () => window.removeEventListener("support-realtime", handleRealtime);
+  }, [fetchTickets, user?.id]);
+
+  const fetchTickets = useCallback(async () => {
     try {
       const res = await api.get("/tickets");
       setTickets(res.data);
@@ -34,16 +49,16 @@ export default function Support() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const createTicket = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/tickets", newTicket);
+      const response = await api.post("/tickets", newTicket);
       setNewTicket({ subject: "", category: "", priority: "medium", message: "" });
       setShowNewTicket(false);
       fetchTickets();
-      alert("Ticket erfolgreich erstellt!");
+      navigate(`/tickets/${response.data.id}`);
     } catch (err) {
       alert("Fehler beim Erstellen des Tickets: " + err.response?.data?.detail);
     }
@@ -145,40 +160,42 @@ export default function Support() {
             </Card>
           ) : (
             tickets.map((ticket) => (
-              <Card key={ticket.id}>
-                <CardContent className="p-6">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="break-words text-lg font-semibold text-gray-900">{ticket.subject}</h3>
-                      <p className="text-sm text-gray-600 mt-1">Ticket #{ticket.id} • {ticket.category}</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Erstellt am {new Date(ticket.createdAt).toLocaleDateString('de-DE')}
-                      </p>
+              <Link key={ticket.id} to={`/tickets/${ticket.id}`} className="block focus:outline-none">
+                <Card className="transition hover:border-slate-300 hover:shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="break-words text-lg font-semibold text-gray-900">{ticket.subject}</h3>
+                        <p className="text-sm text-gray-600 mt-1">Ticket #{ticket.id} • {ticket.category}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Erstellt am {new Date(ticket.createdAt).toLocaleDateString('de-DE')}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <Badge variant={
+                          ticket.status === 'open' ? 'destructive' :
+                          ticket.status === 'in_progress' ? 'default' :
+                          ticket.status === 'answered' ? 'secondary' : 'outline'
+                        }>
+                          {ticket.status === 'open' ? 'Offen' :
+                           ticket.status === 'in_progress' ? 'In Bearbeitung' :
+                           ticket.status === 'answered' ? 'Beantwortet' : 'Geschlossen'}
+                        </Badge>
+                        <Badge variant={
+                          ticket.priority === 'high' ? 'destructive' :
+                          ticket.priority === 'medium' ? 'default' : 'secondary'
+                        }>
+                          {ticket.priority === 'high' ? 'Hoch' :
+                           ticket.priority === 'medium' ? 'Normal' : 'Niedrig'}
+                        </Badge>
+                        <span className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">
+                          Ansehen
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                      <Badge variant={
-                        ticket.status === 'open' ? 'destructive' :
-                        ticket.status === 'in_progress' ? 'default' :
-                        ticket.status === 'answered' ? 'secondary' : 'outline'
-                      }>
-                        {ticket.status === 'open' ? 'Offen' :
-                         ticket.status === 'in_progress' ? 'In Bearbeitung' :
-                         ticket.status === 'answered' ? 'Beantwortet' : 'Geschlossen'}
-                      </Badge>
-                      <Badge variant={
-                        ticket.priority === 'high' ? 'destructive' :
-                        ticket.priority === 'medium' ? 'default' : 'secondary'
-                      }>
-                        {ticket.priority === 'high' ? 'Hoch' :
-                         ticket.priority === 'medium' ? 'Normal' : 'Niedrig'}
-                      </Badge>
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={`/tickets/${ticket.id}`}>Ansehen</a>
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             ))
           )}
         </div>

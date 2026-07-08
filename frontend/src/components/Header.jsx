@@ -77,6 +77,11 @@ export default function Header({ scrolled }) {
         </a>
 
         <nav className="hidden xl:flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-2 shadow-inner">
+          {user ? (
+            <a href={dashboardUrl} className="flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-white/20"><LayoutDashboard size={15} /> Dashboard</a>
+          ) : (
+            <a href="/login" className="flex items-center gap-1.5 rounded-full bg-[#E63946] px-3.5 py-2 text-sm font-bold text-white transition hover:bg-[#c5303d]"><LogIn size={15} /> Login</a>
+          )}
           {mainLinks.slice(0, 1).map((item) => (
             <a key={item.label} href={item.href} onClick={(e) => handleNav(e, item.href)} className="rounded-full px-3.5 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-[#E63946]">
               {item.label}
@@ -132,15 +137,6 @@ export default function Header({ scrolled }) {
           <button onClick={openContact} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white/80 hover:text-[#E63946]">
             <Mail size={15} /> Kontakt
           </button>
-          {user ? (
-            <a href={dashboardUrl} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white hover:bg-white/10">
-              <LayoutDashboard size={15} /> Dashboard
-            </a>
-          ) : (
-            <a href="/login" className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white hover:bg-white/10">
-              <LogIn size={15} /> Login
-            </a>
-          )}
           {user && <button onClick={logout} className="text-sm font-semibold text-white/60 hover:text-white">Abmelden</button>}
           <button onClick={openQuote} className="rounded-full bg-gradient-to-r from-[#E63946] to-[#ff6b35] px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-red-900/30 transition hover:scale-[1.03]">
             Angebot
@@ -155,6 +151,11 @@ export default function Header({ scrolled }) {
       {open && (
         <div className="max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-t border-white/10 bg-[#07090f]/98 px-4 py-4 shadow-2xl xl:hidden">
           <div className="grid gap-2">
+            {user ? (
+              <a href={dashboardUrl} className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3.5 text-base font-black text-white"><LayoutDashboard size={19} /> Dashboard</a>
+            ) : (
+              <a href="/login" className="flex items-center gap-3 rounded-2xl bg-[#E63946] px-4 py-3.5 text-base font-black text-white"><LogIn size={19} /> Login</a>
+            )}
             {mainLinks.map((item) => (
               <a key={item.label} href={item.href} onClick={(e) => handleNav(e, item.href)} className="rounded-2xl px-4 py-3 text-base font-bold text-white hover:bg-white/10 hover:text-[#E63946]">
                 {item.label}
@@ -178,11 +179,7 @@ export default function Header({ scrolled }) {
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <button onClick={() => { openContact(); setOpen(false); }} className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-left font-bold text-white">Kontakt</button>
-              {user ? (
-                <a href={dashboardUrl} className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-bold text-white">Dashboard</a>
-              ) : (
-                <a href="/login" className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 font-bold text-white">Login</a>
-              )}
+              {user && <button onClick={logout} className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-left font-bold text-white">Abmelden</button>}
             </div>
             <button onClick={() => { openQuote(); setOpen(false); }} className="mt-2 rounded-2xl bg-gradient-to-r from-[#E63946] to-[#ff6b35] px-4 py-4 font-black text-white">
               Angebot einholen
