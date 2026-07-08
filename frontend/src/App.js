@@ -21,7 +21,8 @@ import WhyUs from "./components/WhyUs";
 import FAQSection from "./components/FAQSection";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
-import HostingPackages from "./components/HostingPackages";
+import PremiumHostingPackages from "./components/PremiumHostingPackages";
+import DomainAuctions from "./components/DomainAuctions";
 import QuoteWizard from "./components/QuoteWizard";
 import ContactModal from "./components/ContactModal";
 
@@ -34,6 +35,7 @@ import Profile from "./pages/Profile";
 import Products from "./pages/Products";
 import Support from "./pages/Support";
 import TicketDetail from "./pages/TicketDetail";
+import OrderPage from "./pages/OrderPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import Quotes from "./pages/admin/Quotes";
@@ -80,7 +82,8 @@ function PublicSite() {
       <WhyUs />
       <BlogPosts />
       <Services />
-      <HostingPackages />
+      <PremiumHostingPackages />
+      <DomainAuctions />
       <QuoteWizard />
       <ContactSection />
       <Footer />
@@ -110,6 +113,7 @@ function App() {
               <Route path="/" element={<PublicSite />} />
               <Route path="/hosting" element={<PublicSite />} />
               <Route path="/domains" element={<PublicSite />} />
+              <Route path="/order" element={<OrderPage />} />
 
               {/* Auth Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />

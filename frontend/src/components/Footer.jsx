@@ -48,7 +48,7 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 sm:mt-12 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-[13px]">
+        <div className="mt-10 grid grid-cols-1 gap-3 text-[13px] min-[420px]:grid-cols-2 sm:mt-12 sm:gap-4 md:grid-cols-4">
           {quickLinks.map((link) => (
             <button
               key={link}
@@ -63,9 +63,9 @@ export default function Footer() {
 
         <div className="mt-10 pt-6 border-t border-white/10 grid sm:grid-cols-3 gap-4 text-sm">
           {s.footerAddress && (
-            <a href={`https://maps.google.com/?q=${encodeURIComponent(s.footerAddress)}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-white/75 hover:text-white">
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(s.footerAddress)}`} target="_blank" rel="noreferrer" className="flex min-w-0 items-start gap-2 text-white/75 hover:text-white">
               <MapPin size={15} className="text-[#E63946] flex-shrink-0" />
-              <span className="truncate">{s.footerAddress}</span>
+              <span className="break-words">{s.footerAddress}</span>
             </a>
           )}
           {s.footerPhone && (

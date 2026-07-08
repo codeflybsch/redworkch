@@ -7,6 +7,8 @@ require("dotenv").config();
 const isDevServer = process.env.NODE_ENV !== "production";
 
 // Environment variable overrides
+const backendTarget = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || "http://127.0.0.1:8001";
+
 const config = {
   enableHealthCheck: process.env.ENABLE_HEALTH_CHECK === "true",
 };
@@ -61,6 +63,14 @@ let webpackConfig = {
 };
 
 webpackConfig.devServer = (devServerConfig) => {
+  devServerConfig.proxy = {
+    "/api": {
+      target: backendTarget,
+      changeOrigin: true,
+      secure: false,
+    },
+  };
+
   // Add health check endpoints if enabled
   if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
     const originalSetupMiddlewares = devServerConfig.setupMiddlewares;

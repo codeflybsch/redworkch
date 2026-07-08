@@ -75,13 +75,13 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl rounded-[40px] bg-white p-10 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+    <div className="flex min-h-screen items-center justify-center bg-[#f8fafc] p-4 sm:p-6">
+      <div className="w-full max-w-2xl rounded-[28px] bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] sm:rounded-[40px] sm:p-10">
         
         {/* Header */}
         <div className="mb-8">
           <p className="text-sm uppercase tracking-[0.3em] text-[#E63946] font-semibold">Konto erstellen</p>
-          <h1 className="mt-3 text-4xl font-extrabold text-[#0f172a]">
+          <h1 className="mt-3 text-3xl font-extrabold text-[#0f172a] sm:text-4xl">
             Jetzt registrieren und Ihr Hostingkonto aktivieren
           </h1>
           <p className="mt-4 text-slate-500">

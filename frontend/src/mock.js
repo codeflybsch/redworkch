@@ -83,7 +83,7 @@ export const navItems = [
   { label: "Start", href: "#top" },
   { label: "Leistungen", href: "#leistungen" },
   { label: "Hosting", href: "#hosting" },
-  { label: "Domain Auktionen", href: "#domains" },
+  { label: "Domain Auktionen", href: "#domain-auctions" },
   { label: "Projekte", href: "#projekte" },
   { label: "Über uns", href: "#ueber" },
   { label: "Kontakt", href: "#kontakt" },

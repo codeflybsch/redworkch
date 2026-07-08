@@ -69,7 +69,7 @@ export default function Profile() {
     <div className="min-h-screen bg-[#f8fafc]">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-4">
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6">
           <button
             onClick={() => navigate("/dashboard")}
             className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 transition"
@@ -77,15 +77,15 @@ export default function Profile() {
             <ArrowLeft size={20} />
             Zurück
           </button>
-          <h1 className="text-2xl font-bold text-[#0f172a]">Mein Profil</h1>
+          <h1 className="text-xl font-bold text-[#0f172a] sm:text-2xl">Mein Profil</h1>
         </div>
       </header>
 
       {/* Content */}
-      <div className="max-w-2xl mx-auto px-6 py-8">
+      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
         
         {/* Profile Card */}
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <div className="rounded-2xl bg-white p-5 shadow-md sm:p-8">
           
           {/* Account Info */}
           <div className="mb-8 pb-8 border-b">
@@ -194,11 +194,11 @@ export default function Profile() {
             )}
 
             {/* Submit Button */}
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row">
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#E63946] px-6 py-3 text-sm font-semibold text-white hover:bg-[#c5303d] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#E63946] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#c5303d] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 {loading ? (
                   <>

@@ -52,8 +52,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-[40px] bg-white p-10 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+    <div className="flex min-h-screen items-center justify-center bg-[#f8fafc] p-4 sm:p-6">
+      <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] sm:rounded-[40px] sm:p-10">
         
         {/* Header */}
         <div className="mb-8 text-center">
@@ -123,7 +123,7 @@ export default function Login() {
           </button>
 
           {/* Links */}
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col gap-3 pt-2 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
             <Link
               to="/password-reset"
               className="text-sm text-[#E63946] hover:text-[#c5303d] transition"

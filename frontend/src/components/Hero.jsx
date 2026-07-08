@@ -47,7 +47,7 @@ function renderRich(text) {
   return parts.map((p, i) => {
     if (p === "\n") return <br key={i} className="hidden md:block" />;
     const y = p.match(/^<y>(.*?)<\/y>$/);
-    if (y) return <span key={i} className="text-[#FFC107] font-semibold">{y[1]}</span>;
+    if (y) return <span key={i} className="text-[#E63946] font-semibold">{y[1]}</span>;
     const b = p.match(/^<b>(.*?)<\/b>$/);
     if (b) return <b key={i}>{b[1]}</b>;
     return <React.Fragment key={i}>{p}</React.Fragment>;
@@ -107,13 +107,13 @@ export default function Hero() {
           <div className="relative">
             <div className="absolute inset-0 bg-[#E63946] rounded-full blur-2xl opacity-30 animate-pulse" />
             <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-44 md:h-44 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-[#E63946] to-[#a8202e] border-2 border-white/20 flex flex-col items-center justify-center text-center text-white px-2 sm:px-3 md:px-5 shadow-2xl">
-              <ShieldCheck size={22} className="text-[#FFC107] mb-1" />
-              <div className="text-[#FFC107] font-extrabold text-[22px] sm:text-[26px] leading-none">{s.badgeNumber}</div>
+              <ShieldCheck size={22} className="text-[#E63946] mb-1" />
+              <div className="text-[#E63946] font-extrabold text-[22px] sm:text-[26px] leading-none">{s.badgeNumber}</div>
               <div className="text-[10px] sm:text-[11px] font-bold tracking-wider mt-1">{s.badgeUnit}</div>
               <div className="text-[10px] sm:text-[12px] font-semibold mt-1 leading-tight">
                 {s.badgeText1}
                 <br />
-                <span className="text-[#FFC107]">{s.badgeText2}</span>
+                <span className="text-[#E63946]">{s.badgeText2}</span>
               </div>
               <div className="text-[9px] sm:text-[10px] mt-1 opacity-80">{s.badgeFooter1}</div>
               <div className="text-[9px] sm:text-[10px] mt-0.5 opacity-80 font-bold">{s.badgeFooter2}</div>
@@ -122,7 +122,7 @@ export default function Hero() {
         </div>
       )}
 
-      <div className="relative z-30 text-center px-4 sm:px-6 max-w-5xl w-full">
+      <div className="relative z-30 w-full max-w-5xl translate-y-12 px-4 text-center sm:px-6 md:translate-y-14 lg:translate-y-0">
         <div className="flex items-center justify-center">
           <h1 key={idx} className="fade-in text-[30px] sm:text-[42px] md:text-[56px] lg:text-[66px] font-extrabold tracking-tight text-balance leading-[1.05]">
             <span className="text-[#1E88E5]">{slide.highlight}</span>
@@ -134,7 +134,7 @@ export default function Hero() {
           {renderRich(s.heroSubtitle)}
         </p>
         {s.heroTagline && (
-          <p className="text-[#FFC107] font-semibold text-[13px] sm:text-[15px] md:text-[18px] mt-2">
+          <p className="text-[#E63946] font-semibold text-[13px] sm:text-[15px] md:text-[18px] mt-2">
             {s.heroTagline}
           </p>
         )}
@@ -168,7 +168,7 @@ export default function Hero() {
           {s.ratingText && (
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-[#4285F4] font-bold">G</span>
-              <span className="text-[#FFC107]">{s.ratingStars}</span>
+              <span className="text-[#E63946]">{s.ratingStars}</span>
               <span className="text-white/90">{renderRich(s.ratingText)}</span>
             </div>
           )}

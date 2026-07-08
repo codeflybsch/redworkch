@@ -56,9 +56,9 @@ export default function Support() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Support-Tickets</h1>
-          <Button onClick={() => setShowNewTicket(true)}>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Support-Tickets</h1>
+          <Button onClick={() => setShowNewTicket(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Neues Ticket
           </Button>
@@ -120,7 +120,7 @@ export default function Support() {
                     placeholder="Beschreiben Sie Ihr Problem detailliert..."
                   />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Button type="submit">
                     <Send className="h-4 w-4 mr-2" />
                     Ticket erstellen
@@ -147,15 +147,15 @@ export default function Support() {
             tickets.map((ticket) => (
               <Card key={ticket.id}>
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">{ticket.subject}</h3>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words text-lg font-semibold text-gray-900">{ticket.subject}</h3>
                       <p className="text-sm text-gray-600 mt-1">Ticket #{ticket.id} • {ticket.category}</p>
                       <p className="text-sm text-gray-500 mt-1">
                         Erstellt am {new Date(ticket.createdAt).toLocaleDateString('de-DE')}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       <Badge variant={
                         ticket.status === 'open' ? 'destructive' :
                         ticket.status === 'in_progress' ? 'default' :
