@@ -4,6 +4,7 @@ import api from "../../api";
 
 const DEFAULT = {
   heroSubtitle: "", heroTagline: "", heroSlides: [],
+  heroBackgroundImage: "",
   badgeEnabled: true, badgeNumber: "12", badgeUnit: "MONATE",
   badgeText1: "Premium", badgeText2: "Support",
   badgeFooter1: "für unsere Kunden", badgeFooter2: "inklusive",
@@ -216,6 +217,9 @@ export default function SiteSettings() {
       <div className="bg-white rounded-2xl shadow-card p-4 sm:p-6 mt-4 space-y-5">
         {tab === "hero" && (
           <>
+            <Field label="Hero Hintergrundbild URL" hint="Optional. Leer lassen, wenn der aktuelle dunkle Matrix-Hintergrund bleiben soll.">
+              <Input value={data.heroBackgroundImage || ""} onChange={(e) => update("heroBackgroundImage", e.target.value)} placeholder="https://.../bild.jpg" data-testid="hero-background-image-input" />
+            </Field>
             <Field label="Hero-Untertitel" hint="<y>...</y> = gelb. Enter für neue Zeile."><TextArea rows={4} value={data.heroSubtitle} onChange={(e) => update("heroSubtitle", e.target.value)} data-testid="hero-subtitle-input" /></Field>
             <Field label="Hero-Tagline" hint="Erscheint in Gelb unter dem Untertitel."><Input value={data.heroTagline} onChange={(e) => update("heroTagline", e.target.value)} data-testid="hero-tagline-input" /></Field>
             <ArrayEditor label={`Hero-Slides (${arr("heroSlides").length}) – wechseln alle 3,5 Sek.`} items={arr("heroSlides")} onAdd={() => itemAdd("heroSlides", { highlight: "Neu", word: "Webauftritt" })} onRemove={(i) => itemRemove("heroSlides", i)} onMove={(i, d) => itemMove("heroSlides", i, d)} render={(it, i) => (

@@ -265,6 +265,7 @@ class SiteSettings(BaseModel):
         "der Ihre Marke präzise, klar und auf hohem Niveau präsentiert."
     )
     heroTagline: str = "Klar positioniert. Technisch sauber. Visuell überzeugend."
+    heroBackgroundImage: str = ""
     heroSlides: List[HeroSlide] = [
         HeroSlide(highlight="Unternehmens", word="Webauftritt"),
         HeroSlide(highlight="E-Commerce", word="Lösungen"),

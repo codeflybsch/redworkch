@@ -63,6 +63,7 @@ import Customers from "./pages/admin/Customers";
 import Orders from "./pages/admin/Orders";
 import Tickets from "./pages/admin/Tickets";
 import SaaSPlatform from "./pages/admin/SaaSPlatform";
+import WalletAdmin from "./pages/admin/WalletAdmin";
 
 function PublicSite() {
   const [scrolled, setScrolled] = useState(false);
@@ -144,6 +145,7 @@ function App() {
                 <Route path="customers" element={<Customers />} />
                 <Route path="orders" element={<Orders />} />
                 <Route path="tickets" element={<Tickets />} />
+                <Route path="wallets" element={<WalletAdmin />} />
                 <Route path="platform" element={<SaaSPlatform />} />
                 <Route path="quotes" element={<Quotes />} />
                 <Route path="contacts" element={<Contacts />} />

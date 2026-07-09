@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Inbox, FolderKanban, FileText, MessageSquareQuote,
   Wrench, LogOut, Mail, Loader2, ExternalLink, Settings, HelpCircle,
   Receipt, FileSignature, Building2, Package, Server, Menu, X,
-  Users, ShoppingCart, MessageSquare, Zap, Gavel, Globe2,
+  Users, ShoppingCart, MessageSquare, Zap, Gavel, Globe2, Wallet,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import Logo from "../../components/Logo";
@@ -22,6 +22,7 @@ const groups = [
     links: [
       { to: "/admin/customers", label: "Kunden", icon: Users },
       { to: "/admin/orders", label: "Bestellungen", icon: ShoppingCart },
+      { to: "/admin/wallets", label: "Guthaben", icon: Wallet },
     ],
   },
   {

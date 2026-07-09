@@ -58,6 +58,7 @@ const FALLBACK = {
   heroSlides: [{ highlight: "Reise", word: "Webdesign" }],
   heroSubtitle: "",
   heroTagline: "",
+  heroBackgroundImage: "",
   badgeEnabled: true,
   badgeNumber: "12",
   badgeUnit: "MONATE",
@@ -95,9 +96,17 @@ export default function Hero() {
   }, [slides.length]);
 
   const slide = slides[idx % slides.length];
+  const heroBackgroundImage = String(s.heroBackgroundImage || "").trim();
 
   return (
     <section id="top" className="relative min-h-[75vh] sm:min-h-[80vh] bg-[#020617] overflow-hidden flex items-start sm:items-center justify-center py-16 sm:py-20">
+      {heroBackgroundImage && (
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+          style={{ backgroundImage: `url("${heroBackgroundImage.replace(/"/g, '\\"')}")` }}
+          aria-hidden="true"
+        />
+      )}
       <MatrixBg />
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 

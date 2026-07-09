@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, Wallet, FileText, HelpCircle, ArrowRight, CreditCard, Star, CheckCircle } from "lucide-react";
+import { ShieldCheck, Wallet, FileText, HelpCircle, ArrowRight, CreditCard, Star, CheckCircle, Loader2 } from "lucide-react";
 import { useModals } from "../contexts/ModalContext";
 import MarqueeBanner from "../components/MarqueeBanner";
+import api from "../api";
 
 const DEMO_ACCOUNT = {
   name: "RedWork Kunde",
@@ -19,6 +20,9 @@ export default function MembershipPanel() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loggedIn, setLoggedIn] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [topupForm, setTopupForm] = useState({ amount: "" });
+  const [topupLoading, setTopupLoading] = useState(false);
+  const [topupMessage, setTopupMessage] = useState("");
   const { openQuote } = useModals();
 
   const handleLogin = (e) => {
@@ -29,6 +33,25 @@ export default function MembershipPanel() {
     }
     setLoggedIn(true);
     setLoginError("");
+  };
+
+  const handleTopup = async (e) => {
+    e.preventDefault();
+    if (!topupForm.amount || Number(topupForm.amount) <= 0) {
+      setTopupMessage("Bitte geben Sie einen gültigen Betrag ein.");
+      return;
+    }
+    setTopupLoading(true);
+    setTopupMessage("");
+    try {
+      await api.post("/wallets/request-topup", { amount: Number(topupForm.amount), note: "Topup request" });
+      setTopupMessage("Aufladungsanfrage erfolgreich gesendet. Admin wird diese prüfen.");
+      setTopupForm({ amount: "" });
+    } catch (error) {
+      setTopupMessage(error?.response?.data?.detail || "Anfrage konnte nicht gesendet werden.");
+    } finally {
+      setTopupLoading(false);
+    }
   };
 
   return (
@@ -153,6 +176,42 @@ export default function MembershipPanel() {
                   ))}
                 </div>
               </div>
+              
+            <div className="rounded-[32px] bg-white p-8 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#E63946]/10 text-[#E63946]"><Wallet size={20} /></div>
+                <div>
+                  <h3 className="text-xl font-bold text-[#0f172a]">Kontostand & Aufladung</h3>
+                  <p className="text-sm text-[#64748b]">Verwalten Sie Ihr Guthaben und laden Sie Ihr Konto auf.</p>
+                </div>
+              </div>
+              <div className="mb-6 p-4 rounded-3xl bg-gradient-to-r from-[#E63946]/5 to-[#E63946]/10 border border-[#E63946]/20">
+                <div className="text-sm text-[#475569] mb-1">Aktueller Kontostand</div>
+                <div className="text-3xl font-bold text-[#0f172a]">CHF 0.00</div>
+              </div>
+              <form onSubmit={handleTopup} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-[#0f172a] mb-2">Aufladebetrag (CHF)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={topupForm.amount}
+                    onChange={(e) => setTopupForm({ ...topupForm, amount: e.target.value })}
+                    placeholder="z.B. 50.00"
+                    className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#0f172a] focus:border-[#E63946] focus:outline-none"
+                  />
+                </div>
+                {topupMessage && <div className="text-sm text-[#E63946] font-semibold">{topupMessage}</div>}
+                <button
+                  type="submit"
+                  disabled={topupLoading}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#E63946] px-6 py-3 text-sm font-bold text-white hover:bg-[#c5303d] transition-colors disabled:opacity-60"
+                >
+                  {topupLoading ? <Loader2 className="animate-spin" size={18} /> : <Wallet size={18} />}
+                  {topupLoading ? "Wird verarbeitet..." : "Guthaben aufladen"}
+                </button>
+              </form>
             </div>
 
             <div className="rounded-[32px] bg-[#0f172a] p-8 text-white shadow-[0_20px_80px_rgba(15,23,42,0.18)]">
@@ -168,6 +227,7 @@ export default function MembershipPanel() {
               </div>
             </div>
           </div>
+        </div>
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">
             <div className="rounded-[40px] bg-white p-10 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
