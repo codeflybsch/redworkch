@@ -69,13 +69,13 @@ export default function DomainAuctions() {
         ? { ...item, currentBid: data.amount, bids: data.bids ?? Number(item.bids || 0) + 1 }
         : item));
       setSelected(null);
-      setSuccess(`Ihr Gebot über ${formatCHF(data.amount)} wurde verbindlich erfasst.`);
+      setSuccess(`Ihr Gebot über ${formatCHF(data.amount)} wurde erfolgreich erfasst.`);
     } catch (err) {
       if (err.response?.status === 401) {
         navigate("/login", { state: { from: "/domains" } });
         return;
       }
-      setError(err.response?.data?.detail || "Das Gebot konnte nicht gespeichert werden.");
+      setError(err.response?.data?.detail || "Das Gebot konnte leider nicht gespeichert werden.");
     } finally {
       setSubmitting(false);
     }
@@ -107,9 +107,9 @@ export default function DomainAuctions() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.3em] text-emerald-300"><Gavel size={15} /> Domain Auktionen</span>
-            <h2 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">Premium-Domains live ersteigern.</h2>
-            <p className="mt-4 text-lg leading-8 text-slate-300">Aktuelle Gebote werden direkt gespeichert. Sofortkäufe führen Sie sicher durch den regulären Bestellprozess.</p>
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.3em] text-emerald-300"><Gavel size={15} /> Auktionen</span>
+            <h2 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">Exklusive Domains live erwerben.</h2>
+            <p className="mt-4 text-lg leading-8 text-slate-300">Gebote werden direkt und verbindlich erfasst. Der Sofortkauf führt Sie nahtlos durch den regulären Bestellprozess.</p>
           </div>
           <button type="button" onClick={loadAuctions} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 font-semibold hover:bg-white/10 disabled:opacity-50">
             <RefreshCw size={17} className={loading ? "animate-spin" : ""} /> Aktualisieren
@@ -159,7 +159,7 @@ export default function DomainAuctions() {
             <p className="mt-2 text-slate-400">Aktuell {formatCHF(selected.currentBid)} · Mindestschritt CHF 50</p>
             <label htmlFor="domain-bid" className="mt-6 block text-sm font-bold">Ihr Gebot in CHF</label>
             <input id="domain-bid" type="number" min={Number(selected.currentBid) + 50} step="50" value={amount} onChange={(event) => setAmount(event.target.value)} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-2xl font-black outline-none focus:border-emerald-400" />
-            <button type="button" onClick={submitBid} disabled={submitting} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-4 font-black hover:bg-emerald-400 disabled:opacity-50">{submitting && <Loader2 className="animate-spin" size={18} />}Gebot verbindlich abgeben</button>
+            <button type="button" onClick={submitBid} disabled={submitting} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-4 font-black hover:bg-emerald-400 disabled:opacity-50">{submitting && <Loader2 className="animate-spin" size={18} />}Gebot abgeben</button>
           </div>
         </div>
       )}

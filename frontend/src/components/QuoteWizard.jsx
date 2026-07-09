@@ -107,7 +107,7 @@ export default function QuoteWizard() {
             Angebot in <span className="text-[#E63946]">4 Schritten</span> einholen
           </h2>
           <p className="text-white/70 text-sm mt-1">
-            Wir melden uns innerhalb von 24 Stunden mit einem maßgeschneiderten Angebot.
+            Wir melden uns in der Regel innerhalb eines Werktags mit einem präzisen, passgenauen Angebot.
           </p>
 
           {/* Progress steps */}
@@ -154,8 +154,8 @@ export default function QuoteWizard() {
               </div>
               <h3 className="text-2xl font-extrabold text-[#0f172a]">Vielen Dank!</h3>
               <p className="text-[#475569] mt-3 max-w-md mx-auto">
-                Ihre Anfrage wurde erfolgreich übermittelt. Unser Team wird sich innerhalb von <b>24 Stunden</b> bei
-                Ihnen melden.
+                Ihre Anfrage wurde erfolgreich übermittelt. Unser Team meldet sich in der Regel innerhalb eines
+                Werktags bei Ihnen.
               </p>
               <button
                 onClick={closeQuote}
@@ -171,7 +171,7 @@ export default function QuoteWizard() {
                   <h3 className="text-xl font-bold text-[#0f172a]">
                     Welche Art von Projekt planen Sie?
                   </h3>
-                  <p className="text-[#475569] text-sm mt-1">Wählen Sie eine Kategorie aus.</p>
+                  <p className="text-[#475569] text-sm mt-1">Wählen Sie die Kategorie, die Ihrem Vorhaben am besten entspricht.</p>
                   <div className="mt-6 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-3">
                     {serviceTypes.map((s) => {
                       const Icon = iconMap[s.icon] || Building2;
@@ -210,7 +210,7 @@ export default function QuoteWizard() {
               {step === 2 && (
                 <div>
                   <h3 className="text-xl font-bold text-[#0f172a]">Erzählen Sie uns von Ihrem Projekt</h3>
-                  <p className="text-[#475569] text-sm mt-1">Je mehr Details, desto besser unser Angebot.</p>
+                  <p className="text-[#475569] text-sm mt-1">Je präziser die Angaben, desto passgenauer wird unser Angebot.</p>
                   <textarea
                     rows={9}
                     value={data.projectDetails}
@@ -228,7 +228,7 @@ export default function QuoteWizard() {
               {step === 3 && (
                 <div className="space-y-7">
                   <div>
-                    <h3 className="text-xl font-bold text-[#0f172a]">Wie ist Ihr Budget?</h3>
+                    <h3 className="text-xl font-bold text-[#0f172a]">In welchem Rahmen bewegt sich Ihr Budget?</h3>
                     <div className="mt-4 grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-2 md:grid-cols-3">
                       {budgetRanges.map((b) => {
                         const active = data.budget === b.id;
@@ -249,7 +249,7 @@ export default function QuoteWizard() {
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-[#0f172a]">Bis wann soll das Projekt fertig sein?</h3>
+                    <h3 className="text-xl font-bold text-[#0f172a]">Bis wann soll das Projekt umgesetzt sein?</h3>
                     <div className="mt-4 grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-2 md:grid-cols-3">
                       {timelineOptions.map((t) => {
                         const active = data.timeline === t.id;
@@ -275,7 +275,7 @@ export default function QuoteWizard() {
               {step === 4 && (
                 <div>
                   <h3 className="text-xl font-bold text-[#0f172a]">Wie können wir Sie erreichen?</h3>
-                  <p className="text-[#475569] text-sm mt-1">Ihre Daten werden vertraulich behandelt.</p>
+                  <p className="text-[#475569] text-sm mt-1">Ihre Angaben werden vertraulich behandelt und nur für die Projektvorbereitung verwendet.</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
                     <div>
                       <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wide">

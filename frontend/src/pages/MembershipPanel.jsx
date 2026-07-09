@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Wallet, FileText, HelpCircle, ArrowRight, CreditCard, Star, CheckCircle } from "lucide-react";
 import { useModals } from "../contexts/ModalContext";
+import MarqueeBanner from "../components/MarqueeBanner";
 
 const DEMO_ACCOUNT = {
   name: "RedWork Kunde",
@@ -32,6 +33,7 @@ export default function MembershipPanel() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
+      <MarqueeBanner target="account" />
       <section className="bg-[#0f172a] text-white pb-20 pt-20">
         <div className="max-w-[1200px] mx-auto px-6 grid gap-8 lg:grid-cols-2 items-center">
           <div>

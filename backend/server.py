@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 import os
 import json
 import logging
+import secrets
 import uuid
 import smtplib
 import ssl
@@ -260,40 +261,48 @@ class StatItem(BaseModel):
 
 class SiteSettings(BaseModel):
     heroSubtitle: str = (
-        "Mit der <y>preisgekrönten</y> Webdesign- und Software-Agentur entdecken Sie\n"
-        "die <y>Weltklasse-Standards</y> auf Ihrer Website!"
+        "Mit einer <y>Agentur für Webdesign und Software</y> entsteht ein Auftritt,\n"
+        "der Ihre Marke präzise, klar und auf hohem Niveau präsentiert."
     )
-    heroTagline: str = "Wir sind anders, seien Sie auch anders."
+    heroTagline: str = "Klar positioniert. Technisch sauber. Visuell überzeugend."
     heroSlides: List[HeroSlide] = [
-        HeroSlide(highlight="Unternehmens", word="Webdesign"),
-        HeroSlide(highlight="E-Commerce", word="Webdesign"),
-        HeroSlide(highlight="Persönliches", word="Webdesign"),
-        HeroSlide(highlight="Produkt", word="Webdesign"),
-        HeroSlide(highlight="Reise", word="Webdesign"),
-        HeroSlide(highlight="Stiftung", word="Webdesign"),
+        HeroSlide(highlight="Unternehmens", word="Webauftritt"),
+        HeroSlide(highlight="E-Commerce", word="Lösungen"),
+        HeroSlide(highlight="Persönliche", word="Websites"),
+        HeroSlide(highlight="Produkt", word="Launches"),
+        HeroSlide(highlight="Reise", word="Portale"),
+        HeroSlide(highlight="Stiftungs", word="Websites"),
     ]
     badgeEnabled: bool = True
     badgeNumber: str = "12"
     badgeUnit: str = "MONATE"
-    badgeText1: str = "kostenloser"
+    badgeText1: str = "Premium"
     badgeText2: str = "Support"
     badgeFooter1: str = "für unsere Kunden"
-    badgeFooter2: str = "inklusive!"
-    btnContactSmall: str = "Fragen Sie uns ?"
-    btnContactLarge: str = "Schreiben Sie uns"
-    btnQuoteSmall: str = "Haben Sie ein Projekt ?"
-    btnQuoteLarge: str = "Angebot einholen"
+    badgeFooter2: str = "inklusive"
+    btnContactSmall: str = "Sie haben Fragen?"
+    btnContactLarge: str = "Projekt besprechen"
+    btnQuoteSmall: str = "Planen Sie ein Projekt?"
+    btnQuoteLarge: str = "Beratung anfragen"
     partners: List[str] = [
         "GOOGLE PARTNER", "BING ADS", "YANDEX PARTNER",
         "MICROSOFT GOLD PARTNER", "ADOBE SOLUTION PARTNER",
     ]
     ratingStars: str = "★★★★★"
     ratingText: str = "Sehen Sie sich unsere <b>168 Bewertungen</b> an !"
+    homeMarqueeEnabled: bool = False
+    homeMarqueeText: str = ""
+    homeMarqueeSpeed: int = 28
+    homeMarqueeItems: List[dict] = []
+    accountMarqueeEnabled: bool = False
+    accountMarqueeText: str = ""
+    accountMarqueeSpeed: int = 28
+    accountMarqueeItems: List[dict] = []
     stats: List[StatItem] = [
-        StatItem(number="61.300.000", suffix="+", label="Geschriebene Codezeilen"),
-        StatItem(number="415.000", suffix="+", label="Einzigartige Webseiten"),
+        StatItem(number="61.3 Mio.", suffix="", label="Zeilen sauberer Code"),
+        StatItem(number="415.000", suffix="+", label="Umgesetzte Seiten"),
         StatItem(number="860", suffix="+", label="Abgeschlossene Projekte"),
-        StatItem(number="2.100", suffix="+", label="Zufriedene Kunden"),
+        StatItem(number="2.100", suffix="+", label="Langfristige Kunden"),
     ]
     navItems: List[dict] = [
         {"label": "start", "href": "#top"},
@@ -305,44 +314,127 @@ class SiteSettings(BaseModel):
         {"label": "kontakt", "href": "#kontakt"},
     ]
     howWeWorkTitle: str = "Wie wir arbeiten"
-    howWeWorkSubtitle: str = "Unser bewährter 6-Schritte-Prozess für Ihren Projekterfolg"
+    howWeWorkSubtitle: str = "Ein strukturierter Prozess, der Gestaltung, Technik und Umsetzung zusammenführt"
     workSteps: List[dict] = []
     featuresTitle: str = "Unsere Stärken"
-    featuresSubtitle: str = "Was uns als Agentur einzigartig macht"
+    featuresSubtitle: str = "Was unsere Arbeit präzise und verlässlich macht"
     features: List[dict] = []
-    whyUsTitle: str = "Warum redwork.ch?"
-    whyUsSubtitle: str = "12 starke Gründe, die uns zur richtigen Wahl machen"
+    whyUsTitle: str = "Warum redwork.ch"
+    whyUsSubtitle: str = "Darum entscheiden sich Unternehmen für eine Zusammenarbeit mit uns"
     reasons: List[dict] = []
-    servicesTitle: str = "Was wir tun ?"
-    servicesSubtitle: str = "Unsere Leistungen im Überblick"
-    projectsTitle: str = "Was wir gemacht haben?"
+    servicesTitle: str = "Leistungen im Überblick"
+    servicesSubtitle: str = "Digitale Leistungen, sauber aufeinander abgestimmt"
+    projectsTitle: str = "Ausgewählte Projekte"
     projectsSubtitle: str = "Referenzprojekte"
+    hostingBadge: str = "Hosting & Server"
+    hostingTitle: str = "Hosting- und Serverpakete"
+    hostingSubtitle: str = "Alles, was Sie brauchen, sauber steuerbar über das Admin-Panel."
+    hostingTabs: List[dict] = [
+        {"key": "all", "label": "Alle Pakete"},
+        {"key": "hosting", "label": "Hosting"},
+        {"key": "business", "label": "Business"},
+    ]
+    hostingHighlights: List[str] = [
+        "CHF 0.- Setup",
+        "Transparent anpassbar",
+        "Sofort online bestellbar",
+    ]
+    hostingPackages: List[dict] = [
+        {
+            "id": "starter",
+            "name": "Start",
+            "subtitle": "Privat",
+            "description": "Ideal für persönliche Websites und kleinere Projekte.",
+            "monthlyPrice": 9.9,
+            "yearlyPrice": 99,
+            "twentyFourPrice": 189,
+            "thirtySixPrice": 239,
+            "featured": False,
+            "enabled": True,
+            "order": 1,
+            "tag": "hosting",
+            "icon": "Rocket",
+            "accent": "from-sky-500/20 via-cyan-400/10 to-white/5",
+            "features": ["5 GB NVMe SSD", "LiteSpeed + cPanel", "Tägliche Backups", "SSL-Zertifikat inklusive", "24/7 Support"],
+        },
+        {
+            "id": "business",
+            "name": "Standard",
+            "subtitle": "Wachsend",
+            "description": "Für kleine Unternehmen und aktive Webauftritte.",
+            "monthlyPrice": 19.9,
+            "yearlyPrice": 199,
+            "twentyFourPrice": 379,
+            "thirtySixPrice": 479,
+            "featured": True,
+            "enabled": True,
+            "order": 2,
+            "tag": "hosting",
+            "icon": "ShieldCheck",
+            "accent": "from-violet-500/25 via-fuchsia-400/10 to-white/5",
+            "features": ["25 GB NVMe SSD", "Priority-Support", "WAF & DDoS-Schutz", "Mehrere Domains", "Staging-Umgebungen"],
+        },
+        {
+            "id": "premium",
+            "name": "Plus",
+            "subtitle": "Business",
+            "description": "Für hohe Auslastung und anspruchsvolle Unternehmensprojekte.",
+            "monthlyPrice": 39.9,
+            "yearlyPrice": 399,
+            "twentyFourPrice": 759,
+            "thirtySixPrice": 959,
+            "featured": False,
+            "enabled": True,
+            "order": 3,
+            "tag": "business",
+            "icon": "Crown",
+            "accent": "from-amber-500/20 via-orange-400/10 to-white/5",
+            "features": ["100 GB NVMe SSD", "Dedizierte Ressourcen", "Premium SLA", "Geo-Load-Balancing", "24/7 Lead-Support"],
+        },
+        {
+            "id": "enterprise",
+            "name": "Enterprise",
+            "subtitle": "Maximal",
+            "description": "Für große Plattformen, Teams und hohe Besucherzahlen.",
+            "monthlyPrice": 79.9,
+            "yearlyPrice": 799,
+            "twentyFourPrice": 1499,
+            "thirtySixPrice": 2099,
+            "featured": False,
+            "enabled": True,
+            "order": 4,
+            "tag": "business",
+            "icon": "Crown",
+            "accent": "from-slate-500/20 via-blue-400/10 to-white/5",
+            "features": ["200 GB NVMe SSD", "Dedizierte Ressourcen", "Priorisierter Support", "Mehrere Staging-Instanzen", "Individuelle Betreuung"],
+        },
+    ]
     promoSectionLabel: str = "UNTERNEHMENSVORSTELLUNG"
     promoVideoUrl: str = ""
-    promoVideoTitle: str = "Lernen Sie uns in 90 Sekunden kennen"
-    promoVideoSubtitle: str = "Ein kurzer Einblick in unsere Arbeitsweise"
+    promoVideoTitle: str = "Lernen Sie unsere Arbeitsweise kennen"
+    promoVideoSubtitle: str = "Ein kompakter Einblick in Struktur, Design und Umsetzung"
     # Contact section
     contactTitle: str = "Kontakt"
     contactSubtitle: str = "Lassen Sie uns sprechen"
-    contactIntro: str = "Wir freuen uns auf Ihre Nachricht. Wählen Sie den Kanal, der Ihnen am liebsten ist – wir antworten innerhalb von 24 Stunden."
+    contactIntro: str = "Wählen Sie den Kanal, der für Ihr Anliegen am besten passt. Wir reagieren zügig und persönlich, in der Regel innerhalb eines Werktags."
     contactPhone: str = "+41 44 000 00 00"
     contactPhoneHours: str = "Mo–Fr 8–18 Uhr"
     contactEmail: str = "info@redwork.ch"
-    contactEmailNote: str = "Antwort innert 24 h"
+    contactEmailNote: str = "Antwort innert 24 Stunden"
     contactWhatsapp: str = "+41 79 000 00 00"
     contactAddress: str = "Bahnhofstrasse 1, 8001 Zürich"
     contactMapUrl: str = "https://www.openstreetmap.org/export/embed.html?bbox=8.5392%2C47.3705%2C8.5444%2C47.3735&layer=mapnik"
     # FAQ section
     faqTitle: str = "Häufig gestellte Fragen"
-    faqSubtitle: str = "Antworten auf die häufigsten Fragen unserer Kundinnen und Kunden"
+    faqSubtitle: str = "Antworten auf die wichtigsten Fragen, klar formuliert und ohne Umwege"
     # Footer
-    footerAbout: str = "redwork.ch ist Ihre Schweizer Premium-Agentur für Webdesign, Software-Entwicklung, SEO und digitales Marketing."
+    footerAbout: str = "redwork.ch entwickelt digitale Auftritte für Unternehmen, Marken und Startups. Wir verbinden Webdesign, Softwareentwicklung, SEO und Hosting zu einem klaren, belastbaren Gesamtauftritt."
     footerAddress: str = "Bahnhofstrasse 1, 8001 Zürich, Schweiz"
     footerPhone: str = "+41 44 000 00 00"
     footerEmail: str = "info@redwork.ch"
     footerLinks: List[str] = []
     footerCopyright: str = "© 2026 redwork.ch – Alle Rechte vorbehalten"
-    footerSlogan: str = "12 Monate kostenloser Support für alle unsere Kunden inklusive!"
+    footerSlogan: str = "12 Monate Premium-Support für alle Kunden inklusive."
     footerSocial: dict = {"facebook": "", "instagram": "", "linkedin": "", "twitter": "", "youtube": ""}
 
 
@@ -552,6 +644,16 @@ class ReferralInviteIn(BaseModel):
     email: EmailStr
 
 
+class WalletTopUpIn(BaseModel):
+    amount: float
+    note: Optional[str] = ""
+
+
+class WalletAdjustIn(BaseModel):
+    amount: float
+    note: Optional[str] = ""
+
+
 class PasswordResetRequestIn(BaseModel):
     email: EmailStr
 
@@ -576,6 +678,7 @@ class UserResponse(BaseModel):
     createdAt: datetime
     lastLogin: Optional[datetime]
     role: str = "customer"
+    twoFactorBackupCodes: Optional[List[str]] = []
 
 
 # MongoDB User Document Structure
@@ -588,6 +691,7 @@ def create_user_doc(
     phone: str = ""
 ) -> dict:
     """Create a new user document for MongoDB."""
+    backup_codes = [f"{secrets.token_hex(3).upper()}-{secrets.token_hex(3).upper()}" for _ in range(8)]
     return {
         "_id": str(uuid.uuid4()),
         "email": email,
@@ -607,7 +711,10 @@ def create_user_doc(
         "createdAt": now_utc(),
         "lastLogin": None,
         "role": "customer",
-        "deleted": False
+        "deleted": False,
+        "walletBalance": 0.0,
+        "twoFactorBackupCodes": backup_codes,
+        "twoFactorBackupCodesGeneratedAt": now_utc(),
     }
 
 
@@ -630,7 +737,9 @@ def user_doc_to_response(doc: dict) -> dict:
         "emailVerified": doc.get("emailVerified", False),
         "createdAt": doc.get("createdAt"),
         "lastLogin": doc.get("lastLogin"),
-        "role": doc.get("role", "customer")
+        "role": doc.get("role", "customer"),
+        "walletBalance": float(doc.get("walletBalance", 0) or 0),
+        "twoFactorBackupCodes": doc.get("twoFactorBackupCodes", []),
     }
 
 
@@ -743,6 +852,16 @@ async def require_customer(token: Optional[str] = Depends(oauth2_scheme)):
     user = await db.users.find_one({"_id": user_id})
     if not user or user.get("deleted"):
         raise HTTPException(status_code=401, detail="Benutzer nicht gefunden")
+    if not user.get("twoFactorBackupCodes"):
+        backup_codes = [f"{secrets.token_hex(3).upper()}-{secrets.token_hex(3).upper()}" for _ in range(8)]
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {
+                "twoFactorBackupCodes": backup_codes,
+                "twoFactorBackupCodesGeneratedAt": now_utc(),
+            }}
+        )
+        user["twoFactorBackupCodes"] = backup_codes
     
     return user_doc_to_response(user)
 
@@ -1285,7 +1404,64 @@ async def list_domain_auctions():
     for auction in auctions:
         item = clean(auction)
         merged[item["id"]] = {**merged.get(item["id"], {}), **item}
-    return list(merged.values())
+    return [item for item in merged.values() if item.get("status") != "hidden"]
+
+
+def _domain_payload(payload: dict, existing_id: Optional[str] = None) -> dict:
+    domain = str(payload.get("domain", "")).strip().lower()
+    if not domain or "." not in domain:
+        raise HTTPException(status_code=400, detail="Bitte geben Sie eine gültige Domain ein")
+    item_id = existing_id or str(payload.get("id") or domain.replace(".", "-")).strip().lower()
+    return {
+        "id": item_id,
+        "domain": domain,
+        "category": str(payload.get("category", "Premium")).strip() or "Premium",
+        "currentBid": float(payload.get("currentBid") or 0),
+        "buyNow": float(payload.get("buyNow") or 0),
+        "transferFee": float(payload.get("transferFee") or 0),
+        "bids": int(payload.get("bids") or 0),
+        "status": str(payload.get("status", "live")).strip() or "live",
+        "reference": str(payload.get("reference") or f"DOM-{item_id[:8].upper()}").strip(),
+        "endsIn": str(payload.get("endsIn", "Live")).strip() or "Live",
+        "updatedAt": now_utc(),
+    }
+
+
+@api_router.get("/admin/domain-auctions")
+async def admin_list_domain_auctions(user=Depends(require_admin)):
+    return await list_domain_auctions()
+
+
+@api_router.post("/admin/domain-auctions")
+async def admin_create_domain_auction(payload: dict, user=Depends(require_admin)):
+    item = _domain_payload(payload)
+    item["createdAt"] = now_utc()
+    await db.domain_auctions.update_one({"id": item["id"]}, {"$set": item}, upsert=True)
+    return clean(item)
+
+
+@api_router.put("/admin/domain-auctions/{auction_id}")
+async def admin_update_domain_auction(auction_id: str, payload: dict, user=Depends(require_admin)):
+    item = _domain_payload(payload, existing_id=auction_id)
+    existing = await db.domain_auctions.find_one({"id": auction_id})
+    if not existing and auction_id not in DOMAIN_AUCTION_DEFAULTS:
+        raise HTTPException(status_code=404, detail="Domain-Auktion nicht gefunden")
+    await db.domain_auctions.update_one({"id": auction_id}, {"$set": item}, upsert=True)
+    merged = {**DOMAIN_AUCTION_DEFAULTS.get(auction_id, {}), **item}
+    return clean(merged)
+
+
+@api_router.delete("/admin/domain-auctions/{auction_id}")
+async def admin_delete_domain_auction(auction_id: str, user=Depends(require_admin)):
+    if auction_id in DOMAIN_AUCTION_DEFAULTS:
+        await db.domain_auctions.update_one(
+            {"id": auction_id},
+            {"$set": {**DOMAIN_AUCTION_DEFAULTS[auction_id], "status": "hidden", "updatedAt": now_utc()}},
+            upsert=True,
+        )
+    else:
+        await db.domain_auctions.delete_one({"id": auction_id})
+    return {"ok": True}
 
 
 @api_router.post("/domain-auctions/{auction_id}/bid")
@@ -1311,7 +1487,11 @@ async def create_domain_bid(auction_id: str, payload: dict, user=Depends(require
         "createdAt": now_utc(),
     }
     await db.domain_bids.insert_one(bid)
-    auction_update = {key: value for key, value in auction.items() if key != "_id"}
+    auction_update = {
+        key: value
+        for key, value in auction.items()
+        if key not in {"_id", "bids", "currentBid", "updatedAt"}
+    }
     await db.domain_auctions.update_one(
         {"id": auction_id},
         {"$set": {**auction_update, "currentBid": amount, "updatedAt": now_utc()}, "$inc": {"bids": 1}},
@@ -1474,10 +1654,35 @@ async def customer_dashboard(user=Depends(require_customer)):
         clean(ticket) for ticket in open_tickets
         if ticket.get("lastStaffReplyAt") and (not ticket.get("lastCustomerSeenAt") or ticket.get("lastStaffReplyAt") > ticket.get("lastCustomerSeenAt"))
     ]
+    ticket_ids = [ticket["id"] for ticket in open_tickets]
+    recent_replies = []
+    if ticket_ids:
+        replies = await db.ticket_replies.find({"ticketId": {"$in": ticket_ids}}).sort("createdAt", -1).to_list(20)
+        ticket_map = {ticket["id"]: ticket for ticket in open_tickets}
+        for reply in replies:
+            if reply.get("userId") is not None:
+                continue
+            parent_ticket = ticket_map.get(reply.get("ticketId"))
+            if not parent_ticket:
+                continue
+            cleaned_reply = clean(reply)
+            cleaned_reply["ticketSubject"] = parent_ticket.get("subject", "")
+            cleaned_reply["ticketStatus"] = parent_ticket.get("status", "")
+            cleaned_reply["isUnread"] = bool(
+                parent_ticket.get("lastStaffReplyAt") and (
+                    not parent_ticket.get("lastCustomerSeenAt")
+                    or parent_ticket.get("lastStaffReplyAt") > parent_ticket.get("lastCustomerSeenAt")
+                )
+            )
+            recent_replies.append(cleaned_reply)
+            if len(recent_replies) >= 4:
+                break
     
     # Invoices
     invoices = await db.invoices.find({"userId": user["id"], "type": "invoice"}).sort("createdAt", -1).to_list(20)
     referrals = await db.referral_invites.find({"userId": user["id"]}).sort("createdAt", -1).to_list(100)
+    wallet_transactions = await db.wallet_transactions.find({"userId": user["id"]}).sort("createdAt", -1).to_list(20)
+    wallet_balance = float(user.get("walletBalance", 0) or 0)
     
     # Recent activities (simplified)
     activities = []
@@ -1500,6 +1705,11 @@ async def customer_dashboard(user=Depends(require_customer)):
         "support": {
             "newMessages": len(new_support_messages),
             "newMessageTickets": new_support_messages,
+            "recentReplies": recent_replies,
+        },
+        "wallet": {
+            "balance": wallet_balance,
+            "transactions": [clean(tx) for tx in wallet_transactions],
         },
         "referral": {
             "code": f"RED-{user['id'][:8].upper()}",
@@ -1508,6 +1718,30 @@ async def customer_dashboard(user=Depends(require_customer)):
             "pending": sum(1 for ref in referrals if ref.get("status") == "invited")
         }
     }
+
+
+@api_router.post("/wallet/top-up")
+async def request_wallet_top_up(payload: WalletTopUpIn, user=Depends(require_customer)):
+    amount = round(float(payload.amount or 0), 2)
+    if amount < 10:
+        raise HTTPException(400, "Der Mindestbetrag beträgt CHF 10.00")
+    if amount > 10000:
+        raise HTTPException(400, "Der Maximalbetrag pro Anfrage beträgt CHF 10'000.00")
+
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "userId": user["id"],
+        "userEmail": user.get("email", ""),
+        "customerName": f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or user.get("email", ""),
+        "type": "top_up_request",
+        "amount": amount,
+        "status": "pending",
+        "note": payload.note or "",
+        "createdAt": now_utc(),
+        "updatedAt": now_utc(),
+    }
+    await db.wallet_transactions.insert_one(transaction.copy())
+    return clean(transaction)
 
 
 @api_router.post("/referrals/invite")
@@ -1874,6 +2108,108 @@ async def list_customers(user=Depends(require_admin)):
     """List all customers."""
     customers = await db.users.find({"deleted": False}).sort("createdAt", -1).to_list(1000)
     return [user_doc_to_response(c) for c in customers]
+
+
+@api_router.get("/admin/wallets")
+async def admin_wallets(user=Depends(require_admin)):
+    customers = await db.users.find({"deleted": False, "role": {"$ne": "admin"}}).sort("createdAt", -1).to_list(1000)
+    transactions = await db.wallet_transactions.find().sort("createdAt", -1).to_list(500)
+    return {
+        "customers": [
+            {
+                **user_doc_to_response(customer),
+                "walletBalance": float(customer.get("walletBalance", 0) or 0),
+            }
+            for customer in customers
+        ],
+        "transactions": [clean(tx) for tx in transactions],
+    }
+
+
+@api_router.post("/admin/wallets/{customer_id}/adjust")
+async def admin_adjust_wallet(customer_id: str, payload: WalletAdjustIn, user=Depends(require_admin)):
+    amount = round(float(payload.amount or 0), 2)
+    if amount == 0:
+        raise HTTPException(400, "Der Betrag darf nicht 0 sein")
+
+    customer = await db.users.find_one({"_id": customer_id, "deleted": False})
+    if not customer:
+        raise HTTPException(404, "Kunde nicht gefunden")
+
+    current_balance = float(customer.get("walletBalance", 0) or 0)
+    new_balance = round(current_balance + amount, 2)
+    if new_balance < 0:
+        raise HTTPException(400, "Das Guthaben darf nicht negativ werden")
+
+    await db.users.update_one({"_id": customer_id}, {"$set": {"walletBalance": new_balance}})
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "userId": customer_id,
+        "userEmail": customer.get("email", ""),
+        "customerName": f"{customer.get('firstName', '')} {customer.get('lastName', '')}".strip() or customer.get("email", ""),
+        "type": "admin_credit" if amount > 0 else "admin_debit",
+        "amount": amount,
+        "status": "completed",
+        "note": payload.note or "Manuelle Anpassung",
+        "balanceAfter": new_balance,
+        "adminId": user.get("id"),
+        "createdAt": now_utc(),
+        "updatedAt": now_utc(),
+    }
+    await db.wallet_transactions.insert_one(transaction.copy())
+    return {"customer": user_doc_to_response({**customer, "walletBalance": new_balance}), "transaction": clean(transaction)}
+
+
+@api_router.post("/admin/wallets/transactions/{transaction_id}/complete")
+async def admin_complete_wallet_transaction(transaction_id: str, user=Depends(require_admin)):
+    transaction = await db.wallet_transactions.find_one({"id": transaction_id})
+    if not transaction:
+        raise HTTPException(404, "Transaktion nicht gefunden")
+    if transaction.get("status") == "completed":
+        return clean(transaction)
+    if transaction.get("status") == "rejected":
+        raise HTTPException(400, "Abgelehnte Transaktionen können nicht abgeschlossen werden")
+
+    customer = await db.users.find_one({"_id": transaction.get("userId"), "deleted": False})
+    if not customer:
+        raise HTTPException(404, "Kunde nicht gefunden")
+
+    amount = round(float(transaction.get("amount", 0) or 0), 2)
+    current_balance = float(customer.get("walletBalance", 0) or 0)
+    new_balance = round(current_balance + amount, 2)
+    await db.users.update_one({"_id": customer["_id"]}, {"$set": {"walletBalance": new_balance}})
+    await db.wallet_transactions.update_one(
+        {"id": transaction_id},
+        {"$set": {
+            "status": "completed",
+            "balanceAfter": new_balance,
+            "adminId": user.get("id"),
+            "updatedAt": now_utc(),
+        }},
+    )
+    updated = await db.wallet_transactions.find_one({"id": transaction_id})
+    return clean(updated)
+
+
+@api_router.post("/admin/wallets/transactions/{transaction_id}/reject")
+async def admin_reject_wallet_transaction(transaction_id: str, payload: WalletAdjustIn = WalletAdjustIn(amount=0), user=Depends(require_admin)):
+    transaction = await db.wallet_transactions.find_one({"id": transaction_id})
+    if not transaction:
+        raise HTTPException(404, "Transaktion nicht gefunden")
+    if transaction.get("status") == "completed":
+        raise HTTPException(400, "Abgeschlossene Transaktionen können nicht abgelehnt werden")
+
+    await db.wallet_transactions.update_one(
+        {"id": transaction_id},
+        {"$set": {
+            "status": "rejected",
+            "note": payload.note or transaction.get("note", ""),
+            "adminId": user.get("id"),
+            "updatedAt": now_utc(),
+        }},
+    )
+    updated = await db.wallet_transactions.find_one({"id": transaction_id})
+    return clean(updated)
 
 
 @api_router.get("/admin/customers/{customer_id}")
@@ -2835,21 +3171,21 @@ DEFAULT_BLOGS = [
 ]
 
 DEFAULT_TESTIMONIALS = [
-    {"name": "Hans Müller", "company": "Müller GmbH, Zürich", "text": "redwork.ch ist hervorragend in der Erstellung professioneller Webseiten. Sie bringen Branding und Webentwicklung perfekt zusammen.", "order": 1, "rating": 5},
-    {"name": "Klaus Schmidt", "company": "Schmidt & Partner, Bern", "text": "Sehr aufmerksam, modern, technisch versiert. Unsere Besucher lieben die neue Website.", "order": 2, "rating": 5},
-    {"name": "Maria Weber", "company": "Weber Solutions, Basel", "text": "redwork.ch hat Webdesign UND Marketing auf höchstem Niveau geliefert.", "order": 3, "rating": 5},
-    {"name": "Anna Becker", "company": "Becker Industries, Genf", "text": "Ich war sehr zufrieden, ich empfehle es jedem.", "order": 4, "rating": 5},
-    {"name": "Michael Wagner", "company": "Wagner AG, Luzern", "text": "Innovative und schnelle Lösungen, vollständig professioneller Service.", "order": 5, "rating": 5},
-    {"name": "Sabine Fischer", "company": "Fischer Media, Lausanne", "text": "Vielen Dank für all Ihre Dienste. Eine sehr empfehlenswerte Agentur.", "order": 6, "rating": 5},
+    {"name": "Hans Müller", "company": "Müller GmbH, Zürich", "text": "redwork.ch hat unsere Marke in eine digitale Präsenz übersetzt, die professionell und klar wirkt.", "order": 1, "rating": 5},
+    {"name": "Klaus Schmidt", "company": "Schmidt & Partner, Bern", "text": "Technisch sauber, gestalterisch stark und im Alltag angenehm unkompliziert. Genau so muss das sein.", "order": 2, "rating": 5},
+    {"name": "Maria Weber", "company": "Weber Solutions, Basel", "text": "Webdesign, Performance und Beratung greifen hier wirklich ineinander. Das Ergebnis überzeugt.", "order": 3, "rating": 5},
+    {"name": "Anna Becker", "company": "Becker Industries, Genf", "text": "Die Zusammenarbeit war präzise, verlässlich und angenehm professionell.", "order": 4, "rating": 5},
+    {"name": "Michael Wagner", "company": "Wagner AG, Luzern", "text": "Schnelle Umsetzung, klare Kommunikation und ein Resultat auf hohem Niveau.", "order": 5, "rating": 5},
+    {"name": "Sabine Fischer", "company": "Fischer Media, Lausanne", "text": "Eine Agentur, die Anspruch und Umsetzung sauber zusammenbringt.", "order": 6, "rating": 5},
 ]
 
 DEFAULT_SERVICES = [
-    {"title": "Webdesign", "desc": "Modern, funktional, mobiltauglich, originell, benutzerfreundlich, ökonomisch, innovativ und konversionsorientierte Webdesign-Projekte.", "icon": "Smartphone", "side": "left", "order": 1},
-    {"title": "Softwareentwicklung", "desc": "PHP, MySQL, Node.js, MongoDB, .NET – die Programmiersprache Ihrer Wahl.", "icon": "Code", "side": "right", "order": 2},
-    {"title": "SEO-Optimierung", "desc": "Während der Projektphase berücksichtigen wir grundlegende und moderne SEO-Regeln.", "icon": "Search", "side": "left", "order": 3},
-    {"title": "Werbemanagement", "desc": "Google Ads, Facebook, Instagram – Optimierungs- und Verwaltungsmanagement Ihrer Werbung.", "icon": "Megaphone", "side": "right", "order": 4},
-    {"title": "Logo & Corporate Identity", "desc": "Professionelle, kreative und einprägsame Corporate Identity, Logos, Embleme.", "icon": "Award", "side": "left", "order": 5},
-    {"title": "Web-Beratung", "desc": "Wir bieten professionelle Lösungen für Ihre IT-Bedürfnisse.", "icon": "MessageSquare", "side": "right", "order": 6},
+    {"title": "Webdesign", "desc": "Klar strukturiert, mobil optimiert und auf Konversion ausgelegt.", "icon": "Smartphone", "side": "left", "order": 1},
+    {"title": "Softwareentwicklung", "desc": "Individuelle Webanwendungen, Portale und Systeme auf Basis moderner Technologien.", "icon": "Code", "side": "right", "order": 2},
+    {"title": "SEO-Optimierung", "desc": "Technische Grundlage, saubere Inhalte und eine Struktur, die Sichtbarkeit unterstützt.", "icon": "Search", "side": "left", "order": 3},
+    {"title": "Werbemanagement", "desc": "Strategische Kampagnenführung für Google Ads, Meta Ads und weitere Kanäle.", "icon": "Megaphone", "side": "right", "order": 4},
+    {"title": "Logo & Corporate Identity", "desc": "Ein stimmiger Markenauftritt mit Wiedererkennung und klarer Linie.", "icon": "Award", "side": "left", "order": 5},
+    {"title": "Beratung", "desc": "Fundierte Empfehlungen für Web, Hosting, Struktur und digitale Weiterentwicklung.", "icon": "MessageSquare", "side": "right", "order": 6},
 ]
 
 DEFAULT_COMPANIES = [

@@ -6,7 +6,7 @@ import { API } from "../api";
 const FALLBACK = {
   contactTitle: "Kontakt",
   contactSubtitle: "Lassen Sie uns sprechen",
-  contactIntro: "Wir freuen uns auf Ihre Nachricht. Wählen Sie den Kanal, der Ihnen am liebsten ist – wir antworten innerhalb von 24 Stunden.",
+  contactIntro: "Wählen Sie den Kanal, der für Ihr Anliegen am besten passt. Wir reagieren zügig und persönlich, in der Regel innerhalb eines Werktags.",
   contactPhone: "+41 44 000 00 00",
   contactPhoneHours: "Mo–Fr 8–18 Uhr",
   contactEmail: "info@redwork.ch",
@@ -60,7 +60,7 @@ export default function ContactSection() {
               label="WhatsApp"
               value={s.contactWhatsapp}
               href={`https://wa.me/${s.contactWhatsapp.replace(/[^\d]/g, "")}`}
-              note="Sofortige Antwort tagsüber"
+              note="Direkter Kontakt während der Geschäftszeiten"
               dataTestid="contact-whatsapp-card"
             />
             <ContactCard

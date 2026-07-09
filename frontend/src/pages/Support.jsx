@@ -23,6 +23,17 @@ export default function Support() {
     message: ""
   });
 
+  const fetchTickets = useCallback(async () => {
+    try {
+      const res = await api.get("/tickets");
+      setTickets(res.data);
+    } catch (err) {
+      console.error("Tickets error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTickets();
   }, [fetchTickets]);
@@ -40,17 +51,6 @@ export default function Support() {
     return () => window.removeEventListener("support-realtime", handleRealtime);
   }, [fetchTickets, user?.id]);
 
-  const fetchTickets = useCallback(async () => {
-    try {
-      const res = await api.get("/tickets");
-      setTickets(res.data);
-    } catch (err) {
-      console.error("Tickets error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const createTicket = async (e) => {
     e.preventDefault();
     try {
@@ -65,7 +65,7 @@ export default function Support() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Laden...</div>;
+    return <div className="min-h-screen flex items-center justify-center">Wird geladen...</div>;
   }
 
   return (
@@ -82,7 +82,7 @@ export default function Support() {
         {showNewTicket && (
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>Neues Support-Ticket erstellen</CardTitle>
+              <CardTitle>Neues Support-Ticket eröffnen</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={createTicket} className="space-y-4">
@@ -93,7 +93,7 @@ export default function Support() {
                       value={newTicket.subject}
                       onChange={(e) => setNewTicket({...newTicket, subject: e.target.value})}
                       required
-                      placeholder="Kurze Beschreibung Ihres Problems"
+                      placeholder="Worum geht es genau?"
                     />
                   </div>
                   <div>
@@ -132,13 +132,13 @@ export default function Support() {
                     onChange={(e) => setNewTicket({...newTicket, message: e.target.value})}
                     required
                     rows={5}
-                    placeholder="Beschreiben Sie Ihr Problem detailliert..."
+                    placeholder="Beschreiben Sie Ihr Anliegen so präzise wie möglich..."
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button type="submit">
                     <Send className="h-4 w-4 mr-2" />
-                    Ticket erstellen
+                    Ticket senden
                   </Button>
                   <Button type="button" variant="outline" onClick={() => setShowNewTicket(false)}>
                     Abbrechen
@@ -154,8 +154,8 @@ export default function Support() {
             <Card>
               <CardContent className="py-12 text-center">
                 <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Tickets gefunden</h3>
-                <p className="text-gray-600">Sie haben noch keine Support-Tickets erstellt.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Noch keine Tickets vorhanden</h3>
+                <p className="text-gray-600">Sobald Sie ein Anliegen senden, erscheint es hier mit dem aktuellen Status.</p>
               </CardContent>
             </Card>
           ) : (
@@ -168,7 +168,7 @@ export default function Support() {
                         <h3 className="break-words text-lg font-semibold text-gray-900">{ticket.subject}</h3>
                         <p className="text-sm text-gray-600 mt-1">Ticket #{ticket.id} • {ticket.category}</p>
                         <p className="text-sm text-gray-500 mt-1">
-                          Erstellt am {new Date(ticket.createdAt).toLocaleDateString('de-DE')}
+                          Erstellt am {new Date(ticket.createdAt).toLocaleDateString("de-DE")}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 sm:justify-end">

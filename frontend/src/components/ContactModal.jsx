@@ -63,7 +63,7 @@ export default function ContactModal() {
           </button>
           <p className="text-white/80 text-xs tracking-[0.2em] font-bold">KONTAKT</p>
           <h2 className="text-[24px] font-extrabold mt-1">Schreiben Sie uns</h2>
-          <p className="text-white/85 text-sm mt-1">Wir antworten innerhalb von 24 Stunden.</p>
+          <p className="text-white/85 text-sm mt-1">Wir melden uns in der Regel innerhalb eines Werktags.</p>
         </div>
 
         <div className="flex-1 overflow-y-auto bg-[#f8fafc] p-4 sm:p-6">
@@ -73,7 +73,7 @@ export default function ContactModal() {
                 <CheckCircle2 size={50} className="text-[#22C55E]" />
               </div>
               <h3 className="text-2xl font-extrabold text-[#0f172a]">Nachricht gesendet!</h3>
-              <p className="text-[#475569] mt-3">Vielen Dank, wir melden uns in Kürze bei Ihnen.</p>
+              <p className="text-[#475569] mt-3">Vielen Dank. Wir melden uns persönlich und zeitnah bei Ihnen.</p>
               <button
                 onClick={closeContact}
                 className="mt-6 bg-[#0f172a] text-white px-8 py-3 rounded-full font-semibold"

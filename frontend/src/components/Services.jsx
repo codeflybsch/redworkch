@@ -7,19 +7,19 @@ import {
 import { useModals } from "../contexts/ModalContext";
 
 const DEFAULT_SERVICES = [
-  { id: "fallback-1", side: "left", icon: "Smartphone", title: "Responsive Webdesign", desc: "Moderne Websites, die auf Handy, Tablet und Desktop sauber funktionieren." },
-  { id: "fallback-2", side: "left", icon: "Code", title: "Web-Software & SaaS", desc: "Individuelle Funktionen, Adminpanels, Kundenbereiche und Automatisierungen." },
-  { id: "fallback-3", side: "left", icon: "Search", title: "SEO Optimierung", desc: "Technische SEO, schnelle Ladezeiten und bessere Sichtbarkeit bei Google." },
-  { id: "fallback-4", side: "right", icon: "Megaphone", title: "Digital Marketing", desc: "Google Ads, Social Media Kampagnen und professionelle Online-Strategien." },
-  { id: "fallback-5", side: "right", icon: "Award", title: "Branding & Logo", desc: "Ein starker Markenauftritt mit Logo, Farben und Corporate Identity." },
-  { id: "fallback-6", side: "right", icon: "MessageSquare", title: "Support & Beratung", desc: "Persönliche Betreuung, klare Kommunikation und langfristige technische Hilfe." },
+  { id: "fallback-1", side: "left", icon: "Smartphone", title: "Responsives Webdesign", desc: "Digitale Auftritte, die auf Smartphone, Tablet und Desktop gleichermaßen präzise funktionieren." },
+  { id: "fallback-2", side: "left", icon: "Code", title: "Web-Software & Portale", desc: "Individuelle Funktionen, Kundenbereiche, Admin-Oberflächen und automatisierte Abläufe." },
+  { id: "fallback-3", side: "left", icon: "Search", title: "SEO mit Substanz", desc: "Technische Basis, klare Struktur und Inhalte, die sichtbar machen statt nur zu füllen." },
+  { id: "fallback-4", side: "right", icon: "Megaphone", title: "Digital Marketing", desc: "Kampagnen, Anzeigen und Strategien, die Ihre Marke gezielt nach vorne bringen." },
+  { id: "fallback-5", side: "right", icon: "Award", title: "Branding & Identität", desc: "Ein prägnanter Markenauftritt mit Logo, Farben und visueller Linie." },
+  { id: "fallback-6", side: "right", icon: "MessageSquare", title: "Beratung & Support", desc: "Direkte Ansprechpartner, klare Kommunikation und verlässliche technische Begleitung." },
 ];
 
 const iconMap = { Smartphone, Code, Search, Megaphone, Award, MessageSquare };
 
 export default function Services() {
   const [services, setServices] = useState([]);
-  const [s, setS] = useState({ servicesTitle: "Was wir tun ?", servicesSubtitle: "DIENSTLEISTUNGEN" });
+  const [s, setS] = useState({ servicesTitle: "Leistungen im Überblick", servicesSubtitle: "DIGITALE LEISTUNGEN" });
   const { openQuote } = useModals();
 
   useEffect(() => {

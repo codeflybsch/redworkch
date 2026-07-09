@@ -10,6 +10,7 @@ import { Toaster } from "./components/ui/toaster";
 import SupportRealtimeBridge from "./components/SupportRealtimeBridge";
 
 import Header from "./components/Header";
+import MarqueeBanner from "./components/MarqueeBanner";
 import Hero from "./components/Hero";
 import StatsBar from "./components/StatsBar";
 import HowWeWork from "./components/HowWeWork";
@@ -57,6 +58,7 @@ import Offers from "./pages/admin/Offers";
 import InvoiceEditor from "./pages/admin/InvoiceEditor";
 import InvoiceTemplates from "./pages/admin/InvoiceTemplates";
 import HostingPackagesAdmin from "./pages/admin/HostingPackagesAdmin";
+import HostingDomainAdmin from "./pages/admin/HostingDomainAdmin";
 import Customers from "./pages/admin/Customers";
 import Orders from "./pages/admin/Orders";
 import Tickets from "./pages/admin/Tickets";
@@ -78,6 +80,7 @@ function PublicSite() {
   return (
     <div className="bg-[#f1f5fb]">
       <Header scrolled={scrolled} />
+      <MarqueeBanner target="home" />
       <Hero />
       <StatsBar />
       <HowWeWork />
@@ -151,6 +154,7 @@ function App() {
                 <Route path="faqs" element={<FAQAdmin />} />
                 <Route path="templates" element={<EmailTemplates />} />
                 <Route path="companies" element={<Companies />} />
+                <Route path="hosting-domain" element={<HostingDomainAdmin />} />
                 <Route path="products" element={<AdminProducts />} />
                 <Route path="hosting" element={<HostingPackagesAdmin />} />
                 <Route path="invoices" element={<Invoices />} />

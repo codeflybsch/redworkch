@@ -7,7 +7,7 @@ import Logo from "./Logo";
 const SOCIAL_ICONS = { facebook: Facebook, twitter: Twitter, instagram: Instagram, youtube: Youtube, linkedin: Linkedin };
 
 const FALLBACK = {
-  footerAbout: "redwork.ch ist Ihre Schweizer Premium-Agentur für Webdesign, Software-Entwicklung, SEO und digitales Marketing.",
+  footerAbout: "redwork.ch entwickelt digitale Auftritte für Unternehmen, Marken und Startups. Wir verbinden Webdesign, Softwareentwicklung, SEO und Hosting zu einem klaren, belastbaren Gesamtauftritt.",
   footerAddress: "Bahnhofstrasse 1, 8001 Zürich, Schweiz",
   footerPhone: "+41 44 000 00 00",
   footerEmail: "info@redwork.ch",
@@ -39,7 +39,7 @@ export default function Footer() {
 
         <div className="max-w-3xl mx-auto text-center text-[14px] sm:text-[15px] text-white/80 leading-relaxed">
           <p>{s.footerAbout}</p>
-          <p className="mt-4 text-[#FFC107] font-semibold">12 Monate kostenloser Support für alle unsere Kunden inklusive!</p>
+          <p className="mt-4 text-[#FFC107] font-semibold">12 Monate Premium-Support für alle Kunden inklusive.</p>
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-8 sm:mt-10">

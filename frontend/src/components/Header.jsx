@@ -8,7 +8,7 @@ import Logo from "./Logo";
 const mainLinks = [
   { label: "Start", href: "#top" },
   { label: "Hosting", href: "#hosting" },
-  { label: "Domain Auktionen", href: "#domain-auctions" },
+  { label: "Auktionen", href: "#domain-auctions" },
   { label: "Projekte", href: "#projekte" },
   { label: "Über uns", href: "#ueber" },
 ];
@@ -24,6 +24,8 @@ export default function Header({ scrolled }) {
   const [open, setOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const [contact, setContact] = useState({
     phone: "+41 44 000 00 00",
     whatsapp: "+41 44 000 00 00",
@@ -65,6 +67,8 @@ export default function Header({ scrolled }) {
     }
     setOpen(false);
     setServicesOpen(false);
+    setAccountOpen(false);
+    setAuthOpen(false);
   };
 
   const dashboardUrl = isAdmin ? "/admin" : "/dashboard";
@@ -77,11 +81,6 @@ export default function Header({ scrolled }) {
         </a>
 
         <nav className="hidden xl:flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-2 shadow-inner">
-          {user ? (
-            <a href={dashboardUrl} className="flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-white/20"><LayoutDashboard size={15} /> Dashboard</a>
-          ) : (
-            <a href="/login" className="flex items-center gap-1.5 rounded-full bg-[#E63946] px-3.5 py-2 text-sm font-bold text-white transition hover:bg-[#c5303d]"><LogIn size={15} /> Login</a>
-          )}
           {mainLinks.slice(0, 1).map((item) => (
             <a key={item.label} href={item.href} onClick={(e) => handleNav(e, item.href)} className="rounded-full px-3.5 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-[#E63946]">
               {item.label}
@@ -137,10 +136,60 @@ export default function Header({ scrolled }) {
           <button onClick={openContact} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white/80 hover:text-[#E63946]">
             <Mail size={15} /> Kontakt
           </button>
-          {user && <button onClick={logout} className="text-sm font-semibold text-white/60 hover:text-white">Abmelden</button>}
+          {user && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAccountOpen((value) => !value)}
+                className="flex items-center gap-2 rounded-full bg-white/[0.05] px-4 py-2 text-sm font-bold text-white transition hover:bg-white/[0.12]"
+                aria-expanded={accountOpen}
+              >
+                <LayoutDashboard size={15} /> Mein Konto
+                <ChevronDown size={14} className={`transition ${accountOpen ? "rotate-180" : ""}`} />
+              </button>
+              {accountOpen && (
+                <div className="absolute right-0 top-full mt-3 w-56 overflow-hidden rounded-3xl border border-white/10 bg-[#0b1220] p-2 shadow-2xl">
+                  <a href={dashboardUrl} className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10">
+                    <LayoutDashboard size={15} /> Dashboard
+                  </a>
+                  <button
+                    onClick={logout}
+                    className="flex w-full items-center gap-2 rounded-2xl px-4 py-3 text-left text-sm font-bold text-white transition hover:bg-white/10"
+                  >
+                    <span className="inline-flex h-2 w-2 rounded-full bg-red-400" />
+                    Abmelden
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <button onClick={openQuote} className="rounded-full bg-gradient-to-r from-[#E63946] to-[#ff6b35] px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-red-900/30 transition hover:scale-[1.03]">
             Angebot
           </button>
+          {!user && (
+            <div className="relative ml-1">
+              <button
+                type="button"
+                onClick={() => setAuthOpen((value) => !value)}
+                className="flex items-center gap-2 rounded-full bg-[#E63946] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#c5303d]"
+                aria-expanded={authOpen}
+              >
+                <LogIn size={15} />
+                Login
+                <ChevronDown size={14} className={`transition ${authOpen ? "rotate-180" : ""}`} />
+              </button>
+              {authOpen && (
+                <div className="absolute right-0 top-full mt-3 w-52 overflow-hidden rounded-3xl border border-white/10 bg-[#0b1220] p-2 shadow-2xl">
+                  <a href="/login" className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10">
+                    <LogIn size={15} /> Login
+                  </a>
+                  <a href="/register" className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10">
+                    <LayoutDashboard size={15} /> Registrieren
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <button className="xl:hidden rounded-2xl border border-white/10 bg-white/[0.06] p-2.5 text-white" onClick={() => setOpen((v) => !v)} aria-label="Menü öffnen">
@@ -151,10 +200,24 @@ export default function Header({ scrolled }) {
       {open && (
         <div className="max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-t border-white/10 bg-[#07090f]/98 px-4 py-4 shadow-2xl xl:hidden">
           <div className="grid gap-2">
-            {user ? (
-              <a href={dashboardUrl} className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3.5 text-base font-black text-white"><LayoutDashboard size={19} /> Dashboard</a>
-            ) : (
-              <a href="/login" className="flex items-center gap-3 rounded-2xl bg-[#E63946] px-4 py-3.5 text-base font-black text-white"><LogIn size={19} /> Login</a>
+            {!user && (
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-3">
+                <button
+                  type="button"
+                  onClick={() => setAuthOpen((value) => !value)}
+                  className="flex w-full items-center justify-between rounded-2xl bg-[#E63946] px-4 py-3.5 text-left text-base font-black text-white"
+                  aria-expanded={authOpen}
+                >
+                  <span className="flex items-center gap-3"><LogIn size={19} /> Login</span>
+                  <ChevronDown size={16} className={`transition ${authOpen ? "rotate-180" : ""}`} />
+                </button>
+                {authOpen && (
+                  <div className="mt-2 grid gap-2">
+                    <a href="/login" className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold text-white"><LogIn size={16} /> Login</a>
+                    <a href="/register" className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold text-white"><LayoutDashboard size={16} /> Registrieren</a>
+                  </div>
+                )}
+              </div>
             )}
             {mainLinks.map((item) => (
               <a key={item.label} href={item.href} onClick={(e) => handleNav(e, item.href)} className="rounded-2xl px-4 py-3 text-base font-bold text-white hover:bg-white/10 hover:text-[#E63946]">
@@ -179,7 +242,24 @@ export default function Header({ scrolled }) {
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <button onClick={() => { openContact(); setOpen(false); }} className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-left font-bold text-white">Kontakt</button>
-              {user && <button onClick={logout} className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-left font-bold text-white">Abmelden</button>}
+              {user && (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-3">
+                  <button
+                    type="button"
+                    onClick={() => setAccountOpen((value) => !value)}
+                    className="flex w-full items-center justify-between rounded-xl px-1 py-1.5 text-left font-bold text-white"
+                  >
+                    <span className="flex items-center gap-2"><LayoutDashboard size={16} /> Mein Konto</span>
+                    <ChevronDown size={14} className={`transition ${accountOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {accountOpen && (
+                    <div className="mt-3 space-y-2">
+                      <a href={dashboardUrl} className="block rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white">Dashboard</a>
+                      <button onClick={logout} className="block w-full rounded-xl bg-white/10 px-3 py-2.5 text-left text-sm font-semibold text-white">Abmelden</button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <button onClick={() => { openQuote(); setOpen(false); }} className="mt-2 rounded-2xl bg-gradient-to-r from-[#E63946] to-[#ff6b35] px-4 py-4 font-black text-white">
               Angebot einholen

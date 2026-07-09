@@ -469,7 +469,7 @@ export default function HostingPackages() {
         >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-emerald-300 font-bold"><Gavel size={15} /> Domain Auktionen</span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-emerald-300 font-bold"><Gavel size={15} /> Auktionen</span>
               <h3 className="mt-5 text-4xl sm:text-5xl font-extrabold">Premium-Domains live kaufen oder ersteigern</h3>
               <p className="mt-4 max-w-3xl text-slate-300 leading-7">Registrierte Kunden können Auktionen live verfolgen, Gebote abgeben und Domains per Stripe oder TWINT bezahlen. Die Vertragsübernahme wird automatisch als Position berechnet.</p>
             </div>

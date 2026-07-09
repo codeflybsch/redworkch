@@ -80,12 +80,12 @@ export default function Register() {
         
         {/* Header */}
         <div className="mb-8">
-          <p className="text-sm uppercase tracking-[0.3em] text-[#E63946] font-semibold">Konto erstellen</p>
+          <p className="text-sm uppercase tracking-[0.3em] text-[#E63946] font-semibold">Konto eröffnen</p>
           <h1 className="mt-3 text-3xl font-extrabold text-[#0f172a] sm:text-4xl">
-            Jetzt registrieren und Ihr Hostingkonto aktivieren
+            Jetzt registrieren und Ihr Kundenkonto freischalten
           </h1>
           <p className="mt-4 text-slate-500">
-            Schnelle Registrierung, persönliches Dashboard und sichere Bezahlung mit Stripe, PayPal oder TWINT.
+            Ein klarer Registrierungsprozess, ein persönlicher Bereich und eine saubere Grundlage für Hosting, Rechnungen und Support.
           </p>
         </div>
 
@@ -244,11 +244,11 @@ export default function Register() {
           <div className="flex items-start gap-3">
             <CheckCircle size={18} className="text-[#22c55e] mt-1 flex-shrink-0" />
             <div>
-              <p className="font-semibold text-[#0f172a]">Vorteile für Kunden</p>
+              <p className="font-semibold text-[#0f172a]">Für Ihr Kundenkonto</p>
               <ul className="list-disc pl-5 mt-2 space-y-2">
-                <li>Mein Account für Hosting-Pakete, Rechnungen und Support</li>
-                <li>Sichere Anmeldung mit persönlichem Zugang</li>
-                <li>Direkter Zugriff auf die Hosting-Auswahl</li>
+                <li>Ein zentraler Bereich für Hosting, Rechnungen und Support</li>
+                <li>Persönlicher Zugang mit sauberer Kontoverwaltung</li>
+                <li>Direkter Zugriff auf Angebote, Pakete und Services</li>
               </ul>
             </div>
           </div>

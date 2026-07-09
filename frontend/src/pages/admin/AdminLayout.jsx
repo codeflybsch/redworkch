@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Inbox, FolderKanban, FileText, MessageSquareQuote,
   Wrench, LogOut, Mail, Loader2, ExternalLink, Settings, HelpCircle,
   Receipt, FileSignature, Building2, Package, Server, Menu, X,
-  Users, ShoppingCart, MessageSquare, Zap, Gavel,
+  Users, ShoppingCart, MessageSquare, Zap, Gavel, Globe2,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import Logo from "../../components/Logo";
@@ -18,11 +18,37 @@ const groups = [
     ],
   },
   {
-    label: "Kundenverwaltung",
+    label: "Kunden",
     links: [
       { to: "/admin/customers", label: "Kunden", icon: Users },
       { to: "/admin/orders", label: "Bestellungen", icon: ShoppingCart },
+    ],
+  },
+  {
+    label: "Verkauf",
+    links: [
+      { to: "/admin/orders", label: "Bestellungen", icon: ShoppingCart },
+      { to: "/admin/invoices", label: "Rechnungen", icon: Receipt },
+      { to: "/admin/offers", label: "Offerten", icon: FileSignature },
+    ],
+  },
+  {
+    label: "Produkte",
+    links: [
+      { to: "/admin/products", label: "Produkte / Katalog", icon: Package },
+      { to: "/admin/hosting", label: "Hosting-Produkte", icon: Server },
+    ],
+  },
+  {
+    label: "Services",
+    links: [
+      { to: "/admin/hosting-domain", label: "Hosting & Domain", icon: Globe2 },
       { to: "/admin/platform", label: "SaaS / WHM Control", icon: Zap },
+    ],
+  },
+  {
+    label: "Support",
+    links: [
       { to: "/admin/tickets", label: "Support-Tickets", icon: MessageSquare },
     ],
   },
@@ -48,11 +74,7 @@ const groups = [
     label: "Buchhaltung",
     links: [
       { to: "/admin/companies", label: "Firmen / Logos", icon: Building2 },
-      { to: "/admin/hosting", label: "Hosting-Pakete", icon: Server },
-      { to: "/admin/products", label: "Produkte / Katalog", icon: Package },
-      { to: "/admin/platform", label: "Domain Auktionen", icon: Gavel },
-      { to: "/admin/invoices", label: "Rechnungen", icon: Receipt },
-      { to: "/admin/offers", label: "Offerten", icon: FileSignature },
+      { to: "/admin/platform", label: "Auktionen", icon: Gavel },
       { to: "/admin/invoice-templates", label: "Rechnungs-Vorlagen", icon: FileText },
     ],
   },
@@ -62,6 +84,7 @@ export default function AdminLayout() {
   const { user, logout, loading } = useAuth();
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const adminLogout = () => logout("/admin/login");
 
   // Close mobile drawer on route change
   useEffect(() => { setOpen(false); }, [location.pathname]);
@@ -128,7 +151,7 @@ export default function AdminLayout() {
           <ExternalLink size={16} /> Website ansehen
         </a>
         <button
-          onClick={logout}
+          onClick={adminLogout}
           data-testid="logout-btn"
           className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-white/75 hover:bg-red-950/30 hover:text-red-300 transition"
         >
@@ -152,18 +175,28 @@ export default function AdminLayout() {
       )}
 
       <main className="flex-1 min-w-0">
-        {/* Mobile top bar */}
-        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 shadow-sm">
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 sm:px-6 flex items-center gap-3 shadow-sm">
           <button
             onClick={() => setOpen(true)}
             data-testid="open-sidebar"
-            className="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0f172a] flex items-center justify-center"
+            className="lg:hidden w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0f172a] flex items-center justify-center"
             aria-label="Menü öffnen"
           >
             <Menu size={20} />
           </button>
           <Logo size="sm" inverted />
-          <span className="ml-auto text-xs text-[#64748b]">Admin</span>
+          <div className="min-w-0">
+            <p className="hidden sm:block text-sm font-extrabold text-[#0f172a]">Admin Panel</p>
+            <p className="hidden sm:block text-xs text-[#64748b] truncate">{user?.username || user?.email || "Administrator"}</p>
+          </div>
+          <button
+            onClick={adminLogout}
+            data-testid="top-logout-btn"
+            className="ml-auto inline-flex items-center gap-2 rounded-lg bg-[#E63946] px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-[#c5303d]"
+          >
+            <LogOut size={16} />
+            Abmelden
+          </button>
         </header>
 
         <div className="p-4 sm:p-6 lg:p-8 max-w-full overflow-x-hidden">

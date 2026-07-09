@@ -1,263 +1,344 @@
-import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Check, Crown, Rocket, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { Check, ChevronDown, Server, ShoppingCart } from "lucide-react";
+import api from "../api";
 
-const billingOptions = [
-  { key: "monthly", label: "Monatlich", description: "Flexibel" },
-  { key: "yearly", label: "Jährlich", description: "Am attraktivsten" },
-  { key: "twentyFour", label: "24 Monate", description: "Langfristig" },
-  { key: "thirtySix", label: "36 Monate", description: "Maximaler Rabatt" },
+const BILLING_OPTIONS = [
+  { key: "yearly", label: "1 Jahr", suffix: "/ 1 Jahr", note: "%10 Rabatt" },
+  { key: "twentyFour", label: "2 Jahre", suffix: "/ 2 Jahre", note: "%15 Rabatt" },
+  { key: "thirtySix", label: "3 Jahre", suffix: "/ 3 Jahre", note: "%20 Rabatt" },
+  { key: "monthly", label: "Monatlich", suffix: "/ Monat", note: "Flexibel" },
 ];
 
-const hostingPackages = [
+const DEFAULT_GENERAL_FEATURES = [
+  "cPanel Kontrollpanel",
+  "LiteSpeed Web Server",
+  "CloudLinux & CageFS",
+  "Wöchentliche Backups",
+  "PHP 5.3 - 8.5",
+];
+
+const DEFAULT_PACKAGES = [
   {
     id: "starter",
-    name: "Starter Hosting",
-    subtitle: "Für kleine Websites und persönliche Projekte",
-    description: "Perfekt für Portfolios, Blogs und Einsteiger-Websites mit zuverlässiger Performance.",
-    icon: Rocket,
-    monthlyPrice: 9.9,
-    yearlyPrice: 99,
-    twentyFourPrice: 189,
-    thirtySixPrice: 239,
+    name: "Beginn",
+    description: "Ideal für persönliche Websites und Blogs.",
+    yearlyPrice: 313,
+    twentyFourPrice: 595,
+    thirtySixPrice: 845,
+    monthlyPrice: 29,
+    tag: "economic",
+    tagLabel: "Basis Hosting",
     featured: false,
     enabled: true,
     order: 1,
-    features: [
-      "5 GB NVMe SSD",
-      "LiteSpeed + cPanel",
-      "Tägliche Backups",
-      "SSL-Zertifikat inklusive",
-      "24/7 Support",
-    ],
-    accent: "from-sky-500/20 via-cyan-400/10 to-white/5",
+    features: ["2 GB SSD Disk", "50 GB Traffic", "1 vCPU", "1 GB RAM", "10 E-Mail-Konten", "2 Datenbanken", "Kostenloses SSL", "7/24 Support"],
+    generalFeatures: DEFAULT_GENERAL_FEATURES,
   },
   {
-    id: "business",
-    name: "Business Hosting",
-    subtitle: "Für wachsende Unternehmen und Online-Shops",
-    description: "Hochperformante Infrastruktur für anspruchsvolle Webprojekte und E-Commerce-Teams.",
-    icon: ShieldCheck,
-    monthlyPrice: 19.9,
-    yearlyPrice: 199,
-    twentyFourPrice: 379,
-    thirtySixPrice: 479,
-    featured: true,
+    id: "personal",
+    name: "Persönlich",
+    description: "Für wachsende private Projekte mit mehr Leistung.",
+    yearlyPrice: 529,
+    twentyFourPrice: 1005,
+    thirtySixPrice: 1428,
+    monthlyPrice: 49,
+    tag: "economic",
+    tagLabel: "Basis Hosting",
+    featured: false,
     enabled: true,
     order: 2,
-    features: [
-      "25 GB NVMe SSD",
-      "Priority-Support",
-      "WAF & DDoS-Schutz",
-      "Mehrere Domains",
-      "Staging-Umgebungen",
-    ],
-    accent: "from-violet-500/25 via-fuchsia-400/10 to-white/5",
+    features: ["5 GB SSD Disk", "100 GB Traffic", "1 vCPU", "1 GB RAM", "25 E-Mail-Konten", "5 Datenbanken", "1 Domain", "Kostenloser Site-Umzug", "99.9% Uptime"],
+    generalFeatures: DEFAULT_GENERAL_FEATURES,
   },
   {
-    id: "premium",
-    name: "Premium Hosting",
-    subtitle: "Für höchste Performance und maximale Sicherheit",
-    description: "Unsere Premium-Lösung für anspruchsvolle Marken, SaaS-Plattformen und große Projekte.",
-    icon: Crown,
-    monthlyPrice: 39.9,
-    yearlyPrice: 399,
-    twentyFourPrice: 759,
-    thirtySixPrice: 959,
+    id: "standard",
+    name: "Standard",
+    description: "Für kleine Unternehmen und aktive Websites.",
+    yearlyPrice: 853,
+    twentyFourPrice: 1621,
+    thirtySixPrice: 2303,
+    monthlyPrice: 79,
+    tag: "economic",
+    tagLabel: "Basis Hosting",
     featured: false,
     enabled: true,
     order: 3,
-    features: [
-      "100 GB NVMe SSD",
-      "Dedizierte Ressourcen",
-      "Premium SLA",
-      "Geo-Load-Balancing",
-      "24/7 Lead-Support",
-    ],
-    accent: "from-amber-500/20 via-orange-400/10 to-white/5",
+    features: ["10 GB SSD Disk", "250 GB Traffic", "2 vCPU", "2 GB RAM", "50 E-Mail-Konten", "10 Datenbanken", "3 Domains", "LiteSpeed Beschleunigung", "7/24 Support"],
+    generalFeatures: DEFAULT_GENERAL_FEATURES,
+  },
+  {
+    id: "plus",
+    name: "Plus",
+    description: "Für trafficstarke Websites und Shops.",
+    yearlyPrice: 1285,
+    twentyFourPrice: 2441,
+    thirtySixPrice: 3470,
+    monthlyPrice: 119,
+    tag: "economic",
+    tagLabel: "Basis Hosting",
+    featured: false,
+    enabled: true,
+    order: 4,
+    features: ["20 GB SSD Disk", "500 GB Traffic", "2 vCPU", "2 GB RAM", "100 E-Mail-Konten", "20 Datenbanken", "5 Domains", "Kostenloses CDN", "Priorisierter Support"],
+    generalFeatures: DEFAULT_GENERAL_FEATURES,
+  },
+  {
+    id: "business",
+    name: "Business",
+    description: "Leistungsstarker Einstieg für Unternehmen.",
+    yearlyPrice: 1717,
+    twentyFourPrice: 3262,
+    thirtySixPrice: 4636,
+    monthlyPrice: 159,
+    tag: "business",
+    tagLabel: "Business Hosting",
+    featured: false,
+    enabled: true,
+    order: 5,
+    features: ["30 GB SSD Disk", "Unbegrenzter Traffic", "2 vCPU", "4 GB RAM", "100 E-Mail-Konten", "30 Datenbanken", "10 Domains", "Kostenloses CDN", "Priorität / 7/24 Support"],
+    generalFeatures: DEFAULT_GENERAL_FEATURES,
+  },
+  {
+    id: "professional",
+    name: "Professionell",
+    description: "Ausgewogene Leistung für professionelle Projekte.",
+    yearlyPrice: 2473,
+    twentyFourPrice: 4699,
+    thirtySixPrice: 6677,
+    monthlyPrice: 229,
+    tag: "business",
+    tagLabel: "Business Hosting",
+    featured: true,
+    enabled: true,
+    order: 6,
+    features: ["50 GB NVMe Disk", "Unbegrenzter Traffic", "3 vCPU", "6 GB RAM", "250 E-Mail-Konten", "50 Datenbanken", "25 Domains", "Dedicated IP Option", "Priorität / 7/24 Support"],
+    generalFeatures: DEFAULT_GENERAL_FEATURES,
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    description: "Für E-Commerce und stark besuchte Websites.",
+    yearlyPrice: 3769,
+    twentyFourPrice: 7161,
+    thirtySixPrice: 10176,
+    monthlyPrice: 349,
+    tag: "business",
+    tagLabel: "Business Hosting",
+    featured: false,
+    enabled: true,
+    order: 7,
+    features: ["100 GB NVMe Disk", "Unbegrenzter Traffic", "4 vCPU", "8 GB RAM", "Unbegrenzte E-Mails", "Unbegrenzte Datenbanken", "50 Domains", "Dedicated IP", "VIP / 7/24 Support"],
+    generalFeatures: DEFAULT_GENERAL_FEATURES,
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    description: "Maximale Performance und Ressourcen.",
+    yearlyPrice: 5929,
+    twentyFourPrice: 11265,
+    thirtySixPrice: 16008,
+    monthlyPrice: 549,
+    tag: "business",
+    tagLabel: "Business Hosting",
+    featured: false,
+    enabled: true,
+    order: 8,
+    features: ["Unbegrenzter Speicher", "Unbegrenzter Traffic", "6 vCPU", "16 GB RAM", "Unbegrenzte E-Mails", "Unbegrenzte Datenbanken", "Unbegrenzte Domains", "Dedizierte IP", "VIP 7/24 Support"],
+    generalFeatures: DEFAULT_GENERAL_FEATURES,
   },
 ];
 
 const formatCHF = (value) =>
   new Intl.NumberFormat("de-CH", {
-    style: "currency",
-    currency: "CHF",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+
+const monthlyEquivalent = (price, cycle) => {
+  const months = { monthly: 1, yearly: 12, twentyFour: 24, thirtySix: 36 }[cycle] || 12;
+  return Math.max(1, Math.round(Number(price || 0) / months));
+};
 
 export default function PremiumHostingPackages() {
-  const [billingCycle, setBillingCycle] = useState("yearly");
+  const [settings, setSettings] = useState({});
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [billingByPlan, setBillingByPlan] = useState({});
   const navigate = useNavigate();
 
+  useEffect(() => {
+    api.get("/site-settings").then((r) => setSettings(r.data || {})).catch(() => {});
+  }, []);
+
+  const hostingTabs = settings.hostingTabs?.length ? settings.hostingTabs : [
+    { key: "all", label: "Alle Pakete" },
+    { key: "economic", label: "Basis Hosting" },
+    { key: "business", label: "Business Hosting" },
+  ];
+
+  const storedPackages = settings.hostingPackages?.length ? settings.hostingPackages : [];
+  const hasProfessionalSchema = storedPackages.length >= 6 || storedPackages.some((plan) => Array.isArray(plan.generalFeatures));
+  const hostingPackages = hasProfessionalSchema ? storedPackages : DEFAULT_PACKAGES;
+
   const visiblePackages = useMemo(
-    () => hostingPackages.filter((plan) => plan.enabled).sort((a, b) => a.order - b.order),
-    []
+    () => hostingPackages
+      .filter((plan) => plan.enabled !== false)
+      .filter((plan) => activeFilter === "all" ? true : (plan.tag || "all") === activeFilter)
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0)),
+    [hostingPackages, activeFilter]
   );
 
-  const getCycleDetails = (plan) => {
-    const cycleMap = {
-      monthly: { total: plan.monthlyPrice, months: 1, label: "Monat" },
-      yearly: { total: plan.yearlyPrice, months: 12, label: "Jahr" },
-      twentyFour: { total: plan.twentyFourPrice, months: 24, label: "24 Monate" },
-      thirtySix: { total: plan.thirtySixPrice, months: 36, label: "36 Monate" },
-    };
+  const title = settings.hostingTitle || "Professionelle Hosting-Pakete";
+  const subtitle = settings.hostingSubtitle || "Schnelle, sichere und skalierbare Hosting-Lösungen für Websites, Unternehmen und E-Commerce-Projekte.";
 
-    const selected = cycleMap[billingCycle];
-    const monthlyEquivalent = selected.total / selected.months;
-    const savings = Math.max(0, Math.round(((plan.monthlyPrice - monthlyEquivalent) / plan.monthlyPrice) * 100));
-
-    return {
-      total: selected.total,
-      monthlyEquivalent,
-      label: selected.label,
-      savings,
-      totalLabel: `${formatCHF(selected.total)} / ${selected.label}`,
-      monthlyLabel: `${formatCHF(monthlyEquivalent)} / Monat`,
-    };
+  const selectedCycle = (plan) => billingByPlan[plan.id] || "yearly";
+  const selectedPrice = (plan) => {
+    const cycle = selectedCycle(plan);
+    return Number(plan[`${cycle}Price`] ?? plan.yearlyPrice ?? plan.monthlyPrice ?? 0);
   };
 
   const handleOrder = (plan) => {
-    const cycleDetails = getCycleDetails(plan);
+    const cycle = selectedCycle(plan);
+    const option = BILLING_OPTIONS.find((item) => item.key === cycle) || BILLING_OPTIONS[0];
     navigate("/order", {
       state: {
         selectedPlan: {
           planName: plan.name,
-          billingCycle,
-          billingLabel: cycleDetails.label,
-          price: cycleDetails.total,
-          monthlyEquivalent: cycleDetails.monthlyEquivalent,
+          billingCycle: cycle,
+          billingLabel: option.label,
+          price: selectedPrice(plan),
+          monthlyEquivalent: monthlyEquivalent(selectedPrice(plan), cycle),
         },
       },
     });
   };
 
   return (
-    <section id="hosting" className="relative overflow-hidden bg-slate-950 py-20 text-white sm:py-24">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.14),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.18),_transparent_30%)]" />
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section id="hosting" className="bg-[#eef3f8] py-16 sm:py-20">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold uppercase tracking-[0.3em] text-slate-200">
-            <Zap size={14} /> Premium Webhosting-Pakete
-          </div>
-          <h2 className="text-4xl font-black tracking-tight sm:text-5xl">
-            Schweizer Qualität für jede Wachstumsstufe.
-          </h2>
-          <p className="mt-5 text-lg leading-8 text-slate-300">
-            Professionelle Hosting-Tarife mit live anpassbaren Preisen, transparenten Rabatten und erstklassigem Support für anspruchsvolle Projekte.
-          </p>
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-[#1d2a55]">{settings.hostingBadge || "Hosting & Server"}</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-[#111a3a] sm:text-5xl">{title}</h2>
+          <p className="mt-4 text-sm leading-7 text-[#5f6e86] sm:text-base">{subtitle}</p>
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3 rounded-full border border-white/10 bg-white/10 p-2 backdrop-blur">
-          {billingOptions.map((option) => {
-            const isActive = billingCycle === option.key;
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {hostingTabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveFilter(tab.key)}
+              className={`h-11 rounded-lg border px-5 text-sm font-extrabold transition ${
+                activeFilter === tab.key
+                  ? "border-[#17224d] bg-[#17224d] text-white shadow-lg"
+                  : "border-[#d7e0ec] bg-white text-[#17224d] hover:border-[#17224d]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {visiblePackages.map((plan) => {
+            const cycle = selectedCycle(plan);
+            const option = BILLING_OPTIONS.find((item) => item.key === cycle) || BILLING_OPTIONS[0];
+            const total = selectedPrice(plan);
+            const monthly = monthlyEquivalent(total, cycle);
+            const generalFeatures = plan.generalFeatures?.length ? plan.generalFeatures : DEFAULT_GENERAL_FEATURES;
+
             return (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => setBillingCycle(option.key)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  isActive ? "bg-white text-slate-950 shadow-lg" : "text-slate-200 hover:bg-white/10"
-                }`}
-              >
-                <span>{option.label}</span>
-                <span className="ml-2 hidden text-xs opacity-70 sm:inline">{option.description}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-300">
-          <div className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-2">
-            <span className="font-semibold text-emerald-300">Bis zu 40% sparen</span> bei längeren Verträgen
-          </div>
-          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2">
-            <span className="font-semibold text-white">CHF 0.- Setup</span> auf alle Pakete
-          </div>
-        </div>
-
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
-          {visiblePackages.map((plan, index) => {
-            const cycleDetails = getCycleDetails(plan);
-            const Icon = plan.icon;
-            return (
-              <motion.article
+              <article
                 key={plan.id}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.45 }}
-                whileHover={{ y: -8, scale: 1.01, transition: { duration: 0.2 } }}
-                className={`relative rounded-[32px] border border-white/10 bg-gradient-to-br ${plan.accent} p-6 shadow-2xl backdrop-blur-xl ${
-                  plan.featured ? "ring-2 ring-cyan-400/60" : ""
+                className={`relative flex min-h-[620px] flex-col rounded-xl border bg-white p-5 shadow-[0_16px_40px_rgba(17,26,58,0.08)] transition hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(17,26,58,0.14)] ${
+                  plan.featured ? "border-[#08c7df] ring-2 ring-[#08c7df]" : "border-[#d9e2ee]"
                 }`}
               >
                 {plan.featured && (
-                  <div className="absolute right-4 top-4 rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-200">
-                    Empfohlen
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#08c7df] px-4 py-1 text-[11px] font-black text-[#111a3a]">
+                    Bestseller
                   </div>
                 )}
 
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-cyan-200">
-                    <Icon size={22} />
-                  </div>
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.3em] text-slate-400">{plan.subtitle}</p>
-                    <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-                  </div>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#dff8ff] text-[#08a8c0]">
+                    <Server size={18} />
+                  </span>
+                  <h3 className="text-lg font-black text-[#111a3a]">{plan.name}</h3>
                 </div>
 
-                <p className="mt-5 text-sm leading-7 text-slate-300">{plan.description}</p>
+                <p className="mt-4 min-h-[44px] text-sm leading-6 text-[#5f6e86]">{plan.description}</p>
 
-                <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-                  <div className="text-4xl font-black text-white">{cycleDetails.monthlyLabel}</div>
-                  <div className="mt-1 text-sm text-slate-400">{cycleDetails.totalLabel}</div>
-                  {cycleDetails.savings > 0 && (
-                    <div className="mt-3 inline-flex rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-300">
-                      <Sparkles size={14} className="mr-2 mt-0.5" /> {cycleDetails.savings}% sparen
-                    </div>
-                  )}
+                <div className="mt-4">
+                  <div className="flex items-end gap-2">
+                    <span className="text-4xl font-black tracking-tight text-[#111a3a]">{formatCHF(total)}</span>
+                    <span className="pb-1 text-sm font-black text-[#111a3a]">CHF</span>
+                  </div>
+                  <p className="mt-1 text-sm text-[#5f6e86]">{option.suffix}</p>
+                  <p className="text-xs font-extrabold text-[#009bb8]">({formatCHF(monthly)} CHF/Monat)</p>
                 </div>
 
-                <ul className="mt-6 space-y-3 text-sm text-slate-200">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3">
-                      <Check size={16} className="mt-0.5 shrink-0 text-cyan-300" />
+                <label className="mt-4 block">
+                  <span className="sr-only">Abrechnung wählen</span>
+                  <div className="relative">
+                    <select
+                      value={cycle}
+                      onChange={(event) => setBillingByPlan((current) => ({ ...current, [plan.id]: event.target.value }))}
+                      className="h-11 w-full appearance-none rounded-lg border border-[#d7e0ec] bg-white px-3 pr-9 text-sm font-semibold text-[#17224d] outline-none transition focus:border-[#08c7df]"
+                    >
+                      {BILLING_OPTIONS.map((item) => (
+                        <option key={item.key} value={item.key}>{item.label} ({item.note})</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#5f6e86]" />
+                  </div>
+                </label>
+
+                <ul className="mt-5 space-y-0">
+                  {(plan.features || []).map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 border-b border-[#e8eef5] py-2 text-sm text-[#26344f]">
+                      <Check size={15} className="mt-0.5 shrink-0 text-[#18b66a]" />
                       <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
 
-                <button
-                  type="button"
-                  onClick={() => handleOrder(plan)}
-                  className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold uppercase tracking-[0.22em] transition ${
-                    plan.featured
-                      ? "bg-cyan-400 text-slate-950 hover:bg-cyan-300"
-                      : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
-                >
-                  Jetzt bestellen <ArrowRight size={16} />
-                </button>
-              </motion.article>
+                <div className="mt-auto pt-6">
+                  <div className="border-t border-[#dbe4ef] pt-4">
+                    <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#5f6e86]">Allgemeine Features</p>
+                    <ul className="space-y-2">
+                      {generalFeatures.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2 text-xs text-[#26344f]">
+                          <Check size={13} className="mt-0.5 shrink-0 text-[#18b66a]" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2 text-[18px] font-black">
+                    <span className="text-[#ff7a21]">cPanel</span>
+                    <span className="text-[#2a70b8]">LiteSpeed</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOrder(plan)}
+                    className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg text-sm font-black text-white transition ${
+                      plan.featured ? "bg-[#08c7df] hover:bg-[#06b5ca]" : "bg-[#17224d] hover:bg-[#23346f]"
+                    }`}
+                  >
+                    <ShoppingCart size={16} /> In den Warenkorb
+                  </button>
+                </div>
+              </article>
             );
           })}
         </div>
 
-        <div className="mt-10 rounded-[28px] border border-white/10 bg-white/5 p-6 text-sm text-slate-300 shadow-2xl backdrop-blur-xl">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h3 className="text-xl font-semibold text-white">Admin-ready für spätere Dashboard-verwaltung</h3>
-              <p className="mt-2 max-w-2xl">
-                Jedes Paket ist als wiederverwendbare Datenstruktur aufgebaut und kann später mit Namen, Preisen, Features, Icons, Empfehlungen und Aktivstatus aus einem Admin-Panel verwaltet werden.
-              </p>
-            </div>
-            <div className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 font-semibold text-cyan-200">
-              Skalierbar · Wartbar · Premium
-            </div>
-          </div>
-        </div>
+        <p className="mt-8 text-center text-sm text-[#5f6e86]">
+          Sie sind nicht sicher, welches Paket passt? <button onClick={() => navigate("/account")} className="font-bold text-[#08a8c0] hover:underline">Kontakt aufnehmen</button>, wir beraten Sie gerne.
+        </p>
       </div>
     </section>
   );

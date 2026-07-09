@@ -5,11 +5,13 @@ import api from "../../api";
 const DEFAULT = {
   heroSubtitle: "", heroTagline: "", heroSlides: [],
   badgeEnabled: true, badgeNumber: "12", badgeUnit: "MONATE",
-  badgeText1: "kostenloser", badgeText2: "Support",
-  badgeFooter1: "für unsere Kunden", badgeFooter2: "inklusive!",
-  btnContactSmall: "", btnContactLarge: "",
-  btnQuoteSmall: "", btnQuoteLarge: "",
+  badgeText1: "Premium", badgeText2: "Support",
+  badgeFooter1: "für unsere Kunden", badgeFooter2: "inklusive",
+  btnContactSmall: "Sie haben Fragen?", btnContactLarge: "Projekt besprechen",
+  btnQuoteSmall: "Planen Sie ein Projekt?", btnQuoteLarge: "Beratung anfragen",
   partners: [], ratingStars: "★★★★★", ratingText: "", stats: [],
+  homeMarqueeEnabled: false, homeMarqueeText: "", homeMarqueeSpeed: 34, homeMarqueeItems: [],
+  accountMarqueeEnabled: false, accountMarqueeText: "", accountMarqueeSpeed: 38, accountMarqueeItems: [],
   navItems: [],
   // sections
   howWeWorkTitle: "", howWeWorkSubtitle: "", workSteps: [],
@@ -17,6 +19,83 @@ const DEFAULT = {
   whyUsTitle: "", whyUsSubtitle: "", reasons: [],
   servicesTitle: "", servicesSubtitle: "",
   projectsTitle: "", projectsSubtitle: "",
+  hostingBadge: "Hosting & Server", hostingTitle: "Hosting- und Serverpakete", hostingSubtitle: "Alles, was Sie brauchen, sauber steuerbar über das Admin-Panel.",
+  hostingTabs: [
+    { key: "all", label: "Alle Pakete" },
+    { key: "economic", label: "Basis Hosting" },
+    { key: "business", label: "Business Hosting" },
+  ],
+  hostingHighlights: ["CHF 0.- Setup", "Transparent anpassbar", "Sofort online bestellbar"],
+  hostingPackages: [
+    {
+      id: "starter",
+      name: "Start",
+      subtitle: "Privat",
+      description: "Ideal für persönliche Websites und kleinere Projekte.",
+      monthlyPrice: 9.9,
+      yearlyPrice: 99,
+      twentyFourPrice: 189,
+      thirtySixPrice: 239,
+      featured: false,
+      enabled: true,
+      order: 1,
+      tag: "hosting",
+      icon: "Rocket",
+      accent: "from-sky-500/20 via-cyan-400/10 to-white/5",
+      features: ["5 GB NVMe SSD", "LiteSpeed + cPanel", "Tägliche Backups", "SSL-Zertifikat inklusive", "24/7 Support"],
+    },
+    {
+      id: "business",
+      name: "Standard",
+      subtitle: "Wachsend",
+      description: "Für kleine Unternehmen und aktive Webauftritte.",
+      monthlyPrice: 19.9,
+      yearlyPrice: 199,
+      twentyFourPrice: 379,
+      thirtySixPrice: 479,
+      featured: true,
+      enabled: true,
+      order: 2,
+      tag: "hosting",
+      icon: "ShieldCheck",
+      accent: "from-violet-500/25 via-fuchsia-400/10 to-white/5",
+      features: ["25 GB NVMe SSD", "Priority-Support", "WAF & DDoS-Schutz", "Mehrere Domains", "Staging-Umgebungen"],
+    },
+    {
+      id: "premium",
+      name: "Plus",
+      subtitle: "Business",
+      description: "Für hohe Auslastung und anspruchsvolle Unternehmensprojekte.",
+      monthlyPrice: 39.9,
+      yearlyPrice: 399,
+      twentyFourPrice: 759,
+      thirtySixPrice: 959,
+      featured: false,
+      enabled: true,
+      order: 3,
+      tag: "business",
+      icon: "Crown",
+      accent: "from-amber-500/20 via-orange-400/10 to-white/5",
+      features: ["100 GB NVMe SSD", "Dedizierte Ressourcen", "Premium SLA", "Geo-Load-Balancing", "24/7 Lead-Support"],
+    },
+    {
+      id: "enterprise",
+      name: "Enterprise",
+      subtitle: "Maximal",
+      description: "Für große Plattformen, Teams und hohe Besucherzahlen.",
+      monthlyPrice: 79.9,
+      yearlyPrice: 799,
+      twentyFourPrice: 1499,
+      thirtySixPrice: 2099,
+      featured: false,
+      enabled: true,
+      order: 4,
+      tag: "business",
+      icon: "Crown",
+      accent: "from-slate-500/20 via-blue-400/10 to-white/5",
+      features: ["200 GB NVMe SSD", "Dedizierte Ressourcen", "Priorisierter Support", "Mehrere Staging-Instanzen", "Individuelle Betreuung"],
+    },
+  ],
   promoSectionLabel: "", promoVideoUrl: "", promoVideoTitle: "", promoVideoSubtitle: "",
   // contact
   contactTitle: "", contactSubtitle: "", contactIntro: "",
@@ -47,6 +126,7 @@ const TABS = [
   { id: "hero", label: "Hero & Slides" },
   { id: "badge", label: "Badge" },
   { id: "buttons", label: "Buttons" },
+  { id: "marquee", label: "Lauftext" },
   { id: "nav", label: "Navigation" },
   { id: "partners", label: "Partner / Bewertung" },
   { id: "stats", label: "Statistiken" },
@@ -138,7 +218,7 @@ export default function SiteSettings() {
           <>
             <Field label="Hero-Untertitel" hint="<y>...</y> = gelb. Enter für neue Zeile."><TextArea rows={4} value={data.heroSubtitle} onChange={(e) => update("heroSubtitle", e.target.value)} data-testid="hero-subtitle-input" /></Field>
             <Field label="Hero-Tagline" hint="Erscheint in Gelb unter dem Untertitel."><Input value={data.heroTagline} onChange={(e) => update("heroTagline", e.target.value)} data-testid="hero-tagline-input" /></Field>
-            <ArrayEditor label={`Hero-Slides (${arr("heroSlides").length}) – wechseln alle 3,5 Sek.`} items={arr("heroSlides")} onAdd={() => itemAdd("heroSlides", { highlight: "Neu", word: "Webdesign" })} onRemove={(i) => itemRemove("heroSlides", i)} onMove={(i, d) => itemMove("heroSlides", i, d)} render={(it, i) => (
+            <ArrayEditor label={`Hero-Slides (${arr("heroSlides").length}) – wechseln alle 3,5 Sek.`} items={arr("heroSlides")} onAdd={() => itemAdd("heroSlides", { highlight: "Neu", word: "Webauftritt" })} onRemove={(i) => itemRemove("heroSlides", i)} onMove={(i, d) => itemMove("heroSlides", i, d)} render={(it, i) => (
               <>
                 <Input placeholder="Highlight (blau)" value={it.highlight} onChange={(e) => itemUpdate("heroSlides", i, { highlight: e.target.value })} />
                 <Input placeholder="Wort (weiß)" value={it.word} onChange={(e) => itemUpdate("heroSlides", i, { word: e.target.value })} />
@@ -179,6 +259,63 @@ export default function SiteSettings() {
           </div>
         )}
 
+        {tab === "marquee" && (
+          <div className="grid lg:grid-cols-2 gap-5">
+            <Section title="Startseite">
+              <label className="flex items-center gap-3 select-none">
+                <input type="checkbox" checked={!!data.homeMarqueeEnabled} onChange={(e) => update("homeMarqueeEnabled", e.target.checked)} className="w-4 h-4 accent-[#E63946]" />
+                <span className="text-sm font-semibold text-[#0f172a]">Lauftext auf der Startseite anzeigen</span>
+              </label>
+              <Field label="Geschwindigkeit" hint="Sekunden pro Durchlauf. Größer = langsamer. Empfehlung: 30-45.">
+                <Input type="number" min="10" max="120" value={data.homeMarqueeSpeed || 34} onChange={(e) => update("homeMarqueeSpeed", Number(e.target.value))} />
+              </Field>
+              <Field label="Fallback-Text" hint="Wird genutzt, wenn keine einzelnen Lauftext-Einträge angelegt sind.">
+                <TextArea rows={2} value={data.homeMarqueeText || ""} onChange={(e) => update("homeMarqueeText", e.target.value)} placeholder="Aktuelle Aktion, wichtige Mitteilung oder Hinweis..." />
+              </Field>
+              <ArrayEditor
+                label={`Lauftext-Einträge (${arr("homeMarqueeItems").length})`}
+                items={arr("homeMarqueeItems")}
+                onAdd={() => itemAdd("homeMarqueeItems", { text: "Neue Mitteilung", image: "", href: "" })}
+                onRemove={(i) => itemRemove("homeMarqueeItems", i)}
+                onMove={(i, d) => itemMove("homeMarqueeItems", i, d)}
+                render={(it, i) => (
+                  <>
+                    <Input placeholder="Text" value={it.text || ""} onChange={(e) => itemUpdate("homeMarqueeItems", i, { text: e.target.value })} />
+                    <Input placeholder="Bild-URL optional" value={it.image || ""} onChange={(e) => itemUpdate("homeMarqueeItems", i, { image: e.target.value })} />
+                    <Input placeholder="Link optional" value={it.href || ""} onChange={(e) => itemUpdate("homeMarqueeItems", i, { href: e.target.value })} className="sm:col-span-2" />
+                  </>
+                )}
+              />
+            </Section>
+            <Section title="Mitgliedschaft / Kundenpanel">
+              <label className="flex items-center gap-3 select-none">
+                <input type="checkbox" checked={!!data.accountMarqueeEnabled} onChange={(e) => update("accountMarqueeEnabled", e.target.checked)} className="w-4 h-4 accent-[#E63946]" />
+                <span className="text-sm font-semibold text-[#0f172a]">Lauftext im Kundenpanel anzeigen</span>
+              </label>
+              <Field label="Geschwindigkeit" hint="Sekunden pro Durchlauf. Größer = langsamer. Empfehlung: 34-50.">
+                <Input type="number" min="10" max="120" value={data.accountMarqueeSpeed || 38} onChange={(e) => update("accountMarqueeSpeed", Number(e.target.value))} />
+              </Field>
+              <Field label="Fallback-Text" hint="Wird genutzt, wenn keine einzelnen Lauftext-Einträge angelegt sind.">
+                <TextArea rows={2} value={data.accountMarqueeText || ""} onChange={(e) => update("accountMarqueeText", e.target.value)} placeholder="Wartungsfenster, Zahlungsinfo oder Kundenhinweis..." />
+              </Field>
+              <ArrayEditor
+                label={`Lauftext-Einträge (${arr("accountMarqueeItems").length})`}
+                items={arr("accountMarqueeItems")}
+                onAdd={() => itemAdd("accountMarqueeItems", { text: "Neue Kundeninfo", image: "", href: "" })}
+                onRemove={(i) => itemRemove("accountMarqueeItems", i)}
+                onMove={(i, d) => itemMove("accountMarqueeItems", i, d)}
+                render={(it, i) => (
+                  <>
+                    <Input placeholder="Text" value={it.text || ""} onChange={(e) => itemUpdate("accountMarqueeItems", i, { text: e.target.value })} />
+                    <Input placeholder="Bild-URL optional" value={it.image || ""} onChange={(e) => itemUpdate("accountMarqueeItems", i, { image: e.target.value })} />
+                    <Input placeholder="Link optional" value={it.href || ""} onChange={(e) => itemUpdate("accountMarqueeItems", i, { href: e.target.value })} className="sm:col-span-2" />
+                  </>
+                )}
+              />
+            </Section>
+          </div>
+        )}
+
         {tab === "nav" && (
           <ArrayEditor label={`Navigation (${arr("navItems").length})`} items={arr("navItems")} onAdd={() => itemAdd("navItems", { label: "neu", href: "#" })} onRemove={(i) => itemRemove("navItems", i)} onMove={(i, d) => itemMove("navItems", i, d)} render={(it, i) => (
             <>
@@ -216,7 +353,7 @@ export default function SiteSettings() {
               <Field label="Titel"><Input value={data.howWeWorkTitle} onChange={(e) => update("howWeWorkTitle", e.target.value)} /></Field>
               <Field label="Untertitel"><Input value={data.howWeWorkSubtitle} onChange={(e) => update("howWeWorkSubtitle", e.target.value)} /></Field>
             </Section>
-            <Section title="Was wir tun">
+            <Section title="Leistungen">
               <Field label="Titel"><Input value={data.servicesTitle} onChange={(e) => update("servicesTitle", e.target.value)} /></Field>
               <Field label="Untertitel"><Input value={data.servicesSubtitle} onChange={(e) => update("servicesSubtitle", e.target.value)} /></Field>
             </Section>
@@ -224,7 +361,7 @@ export default function SiteSettings() {
               <Field label="Titel"><Input value={data.featuresTitle} onChange={(e) => update("featuresTitle", e.target.value)} /></Field>
               <Field label="Untertitel"><Input value={data.featuresSubtitle} onChange={(e) => update("featuresSubtitle", e.target.value)} /></Field>
             </Section>
-            <Section title="Was wir gemacht haben">
+            <Section title="Referenzprojekte">
               <Field label="Titel"><Input value={data.projectsTitle} onChange={(e) => update("projectsTitle", e.target.value)} /></Field>
               <Field label="Untertitel"><Input value={data.projectsSubtitle} onChange={(e) => update("projectsSubtitle", e.target.value)} /></Field>
             </Section>
@@ -238,6 +375,119 @@ export default function SiteSettings() {
               <Field label="Titel"><Input value={data.promoVideoTitle} onChange={(e) => update("promoVideoTitle", e.target.value)} /></Field>
               <Field label="Untertitel"><Input value={data.promoVideoSubtitle} onChange={(e) => update("promoVideoSubtitle", e.target.value)} /></Field>
             </Section>
+          </div>
+        )}
+
+        {tab === "hosting" && (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <Field label="Badge / Etikett"><Input value={data.hostingBadge || ""} onChange={(e) => update("hostingBadge", e.target.value)} placeholder="Hosting & Server" /></Field>
+              <Field label="Titel"><Input value={data.hostingTitle || ""} onChange={(e) => update("hostingTitle", e.target.value)} placeholder="Hosting- und Serverpakete" /></Field>
+            </div>
+            <Field label="Untertitel"><TextArea rows={3} value={data.hostingSubtitle || ""} onChange={(e) => update("hostingSubtitle", e.target.value)} placeholder="Alles, was Sie brauchen, sauber steuerbar über das Admin-Panel." /></Field>
+
+            <ArrayEditor
+              label={`Filter / Tabs (${arr("hostingTabs").length})`}
+              items={arr("hostingTabs")}
+              onAdd={() => itemAdd("hostingTabs", { key: "new", label: "Neuer Tab" })}
+              onRemove={(i) => itemRemove("hostingTabs", i)}
+              onMove={(i, d) => itemMove("hostingTabs", i, d)}
+              render={(it, i) => (
+                <>
+                  <Input placeholder="Key" value={it.key || ""} onChange={(e) => itemUpdate("hostingTabs", i, { key: e.target.value })} />
+                  <Input placeholder="Label" value={it.label || ""} onChange={(e) => itemUpdate("hostingTabs", i, { label: e.target.value })} />
+                </>
+              )}
+            />
+
+            <ArrayEditor
+              label={`Highlights (${arr("hostingHighlights").length})`}
+              items={arr("hostingHighlights")}
+              onAdd={() => itemAdd("hostingHighlights", "Neuer Vorteil")}
+              onRemove={(i) => itemRemove("hostingHighlights", i)}
+              onMove={(i, d) => itemMove("hostingHighlights", i, d)}
+              render={(it, i) => (
+                <Input value={it} onChange={(e) => itemUpdate("hostingHighlights", i, { value: e.target.value })} />
+              )}
+            />
+
+            <ArrayEditor
+              label={`Hosting-Pakete (${arr("hostingPackages").length})`}
+              items={arr("hostingPackages")}
+              onAdd={() => itemAdd("hostingPackages", {
+                id: `pkg-${Date.now()}`,
+                name: "Neues Paket",
+                subtitle: "Kurzbeschreibung",
+                description: "Paketbeschreibung",
+                monthlyPrice: 0,
+                yearlyPrice: 0,
+                twentyFourPrice: 0,
+                thirtySixPrice: 0,
+                featured: false,
+                enabled: true,
+                order: 0,
+                tag: "economic",
+                tagLabel: "Basis Hosting",
+                icon: "Server",
+                accent: "",
+                features: ["10 GB SSD Disk", "250 GB Traffic", "2 vCPU", "2 GB RAM"],
+                generalFeatures: ["cPanel Kontrollpanel", "LiteSpeed Web Server", "CloudLinux & CageFS", "PHP 5.3 - 8.5"],
+              })}
+              onRemove={(i) => itemRemove("hostingPackages", i)}
+              onMove={(i, d) => itemMove("hostingPackages", i, d)}
+              render={(it, i) => (
+                <>
+                  <Field label="Paket-ID"><Input placeholder="starter" value={it.id || ""} onChange={(e) => itemUpdate("hostingPackages", i, { id: e.target.value })} /></Field>
+                  <Field label="Paketname"><Input placeholder="Standard" value={it.name || ""} onChange={(e) => itemUpdate("hostingPackages", i, { name: e.target.value })} /></Field>
+                  <Field label="Kategorie-Key"><Input placeholder="economic oder business" value={it.tag || ""} onChange={(e) => itemUpdate("hostingPackages", i, { tag: e.target.value })} /></Field>
+                  <Field label="Kategorie-Label"><Input placeholder="Basis Hosting" value={it.tagLabel || it.subtitle || ""} onChange={(e) => itemUpdate("hostingPackages", i, { tagLabel: e.target.value, subtitle: e.target.value })} /></Field>
+                  <Field label="Monatlich CHF"><Input type="number" step="1" value={it.monthlyPrice ?? 0} onChange={(e) => itemUpdate("hostingPackages", i, { monthlyPrice: parseFloat(e.target.value) || 0 })} /></Field>
+                  <Field label="1 Jahr CHF"><Input type="number" step="1" value={it.yearlyPrice ?? 0} onChange={(e) => itemUpdate("hostingPackages", i, { yearlyPrice: parseFloat(e.target.value) || 0 })} /></Field>
+                  <Field label="2 Jahre CHF"><Input type="number" step="1" value={it.twentyFourPrice ?? 0} onChange={(e) => itemUpdate("hostingPackages", i, { twentyFourPrice: parseFloat(e.target.value) || 0 })} /></Field>
+                  <Field label="3 Jahre CHF"><Input type="number" step="1" value={it.thirtySixPrice ?? 0} onChange={(e) => itemUpdate("hostingPackages", i, { thirtySixPrice: parseFloat(e.target.value) || 0 })} /></Field>
+                  <Field label="Reihenfolge"><Input type="number" value={it.order ?? 0} onChange={(e) => itemUpdate("hostingPackages", i, { order: parseInt(e.target.value || "0", 10) })} /></Field>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-[#0f172a]">
+                    <input type="checkbox" checked={!!it.featured} onChange={(e) => itemUpdate("hostingPackages", i, { featured: e.target.checked })} />
+                    Als Bestseller markieren
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-[#0f172a]">
+                    <input type="checkbox" checked={it.enabled !== false} onChange={(e) => itemUpdate("hostingPackages", i, { enabled: e.target.checked })} />
+                    Aktiv
+                  </label>
+                  <div className="sm:col-span-2">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-1.5">Paket-Features</span>
+                    <TextArea
+                      rows={8}
+                      placeholder={"10 GB SSD Disk\n250 GB Traffic\n2 vCPU\n2 GB RAM\n50 E-Mail-Konten"}
+                      value={(it.features || []).join("\n")}
+                      onChange={(e) => itemUpdate("hostingPackages", i, {
+                        features: e.target.value.split("\n").map((line) => line.trim()).filter(Boolean),
+                      })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-1.5">Allgemeine Features</span>
+                    <TextArea
+                      rows={5}
+                      placeholder={"cPanel Kontrollpanel\nLiteSpeed Web Server\nCloudLinux & CageFS\nPHP 5.3 - 8.5"}
+                      value={(it.generalFeatures || []).join("\n")}
+                      onChange={(e) => itemUpdate("hostingPackages", i, {
+                        generalFeatures: e.target.value.split("\n").map((line) => line.trim()).filter(Boolean),
+                      })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-1.5">Beschreibung</span>
+                    <TextArea
+                      rows={3}
+                      placeholder="Paketbeschreibung"
+                      value={it.description || ""}
+                      onChange={(e) => itemUpdate("hostingPackages", i, { description: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+            />
           </div>
         )}
 
@@ -263,7 +513,7 @@ export default function SiteSettings() {
               <Field label="📞 Telefon"><Input value={data.contactPhone} onChange={(e) => update("contactPhone", e.target.value)} data-testid="contact-phone-input" placeholder="+41 44 000 00 00" /></Field>
               <Field label="Telefon-Zeiten"><Input value={data.contactPhoneHours} onChange={(e) => update("contactPhoneHours", e.target.value)} placeholder="Mo–Fr 8–18 Uhr" /></Field>
               <Field label="✉️ E-Mail"><Input value={data.contactEmail} onChange={(e) => update("contactEmail", e.target.value)} data-testid="contact-email-input" placeholder="info@firma.ch" /></Field>
-              <Field label="E-Mail-Hinweis"><Input value={data.contactEmailNote} onChange={(e) => update("contactEmailNote", e.target.value)} placeholder="Antwort innert 24 h" /></Field>
+              <Field label="E-Mail-Hinweis"><Input value={data.contactEmailNote} onChange={(e) => update("contactEmailNote", e.target.value)} placeholder="Antwort innert 24 Stunden" /></Field>
               <Field label="💬 WhatsApp"><Input value={data.contactWhatsapp} onChange={(e) => update("contactWhatsapp", e.target.value)} data-testid="contact-whatsapp-input" placeholder="+41 79 000 00 00" /></Field>
               <Field label="📍 Adresse"><Input value={data.contactAddress} onChange={(e) => update("contactAddress", e.target.value)} data-testid="contact-address-input" placeholder="Bahnhofstrasse 1, 8001 Zürich" /></Field>
             </div>
