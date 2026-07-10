@@ -469,7 +469,7 @@ export default function HostingPackages() {
         >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-emerald-300 font-bold"><Gavel size={15} /> Domain Auktionen</span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-emerald-300 font-bold"><Gavel size={15} /> Auktionen</span>
               <h3 className="mt-5 text-4xl sm:text-5xl font-extrabold">Premium-Domains live kaufen oder ersteigern</h3>
               <p className="mt-4 max-w-3xl text-slate-300 leading-7">Registrierte Kunden können Auktionen live verfolgen, Gebote abgeben und Domains per Stripe oder TWINT bezahlen. Die Vertragsübernahme wird automatisch als Position berechnet.</p>
             </div>
@@ -590,14 +590,14 @@ export default function HostingPackages() {
       <AnimatePresence>
         {paymentModal && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setPaymentModal(false)}
           >
             <motion.div
-              className="relative max-w-3xl w-full mx-4 rounded-[34px] bg-white p-7 shadow-2xl"
+              className="relative max-h-[100dvh] w-full max-w-3xl overflow-y-auto rounded-t-[28px] bg-white p-5 shadow-2xl sm:max-h-[92vh] sm:rounded-[34px] sm:p-7"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -643,8 +643,8 @@ export default function HostingPackages() {
           </motion.div>
         )}
         {bidModal && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setBidModal(null)}>
-            <motion.div className="relative max-w-lg w-full mx-4 rounded-[32px] bg-slate-950 p-7 text-white border border-white/10 shadow-2xl" initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }} onClick={(e) => e.stopPropagation()}>
+          <motion.div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setBidModal(null)}>
+            <motion.div className="relative max-h-[100dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] border border-white/10 bg-slate-950 p-5 text-white shadow-2xl sm:max-h-[92vh] sm:rounded-[32px] sm:p-7" initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setBidModal(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X size={22} /></button>
               <div className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300"><Gavel size={14} /> Live Auktion</div>
               <h3 className="mt-4 text-3xl font-black">{bidModal.domain}</h3>

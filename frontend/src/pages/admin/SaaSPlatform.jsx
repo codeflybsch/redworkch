@@ -14,7 +14,7 @@ const modules = [
   { title: "TWINT Zahlung", icon: BadgeCheck, status: "Referenzprüfung", text: "TWINT-Referenzen werden Rechnungen und Bestellungen zugeordnet." },
   { title: "BullMQ Queue", icon: Zap, status: "Redis Jobs", text: "Provisionierung, E-Mail und WHM-Sync laufen getrennt und skalierbar." },
   { title: "JWT Security", icon: Lock, status: "Access + Refresh", text: "Admin und Kundenrollen sind für API-First Kommunikation vorbereitet." },
-  { title: "Domain Auktionen", icon: Gavel, status: "Live Gebote", text: "Auktionen, Sofortkauf, Gebote und Zahlungsfreigabe in einem Modul." },
+  { title: "Auktionen", icon: Gavel, status: "Live Gebote", text: "Auktionen, Sofortkauf, Gebote und Zahlungsfreigabe in einem Modul." },
   { title: "cPanel SSO", icon: KeyRound, status: "One Click Login", text: "Kunden können cPanel später direkt aus dem Dashboard öffnen." },
 ];
 

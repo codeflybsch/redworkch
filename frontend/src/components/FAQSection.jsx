@@ -39,7 +39,7 @@ export default function FAQSection() {
             <span className="section-title-hash">#</span> {settings.faqTitle || "Häufig gestellte Fragen"}
           </h2>
           <p className="text-[#E63946] font-bold tracking-wider text-sm mt-2">{faqs.length} ANTWORTEN</p>
-          <p className="text-[#475569] mt-4 text-sm sm:text-base">{settings.faqSubtitle || "Antworten auf die häufigsten Fragen unserer Kundinnen und Kunden"}</p>
+          <p className="text-[#475569] mt-4 text-sm sm:text-base">{settings.faqSubtitle || "Antworten auf die wichtigsten Fragen, klar formuliert und ohne Umwege"}</p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -47,7 +47,7 @@ export default function FAQSection() {
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               value={q} onChange={(e) => setQ(e.target.value)}
-              placeholder="Frage durchsuchen..." data-testid="faq-public-search"
+              placeholder="Frage suchen..." data-testid="faq-public-search"
               className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-[#e2e8f0] focus:border-[#E63946] focus:outline-none bg-white text-sm"
             />
           </div>

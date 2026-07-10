@@ -3,7 +3,7 @@ import api from "../api";
 import { reasons } from "../mock";
 
 export default function WhyUs() {
-  const [s, setS] = useState({ whyUsTitle: "Warum redwork.ch ?", whyUsSubtitle: "UNSERE VORTEILE" });
+  const [s, setS] = useState({ whyUsTitle: "Warum redwork.ch", whyUsSubtitle: "UNSER ANSPRUCH" });
 
   useEffect(() => {
     api.get("/site-settings").then((r) => setS((prev) => ({ ...prev, ...r.data }))).catch(() => {});
@@ -18,10 +18,9 @@ export default function WhyUs() {
           </h2>
           <p className="text-[#E63946] font-bold tracking-wider text-sm mt-2">{s.whyUsSubtitle}</p>
           <p className="text-[#475569] mt-6 leading-relaxed">
-            Seit über 10 Jahren tragen wir als preisgekrönte Webdesign- und Software-Agentur dazu bei, dass Marken
-            eine starke Identität in der digitalen Welt aufbauen. redwork.ch schafft mit seinem Expertenteam in den
-            Bereichen professionelles Webdesign, SEO, E-Commerce und digitales Marketing einen Mehrwert für
-            Unternehmen in der Schweiz und Europa.
+            Seit über zehn Jahren begleiten wir Unternehmen mit digitalen Auftritten, die nicht nach Vorlage wirken,
+            sondern nach Substanz. redwork.ch verbindet Webdesign, Software, SEO, E-Commerce und digitales Marketing
+            zu Lösungen, die sauber aufgebaut sind und im Alltag tragen.
           </p>
         </div>
 

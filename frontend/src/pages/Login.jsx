@@ -52,14 +52,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-[40px] bg-white p-10 shadow-[0_30px_80px_rgba(15,23,42,0.08)]">
+    <div className="flex min-h-screen items-center justify-center bg-[#f8fafc] p-4 sm:p-6">
+      <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] sm:rounded-[40px] sm:p-10">
         
         {/* Header */}
         <div className="mb-8 text-center">
           <p className="text-sm uppercase tracking-[0.3em] text-[#E63946] font-semibold">Anmelden</p>
           <h1 className="mt-3 text-3xl font-extrabold text-[#0f172a]">Willkommen zurück</h1>
-          <p className="mt-4 text-slate-500">Melden Sie sich an, um auf Ihr Dashboard zuzugreifen.</p>
+          <p className="mt-4 text-slate-500">Mit Ihrem Konto erhalten Sie direkten Zugriff auf Projekte, Hosting und Support.</p>
         </div>
 
         {/* Form */}
@@ -123,7 +123,7 @@ export default function Login() {
           </button>
 
           {/* Links */}
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col gap-3 pt-2 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
             <Link
               to="/password-reset"
               className="text-sm text-[#E63946] hover:text-[#c5303d] transition"
@@ -144,10 +144,10 @@ export default function Login() {
           <div className="flex items-start gap-3">
             <CheckCircle size={18} className="text-[#22c55e] mt-1 flex-shrink-0" />
             <div>
-              <p className="font-semibold text-[#0f172a]">Sicherer Zugang</p>
+              <p className="font-semibold text-[#0f172a]">Verlässlicher Zugang</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li>Verschlüsselte Verbindung (SSL/TLS)</li>
-                <li>Sichere Token-basierte Authentifizierung</li>
+                <li>Verschlüsselte Verbindung mit SSL / TLS</li>
+                <li>Token-basierte Anmeldung für eine stabile Sitzung</li>
                 <li>Automatische Abmeldung nach Inaktivität</li>
               </ul>
             </div>

@@ -100,11 +100,11 @@ export function AuthProvider({ children }) {
   /**
    * Customer logout
    */
-  const logout = useCallback(() => {
+  const logout = useCallback((redirectTo = "/") => {
     tokenStorage.remove();
     setUser(null);
     setError(null);
-    window.location.href = "/";
+    window.location.href = redirectTo;
   }, []);
 
   /**

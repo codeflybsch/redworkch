@@ -51,9 +51,9 @@ export default function ContactModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm fade-in">
-      <div className="relative w-full max-w-xl max-h-[92vh] overflow-hidden bg-white rounded-3xl shadow-2xl flex flex-col">
-        <div className="bg-gradient-to-br from-[#E63946] to-[#a8202e] text-white px-7 pt-6 pb-5 relative">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm fade-in sm:items-center sm:p-4">
+      <div className="relative flex max-h-[100dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-h-[92vh] sm:rounded-3xl">
+        <div className="relative bg-gradient-to-br from-[#E63946] to-[#a8202e] px-5 pb-4 pt-5 text-white sm:px-7 sm:pb-5 sm:pt-6">
           <button
             onClick={closeContact}
             className="absolute top-5 right-5 w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition"
@@ -63,17 +63,17 @@ export default function ContactModal() {
           </button>
           <p className="text-white/80 text-xs tracking-[0.2em] font-bold">KONTAKT</p>
           <h2 className="text-[24px] font-extrabold mt-1">Schreiben Sie uns</h2>
-          <p className="text-white/85 text-sm mt-1">Wir antworten innerhalb von 24 Stunden.</p>
+          <p className="text-white/85 text-sm mt-1">Wir melden uns in der Regel innerhalb eines Werktags.</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-[#f8fafc]">
+        <div className="flex-1 overflow-y-auto bg-[#f8fafc] p-4 sm:p-6">
           {success ? (
             <div className="text-center py-10">
               <div className="w-20 h-20 mx-auto bg-[#22C55E]/10 rounded-full flex items-center justify-center mb-5">
                 <CheckCircle2 size={50} className="text-[#22C55E]" />
               </div>
               <h3 className="text-2xl font-extrabold text-[#0f172a]">Nachricht gesendet!</h3>
-              <p className="text-[#475569] mt-3">Vielen Dank, wir melden uns in Kürze bei Ihnen.</p>
+              <p className="text-[#475569] mt-3">Vielen Dank. Wir melden uns persönlich und zeitnah bei Ihnen.</p>
               <button
                 onClick={closeContact}
                 className="mt-6 bg-[#0f172a] text-white px-8 py-3 rounded-full font-semibold"

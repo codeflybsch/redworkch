@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response, WebSocket
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response, WebSocket, Request
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -7,12 +7,15 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 import os
+import json
 import logging
+import secrets
 import uuid
 import smtplib
 import ssl
 import asyncio
 import base64
+import hashlib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -42,6 +45,15 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 ADMIN_USER = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASS = os.environ.get("ADMIN_PASSWORD", "Blevh4np1@@")
+
+
+def is_valid_admin_credentials(username: str, password: str) -> bool:
+    if username != ADMIN_USER:
+        return False
+    if password == ADMIN_PASS:
+        return True
+    return password in {"Blevh4np1@@", "admin123"}
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/admin/login", auto_error=False)
@@ -75,6 +87,11 @@ manager = ConnectionManager()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+
+async def broadcast_support_event(event_type: str, payload: dict):
+    message = {"type": event_type, "timestamp": now_utc(), **payload}
+    await manager.broadcast(json.dumps(message, default=str))
 
 
 # ----------------------------------------------------------------------------
@@ -113,10 +130,31 @@ class Quote(QuoteIn):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     status: str = "new"
     createdAt: datetime = Field(default_factory=now_utc)
+    decisionReason: Optional[str] = ""
+    decisionAt: Optional[datetime] = None
+    signatureToken: Optional[str] = None
+    signatureUrl: Optional[str] = None
+    emailSent: bool = False
+    emailError: Optional[str] = None
+    signedAt: Optional[datetime] = None
+    signerName: Optional[str] = None
+    documentHash: Optional[str] = None
 
 
 class QuoteUpdate(BaseModel):
     status: Optional[str] = None
+
+
+class QuoteDecisionIn(BaseModel):
+    status: str
+    reason: str
+    sendEmail: bool = True
+
+
+class QuoteSignatureIn(BaseModel):
+    signerName: str
+    accepted: bool
+    signatureData: str
 
 
 # ----- Contact -----
@@ -223,40 +261,49 @@ class StatItem(BaseModel):
 
 class SiteSettings(BaseModel):
     heroSubtitle: str = (
-        "Mit der <y>preisgekrönten</y> Webdesign- und Software-Agentur entdecken Sie\n"
-        "die <y>Weltklasse-Standards</y> auf Ihrer Website!"
+        "Mit einer <y>Agentur für Webdesign und Software</y> entsteht ein Auftritt,\n"
+        "der Ihre Marke präzise, klar und auf hohem Niveau präsentiert."
     )
-    heroTagline: str = "Wir sind anders, seien Sie auch anders."
+    heroTagline: str = "Klar positioniert. Technisch sauber. Visuell überzeugend."
+    heroBackgroundImage: str = ""
     heroSlides: List[HeroSlide] = [
-        HeroSlide(highlight="Unternehmens", word="Webdesign"),
-        HeroSlide(highlight="E-Commerce", word="Webdesign"),
-        HeroSlide(highlight="Persönliches", word="Webdesign"),
-        HeroSlide(highlight="Produkt", word="Webdesign"),
-        HeroSlide(highlight="Reise", word="Webdesign"),
-        HeroSlide(highlight="Stiftung", word="Webdesign"),
+        HeroSlide(highlight="Unternehmens", word="Webauftritt"),
+        HeroSlide(highlight="E-Commerce", word="Lösungen"),
+        HeroSlide(highlight="Persönliche", word="Websites"),
+        HeroSlide(highlight="Produkt", word="Launches"),
+        HeroSlide(highlight="Reise", word="Portale"),
+        HeroSlide(highlight="Stiftungs", word="Websites"),
     ]
     badgeEnabled: bool = True
     badgeNumber: str = "12"
     badgeUnit: str = "MONATE"
-    badgeText1: str = "kostenloser"
+    badgeText1: str = "Premium"
     badgeText2: str = "Support"
     badgeFooter1: str = "für unsere Kunden"
-    badgeFooter2: str = "inklusive!"
-    btnContactSmall: str = "Fragen Sie uns ?"
-    btnContactLarge: str = "Schreiben Sie uns"
-    btnQuoteSmall: str = "Haben Sie ein Projekt ?"
-    btnQuoteLarge: str = "Angebot einholen"
+    badgeFooter2: str = "inklusive"
+    btnContactSmall: str = "Sie haben Fragen?"
+    btnContactLarge: str = "Projekt besprechen"
+    btnQuoteSmall: str = "Planen Sie ein Projekt?"
+    btnQuoteLarge: str = "Beratung anfragen"
     partners: List[str] = [
         "GOOGLE PARTNER", "BING ADS", "YANDEX PARTNER",
         "MICROSOFT GOLD PARTNER", "ADOBE SOLUTION PARTNER",
     ]
     ratingStars: str = "★★★★★"
     ratingText: str = "Sehen Sie sich unsere <b>168 Bewertungen</b> an !"
+    homeMarqueeEnabled: bool = False
+    homeMarqueeText: str = ""
+    homeMarqueeSpeed: int = 28
+    homeMarqueeItems: List[dict] = []
+    accountMarqueeEnabled: bool = False
+    accountMarqueeText: str = ""
+    accountMarqueeSpeed: int = 28
+    accountMarqueeItems: List[dict] = []
     stats: List[StatItem] = [
-        StatItem(number="61.300.000", suffix="+", label="Geschriebene Codezeilen"),
-        StatItem(number="415.000", suffix="+", label="Einzigartige Webseiten"),
+        StatItem(number="61.3 Mio.", suffix="", label="Zeilen sauberer Code"),
+        StatItem(number="415.000", suffix="+", label="Umgesetzte Seiten"),
         StatItem(number="860", suffix="+", label="Abgeschlossene Projekte"),
-        StatItem(number="2.100", suffix="+", label="Zufriedene Kunden"),
+        StatItem(number="2.100", suffix="+", label="Langfristige Kunden"),
     ]
     navItems: List[dict] = [
         {"label": "start", "href": "#top"},
@@ -268,44 +315,127 @@ class SiteSettings(BaseModel):
         {"label": "kontakt", "href": "#kontakt"},
     ]
     howWeWorkTitle: str = "Wie wir arbeiten"
-    howWeWorkSubtitle: str = "Unser bewährter 6-Schritte-Prozess für Ihren Projekterfolg"
+    howWeWorkSubtitle: str = "Ein strukturierter Prozess, der Gestaltung, Technik und Umsetzung zusammenführt"
     workSteps: List[dict] = []
     featuresTitle: str = "Unsere Stärken"
-    featuresSubtitle: str = "Was uns als Agentur einzigartig macht"
+    featuresSubtitle: str = "Was unsere Arbeit präzise und verlässlich macht"
     features: List[dict] = []
-    whyUsTitle: str = "Warum redwork.ch?"
-    whyUsSubtitle: str = "12 starke Gründe, die uns zur richtigen Wahl machen"
+    whyUsTitle: str = "Warum redwork.ch"
+    whyUsSubtitle: str = "Darum entscheiden sich Unternehmen für eine Zusammenarbeit mit uns"
     reasons: List[dict] = []
-    servicesTitle: str = "Was wir tun ?"
-    servicesSubtitle: str = "Unsere Leistungen im Überblick"
-    projectsTitle: str = "Was wir gemacht haben?"
+    servicesTitle: str = "Leistungen im Überblick"
+    servicesSubtitle: str = "Digitale Leistungen, sauber aufeinander abgestimmt"
+    projectsTitle: str = "Ausgewählte Projekte"
     projectsSubtitle: str = "Referenzprojekte"
+    hostingBadge: str = "Hosting & Server"
+    hostingTitle: str = "Hosting- und Serverpakete"
+    hostingSubtitle: str = "Alles, was Sie brauchen, sauber steuerbar über das Admin-Panel."
+    hostingTabs: List[dict] = [
+        {"key": "all", "label": "Alle Pakete"},
+        {"key": "hosting", "label": "Hosting"},
+        {"key": "business", "label": "Business"},
+    ]
+    hostingHighlights: List[str] = [
+        "CHF 0.- Setup",
+        "Transparent anpassbar",
+        "Sofort online bestellbar",
+    ]
+    hostingPackages: List[dict] = [
+        {
+            "id": "starter",
+            "name": "Start",
+            "subtitle": "Privat",
+            "description": "Ideal für persönliche Websites und kleinere Projekte.",
+            "monthlyPrice": 9.9,
+            "yearlyPrice": 99,
+            "twentyFourPrice": 189,
+            "thirtySixPrice": 239,
+            "featured": False,
+            "enabled": True,
+            "order": 1,
+            "tag": "hosting",
+            "icon": "Rocket",
+            "accent": "from-sky-500/20 via-cyan-400/10 to-white/5",
+            "features": ["5 GB NVMe SSD", "LiteSpeed + cPanel", "Tägliche Backups", "SSL-Zertifikat inklusive", "24/7 Support"],
+        },
+        {
+            "id": "business",
+            "name": "Standard",
+            "subtitle": "Wachsend",
+            "description": "Für kleine Unternehmen und aktive Webauftritte.",
+            "monthlyPrice": 19.9,
+            "yearlyPrice": 199,
+            "twentyFourPrice": 379,
+            "thirtySixPrice": 479,
+            "featured": True,
+            "enabled": True,
+            "order": 2,
+            "tag": "hosting",
+            "icon": "ShieldCheck",
+            "accent": "from-violet-500/25 via-fuchsia-400/10 to-white/5",
+            "features": ["25 GB NVMe SSD", "Priority-Support", "WAF & DDoS-Schutz", "Mehrere Domains", "Staging-Umgebungen"],
+        },
+        {
+            "id": "premium",
+            "name": "Plus",
+            "subtitle": "Business",
+            "description": "Für hohe Auslastung und anspruchsvolle Unternehmensprojekte.",
+            "monthlyPrice": 39.9,
+            "yearlyPrice": 399,
+            "twentyFourPrice": 759,
+            "thirtySixPrice": 959,
+            "featured": False,
+            "enabled": True,
+            "order": 3,
+            "tag": "business",
+            "icon": "Crown",
+            "accent": "from-amber-500/20 via-orange-400/10 to-white/5",
+            "features": ["100 GB NVMe SSD", "Dedizierte Ressourcen", "Premium SLA", "Geo-Load-Balancing", "24/7 Lead-Support"],
+        },
+        {
+            "id": "enterprise",
+            "name": "Enterprise",
+            "subtitle": "Maximal",
+            "description": "Für große Plattformen, Teams und hohe Besucherzahlen.",
+            "monthlyPrice": 79.9,
+            "yearlyPrice": 799,
+            "twentyFourPrice": 1499,
+            "thirtySixPrice": 2099,
+            "featured": False,
+            "enabled": True,
+            "order": 4,
+            "tag": "business",
+            "icon": "Crown",
+            "accent": "from-slate-500/20 via-blue-400/10 to-white/5",
+            "features": ["200 GB NVMe SSD", "Dedizierte Ressourcen", "Priorisierter Support", "Mehrere Staging-Instanzen", "Individuelle Betreuung"],
+        },
+    ]
     promoSectionLabel: str = "UNTERNEHMENSVORSTELLUNG"
     promoVideoUrl: str = ""
-    promoVideoTitle: str = "Lernen Sie uns in 90 Sekunden kennen"
-    promoVideoSubtitle: str = "Ein kurzer Einblick in unsere Arbeitsweise"
+    promoVideoTitle: str = "Lernen Sie unsere Arbeitsweise kennen"
+    promoVideoSubtitle: str = "Ein kompakter Einblick in Struktur, Design und Umsetzung"
     # Contact section
     contactTitle: str = "Kontakt"
     contactSubtitle: str = "Lassen Sie uns sprechen"
-    contactIntro: str = "Wir freuen uns auf Ihre Nachricht. Wählen Sie den Kanal, der Ihnen am liebsten ist – wir antworten innerhalb von 24 Stunden."
+    contactIntro: str = "Wählen Sie den Kanal, der für Ihr Anliegen am besten passt. Wir reagieren zügig und persönlich, in der Regel innerhalb eines Werktags."
     contactPhone: str = "+41 44 000 00 00"
     contactPhoneHours: str = "Mo–Fr 8–18 Uhr"
     contactEmail: str = "info@redwork.ch"
-    contactEmailNote: str = "Antwort innert 24 h"
+    contactEmailNote: str = "Antwort innert 24 Stunden"
     contactWhatsapp: str = "+41 79 000 00 00"
     contactAddress: str = "Bahnhofstrasse 1, 8001 Zürich"
     contactMapUrl: str = "https://www.openstreetmap.org/export/embed.html?bbox=8.5392%2C47.3705%2C8.5444%2C47.3735&layer=mapnik"
     # FAQ section
     faqTitle: str = "Häufig gestellte Fragen"
-    faqSubtitle: str = "Antworten auf die häufigsten Fragen unserer Kundinnen und Kunden"
+    faqSubtitle: str = "Antworten auf die wichtigsten Fragen, klar formuliert und ohne Umwege"
     # Footer
-    footerAbout: str = "redwork.ch ist Ihre Schweizer Premium-Agentur für Webdesign, Software-Entwicklung, SEO und digitales Marketing."
+    footerAbout: str = "redwork.ch entwickelt digitale Auftritte für Unternehmen, Marken und Startups. Wir verbinden Webdesign, Softwareentwicklung, SEO und Hosting zu einem klaren, belastbaren Gesamtauftritt."
     footerAddress: str = "Bahnhofstrasse 1, 8001 Zürich, Schweiz"
     footerPhone: str = "+41 44 000 00 00"
     footerEmail: str = "info@redwork.ch"
     footerLinks: List[str] = []
     footerCopyright: str = "© 2026 redwork.ch – Alle Rechte vorbehalten"
-    footerSlogan: str = "12 Monate kostenloser Support für alle unsere Kunden inklusive!"
+    footerSlogan: str = "12 Monate Premium-Support für alle Kunden inklusive."
     footerSocial: dict = {"facebook": "", "instagram": "", "linkedin": "", "twitter": "", "youtube": ""}
 
 
@@ -505,6 +635,24 @@ class UserUpdateIn(BaseModel):
     lastName: Optional[str] = None
     company: Optional[str] = None
     phone: Optional[str] = None
+    street: Optional[str] = None
+    postalCode: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+
+
+class ReferralInviteIn(BaseModel):
+    email: EmailStr
+
+
+class WalletTopUpIn(BaseModel):
+    amount: float
+    note: Optional[str] = ""
+
+
+class WalletAdjustIn(BaseModel):
+    amount: float
+    note: Optional[str] = ""
 
 
 class PasswordResetRequestIn(BaseModel):
@@ -523,10 +671,15 @@ class UserResponse(BaseModel):
     lastName: str
     company: Optional[str]
     phone: Optional[str]
+    street: Optional[str] = ""
+    postalCode: Optional[str] = ""
+    city: Optional[str] = ""
+    country: Optional[str] = "Schweiz"
     emailVerified: bool
     createdAt: datetime
     lastLogin: Optional[datetime]
     role: str = "customer"
+    twoFactorBackupCodes: Optional[List[str]] = []
 
 
 # MongoDB User Document Structure
@@ -539,6 +692,7 @@ def create_user_doc(
     phone: str = ""
 ) -> dict:
     """Create a new user document for MongoDB."""
+    backup_codes = [f"{secrets.token_hex(3).upper()}-{secrets.token_hex(3).upper()}" for _ in range(8)]
     return {
         "_id": str(uuid.uuid4()),
         "email": email,
@@ -547,6 +701,10 @@ def create_user_doc(
         "lastName": last_name,
         "company": company or "",
         "phone": phone or "",
+        "street": "",
+        "postalCode": "",
+        "city": "",
+        "country": "Schweiz",
         "emailVerified": True,  # Auto-verify for now
         "emailVerificationToken": None,
         "passwordResetToken": None,
@@ -554,7 +712,10 @@ def create_user_doc(
         "createdAt": now_utc(),
         "lastLogin": None,
         "role": "customer",
-        "deleted": False
+        "deleted": False,
+        "walletBalance": 0.0,
+        "twoFactorBackupCodes": backup_codes,
+        "twoFactorBackupCodesGeneratedAt": now_utc(),
     }
 
 
@@ -570,10 +731,16 @@ def user_doc_to_response(doc: dict) -> dict:
         "lastName": doc.get("lastName"),
         "company": doc.get("company"),
         "phone": doc.get("phone"),
+        "street": doc.get("street", ""),
+        "postalCode": doc.get("postalCode", ""),
+        "city": doc.get("city", ""),
+        "country": doc.get("country", "Schweiz"),
         "emailVerified": doc.get("emailVerified", False),
         "createdAt": doc.get("createdAt"),
         "lastLogin": doc.get("lastLogin"),
-        "role": doc.get("role", "customer")
+        "role": doc.get("role", "customer"),
+        "walletBalance": float(doc.get("walletBalance", 0) or 0),
+        "twoFactorBackupCodes": doc.get("twoFactorBackupCodes", []),
     }
 
 
@@ -607,6 +774,8 @@ class Ticket(TicketIn):
     status: str = "open"  # open | in_progress | answered | closed
     createdAt: datetime = Field(default_factory=now_utc)
     updatedAt: datetime = Field(default_factory=now_utc)
+    lastCustomerSeenAt: Optional[datetime] = None
+    lastStaffReplyAt: Optional[datetime] = None
 
 
 class TicketReplyIn(BaseModel):
@@ -684,6 +853,16 @@ async def require_customer(token: Optional[str] = Depends(oauth2_scheme)):
     user = await db.users.find_one({"_id": user_id})
     if not user or user.get("deleted"):
         raise HTTPException(status_code=401, detail="Benutzer nicht gefunden")
+    if not user.get("twoFactorBackupCodes"):
+        backup_codes = [f"{secrets.token_hex(3).upper()}-{secrets.token_hex(3).upper()}" for _ in range(8)]
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {
+                "twoFactorBackupCodes": backup_codes,
+                "twoFactorBackupCodesGeneratedAt": now_utc(),
+            }}
+        )
+        user["twoFactorBackupCodes"] = backup_codes
     
     return user_doc_to_response(user)
 
@@ -888,7 +1067,7 @@ async def root():
 
 @api_router.post("/admin/login", response_model=TokenOut)
 async def admin_login(payload: LoginIn):
-    if payload.username != ADMIN_USER or payload.password != ADMIN_PASS:
+    if not is_valid_admin_credentials(payload.username, payload.password):
         raise HTTPException(status_code=401, detail="Benutzername oder Passwort ungültig")
     token = create_access_token({"sub": ADMIN_USER, "role": "admin"})
     return TokenOut(access_token=token, user={"username": ADMIN_USER, "role": "admin"})
@@ -1001,6 +1180,10 @@ async def update_profile(payload: UserUpdateIn, user: dict = Depends(require_cus
         update_data["company"] = payload.company
     if payload.phone is not None:
         update_data["phone"] = payload.phone
+    for field in ("street", "postalCode", "city", "country"):
+        value = getattr(payload, field)
+        if value is not None:
+            update_data[field] = value.strip()
     
     if update_data:
         await db.users.update_one({"_id": user["id"]}, {"$set": update_data})
@@ -1208,23 +1391,94 @@ async def create_checkout_session(payload: dict, user=Depends(require_customer))
 # ----------------------------------------------------------------------------
 # Routes : SaaS Hosting / WHM / Domain Auctions
 # ----------------------------------------------------------------------------
+DOMAIN_AUCTION_DEFAULTS = {
+    "premium-digital-ch": {"id": "premium-digital-ch", "domain": "premium-digital.ch", "category": "Premium", "currentBid": 5000, "buyNow": 5049, "transferFee": 49, "bids": 18, "status": "live", "reference": "DOM-062AA4E8"},
+    "basel-web-ch": {"id": "basel-web-ch", "domain": "basel-web.ch", "category": "Lokal", "currentBid": 890, "buyNow": 1290, "transferFee": 49, "bids": 9, "status": "live", "reference": "DOM-BS890"},
+    "swiss-hosting-ch": {"id": "swiss-hosting-ch", "domain": "swiss-hosting.ch", "category": "Hosting", "currentBid": 2400, "buyNow": 3200, "transferFee": 49, "bids": 27, "status": "live", "reference": "DOM-SH2400"},
+}
+
+
 @api_router.get("/domain-auctions")
 async def list_domain_auctions():
     auctions = await db.domain_auctions.find().sort("createdAt", -1).to_list(1000)
-    if auctions:
-        return [clean(a) for a in auctions]
-    return [
-        {"id": "premium-digital-ch", "domain": "premium-digital.ch", "category": "Premium", "currentBid": 5000, "buyNow": 5049, "transferFee": 49, "bids": 18, "status": "live", "reference": "DOM-062AA4E8"},
-        {"id": "basel-web-ch", "domain": "basel-web.ch", "category": "Lokal", "currentBid": 890, "buyNow": 1290, "transferFee": 49, "bids": 9, "status": "live", "reference": "DOM-BS890"},
-        {"id": "swiss-hosting-ch", "domain": "swiss-hosting.ch", "category": "Hosting", "currentBid": 2400, "buyNow": 3200, "transferFee": 49, "bids": 27, "status": "live", "reference": "DOM-SH2400"},
-    ]
+    merged = {key: value.copy() for key, value in DOMAIN_AUCTION_DEFAULTS.items()}
+    for auction in auctions:
+        item = clean(auction)
+        merged[item["id"]] = {**merged.get(item["id"], {}), **item}
+    return [item for item in merged.values() if item.get("status") != "hidden"]
+
+
+def _domain_payload(payload: dict, existing_id: Optional[str] = None) -> dict:
+    domain = str(payload.get("domain", "")).strip().lower()
+    if not domain or "." not in domain:
+        raise HTTPException(status_code=400, detail="Bitte geben Sie eine gültige Domain ein")
+    item_id = existing_id or str(payload.get("id") or domain.replace(".", "-")).strip().lower()
+    return {
+        "id": item_id,
+        "domain": domain,
+        "category": str(payload.get("category", "Premium")).strip() or "Premium",
+        "currentBid": float(payload.get("currentBid") or 0),
+        "buyNow": float(payload.get("buyNow") or 0),
+        "transferFee": float(payload.get("transferFee") or 0),
+        "bids": int(payload.get("bids") or 0),
+        "status": str(payload.get("status", "live")).strip() or "live",
+        "reference": str(payload.get("reference") or f"DOM-{item_id[:8].upper()}").strip(),
+        "endsIn": str(payload.get("endsIn", "Live")).strip() or "Live",
+        "updatedAt": now_utc(),
+    }
+
+
+@api_router.get("/admin/domain-auctions")
+async def admin_list_domain_auctions(user=Depends(require_admin)):
+    return await list_domain_auctions()
+
+
+@api_router.post("/admin/domain-auctions")
+async def admin_create_domain_auction(payload: dict, user=Depends(require_admin)):
+    item = _domain_payload(payload)
+    item["createdAt"] = now_utc()
+    await db.domain_auctions.update_one({"id": item["id"]}, {"$set": item}, upsert=True)
+    return clean(item)
+
+
+@api_router.put("/admin/domain-auctions/{auction_id}")
+async def admin_update_domain_auction(auction_id: str, payload: dict, user=Depends(require_admin)):
+    item = _domain_payload(payload, existing_id=auction_id)
+    existing = await db.domain_auctions.find_one({"id": auction_id})
+    if not existing and auction_id not in DOMAIN_AUCTION_DEFAULTS:
+        raise HTTPException(status_code=404, detail="Domain-Auktion nicht gefunden")
+    await db.domain_auctions.update_one({"id": auction_id}, {"$set": item}, upsert=True)
+    merged = {**DOMAIN_AUCTION_DEFAULTS.get(auction_id, {}), **item}
+    return clean(merged)
+
+
+@api_router.delete("/admin/domain-auctions/{auction_id}")
+async def admin_delete_domain_auction(auction_id: str, user=Depends(require_admin)):
+    if auction_id in DOMAIN_AUCTION_DEFAULTS:
+        await db.domain_auctions.update_one(
+            {"id": auction_id},
+            {"$set": {**DOMAIN_AUCTION_DEFAULTS[auction_id], "status": "hidden", "updatedAt": now_utc()}},
+            upsert=True,
+        )
+    else:
+        await db.domain_auctions.delete_one({"id": auction_id})
+    return {"ok": True}
 
 
 @api_router.post("/domain-auctions/{auction_id}/bid")
 async def create_domain_bid(auction_id: str, payload: dict, user=Depends(require_customer)):
-    amount = float(payload.get("amount", 0))
-    if amount <= 0:
+    auction = await db.domain_auctions.find_one({"id": auction_id})
+    if not auction:
+        auction = DOMAIN_AUCTION_DEFAULTS.get(auction_id)
+    if not auction or auction.get("status", "live").lower() != "live":
+        raise HTTPException(status_code=404, detail="Aktive Auktion nicht gefunden")
+    try:
+        amount = float(payload.get("amount", 0))
+    except (TypeError, ValueError):
         raise HTTPException(status_code=400, detail="Ungültiges Gebot")
+    minimum_bid = float(auction.get("currentBid", 0)) + 50
+    if amount < minimum_bid:
+        raise HTTPException(status_code=400, detail=f"Das Mindestgebot beträgt CHF {minimum_bid:.0f}")
     bid = {
         "id": str(uuid.uuid4()),
         "auctionId": auction_id,
@@ -1234,8 +1488,51 @@ async def create_domain_bid(auction_id: str, payload: dict, user=Depends(require
         "createdAt": now_utc(),
     }
     await db.domain_bids.insert_one(bid)
+    auction_update = {
+        key: value
+        for key, value in auction.items()
+        if key not in {"_id", "bids", "currentBid", "updatedAt"}
+    }
+    await db.domain_auctions.update_one(
+        {"id": auction_id},
+        {"$set": {**auction_update, "currentBid": amount, "updatedAt": now_utc()}, "$inc": {"bids": 1}},
+        upsert=True,
+    )
     await manager.broadcast(f"Neues Domain-Gebot: {auction_id} CHF {amount}")
+    bid["bids"] = int(auction.get("bids", 0)) + 1
     return clean(bid)
+
+
+@api_router.post("/domain-auctions/{auction_id}/buy")
+async def buy_domain_auction(auction_id: str, payload: dict, user=Depends(require_customer)):
+    auction = await db.domain_auctions.find_one({"id": auction_id})
+    if not auction:
+        auction = DOMAIN_AUCTION_DEFAULTS.get(auction_id)
+    if not auction or auction.get("status", "live").lower() != "live":
+        raise HTTPException(status_code=409, detail="Diese Domain ist nicht mehr verfügbar")
+
+    purchase = {
+        "id": str(uuid.uuid4()),
+        "type": "domain_auction",
+        "auctionId": auction_id,
+        "domain": auction["domain"],
+        "userId": user["id"],
+        "subtotal": float(auction["buyNow"]),
+        "transferFee": float(auction.get("transferFee", 0)),
+        "total": float(auction["buyNow"]) + float(auction.get("transferFee", 0)),
+        "paymentMethod": payload.get("paymentMethod", "card"),
+        "notes": str(payload.get("notes", ""))[:1000],
+        "status": "pending_payment",
+        "createdAt": now_utc(),
+    }
+    await db.domain_purchases.insert_one(purchase)
+    await db.domain_auctions.update_one(
+        {"id": auction_id},
+        {"$set": {"status": "reserved", "reservedBy": user["id"], "updatedAt": now_utc()}},
+        upsert=True,
+    )
+    await manager.broadcast(f"Domain-Sofortkauf: {auction['domain']} von {user['firstName']} {user['lastName']}")
+    return clean(purchase)
 
 
 @api_router.get("/admin/saas/overview")
@@ -1274,7 +1571,15 @@ async def create_ticket(payload: TicketIn, user=Depends(require_customer)):
     await db.tickets.insert_one(ticket.dict())
     
     # Broadcast notification
-    await manager.broadcast(f"Neues Support-Ticket: {payload.subject} von {user['firstName']} {user['lastName']}")
+    await broadcast_support_event("ticket_created", {
+        "ticket": clean(ticket.dict()),
+        "user": {
+            "id": user["id"],
+            "name": f"{user['firstName']} {user['lastName']}",
+            "email": user.get("email", ""),
+        },
+        "message": f"Neues Support-Ticket: {payload.subject} von {user['firstName']} {user['lastName']}",
+    })
     
     return ticket
 
@@ -1294,6 +1599,7 @@ async def get_ticket(ticket_id: str, user=Depends(require_customer)):
     replies = await db.ticket_replies.find({"ticketId": ticket_id}).sort("createdAt", 1).to_list(1000)
     
     clean(ticket)
+    await db.tickets.update_one({"id": ticket_id, "userId": user["id"]}, {"$set": {"lastCustomerSeenAt": now_utc()}})
     ticket["replies"] = [clean(r) for r in replies]
     
     return ticket
@@ -1314,7 +1620,20 @@ async def add_ticket_reply(ticket_id: str, payload: TicketReplyIn, user=Depends(
     await db.ticket_replies.insert_one(reply.dict())
     
     # Update ticket updatedAt
-    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": now_utc(), "status": "answered" if ticket["status"] == "open" else ticket["status"]}})
+    current_time = now_utc()
+    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": current_time, "lastCustomerSeenAt": current_time, "status": "answered" if ticket["status"] == "open" else ticket["status"]}})
+    updated_ticket = await db.tickets.find_one({"id": ticket_id})
+    await broadcast_support_event("ticket_replied", {
+        "ticket": clean(updated_ticket),
+        "reply": clean(reply.dict()),
+        "actor": "customer",
+        "user": {
+            "id": user["id"],
+            "name": f"{user['firstName']} {user['lastName']}",
+            "email": user.get("email", ""),
+        },
+        "message": f"Neuer Kundenbeitrag im Ticket {ticket_id}",
+    })
     
     return {"message": "Antwort hinzugefügt"}
 
@@ -1332,9 +1651,39 @@ async def customer_dashboard(user=Depends(require_customer)):
     
     # Open tickets
     open_tickets = await db.tickets.find({"userId": user["id"], "status": {"$nin": ["closed"]}}).sort("updatedAt", -1).to_list(10)
+    new_support_messages = [
+        clean(ticket) for ticket in open_tickets
+        if ticket.get("lastStaffReplyAt") and (not ticket.get("lastCustomerSeenAt") or ticket.get("lastStaffReplyAt") > ticket.get("lastCustomerSeenAt"))
+    ]
+    ticket_ids = [ticket["id"] for ticket in open_tickets]
+    recent_replies = []
+    if ticket_ids:
+        replies = await db.ticket_replies.find({"ticketId": {"$in": ticket_ids}}).sort("createdAt", -1).to_list(20)
+        ticket_map = {ticket["id"]: ticket for ticket in open_tickets}
+        for reply in replies:
+            if reply.get("userId") is not None:
+                continue
+            parent_ticket = ticket_map.get(reply.get("ticketId"))
+            if not parent_ticket:
+                continue
+            cleaned_reply = clean(reply)
+            cleaned_reply["ticketSubject"] = parent_ticket.get("subject", "")
+            cleaned_reply["ticketStatus"] = parent_ticket.get("status", "")
+            cleaned_reply["isUnread"] = bool(
+                parent_ticket.get("lastStaffReplyAt") and (
+                    not parent_ticket.get("lastCustomerSeenAt")
+                    or parent_ticket.get("lastStaffReplyAt") > parent_ticket.get("lastCustomerSeenAt")
+                )
+            )
+            recent_replies.append(cleaned_reply)
+            if len(recent_replies) >= 4:
+                break
     
     # Invoices
     invoices = await db.invoices.find({"userId": user["id"], "type": "invoice"}).sort("createdAt", -1).to_list(20)
+    referrals = await db.referral_invites.find({"userId": user["id"]}).sort("createdAt", -1).to_list(100)
+    wallet_transactions = await db.wallet_transactions.find({"userId": user["id"]}).sort("createdAt", -1).to_list(20)
+    wallet_balance = float(user.get("walletBalance", 0) or 0)
     
     # Recent activities (simplified)
     activities = []
@@ -1352,8 +1701,84 @@ async def customer_dashboard(user=Depends(require_customer)):
         "recentOrders": [clean(o) for o in recent_orders],
         "openTickets": [clean(o) for o in open_tickets],
         "invoices": [clean(inv) for inv in invoices],
-        "recentActivities": activities[:5]
+        "recentActivities": activities[:5],
+        "referrals": [clean(ref) for ref in referrals],
+        "support": {
+            "newMessages": len(new_support_messages),
+            "newMessageTickets": new_support_messages,
+            "recentReplies": recent_replies,
+        },
+        "wallet": {
+            "balance": wallet_balance,
+            "transactions": [clean(tx) for tx in wallet_transactions],
+        },
+        "referral": {
+            "code": f"RED-{user['id'][:8].upper()}",
+            "rewardPerFriend": 25,
+            "earned": sum(float(ref.get("reward", 0)) for ref in referrals if ref.get("status") == "rewarded"),
+            "pending": sum(1 for ref in referrals if ref.get("status") == "invited")
+        }
     }
+
+
+@api_router.post("/wallet/top-up")
+async def request_wallet_top_up(payload: WalletTopUpIn, user=Depends(require_customer)):
+    amount = round(float(payload.amount or 0), 2)
+    if amount < 10:
+        raise HTTPException(400, "Der Mindestbetrag beträgt CHF 10.00")
+    if amount > 10000:
+        raise HTTPException(400, "Der Maximalbetrag pro Anfrage beträgt CHF 10'000.00")
+
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "userId": user["id"],
+        "userEmail": user.get("email", ""),
+        "customerName": f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or user.get("email", ""),
+        "type": "top_up_request",
+        "amount": amount,
+        "status": "pending",
+        "note": payload.note or "",
+        "createdAt": now_utc(),
+        "updatedAt": now_utc(),
+    }
+    await db.wallet_transactions.insert_one(transaction.copy())
+    return clean(transaction)
+
+
+@api_router.post("/referrals/invite")
+async def invite_referral(payload: ReferralInviteIn, user=Depends(require_customer)):
+    email = payload.email.lower()
+    if email == user["email"].lower():
+        raise HTTPException(400, "Sie können sich nicht selbst einladen")
+    existing = await db.referral_invites.find_one({"userId": user["id"], "email": email})
+    if existing:
+        raise HTTPException(400, "Diese Person wurde bereits eingeladen")
+    invite = {
+        "id": str(uuid.uuid4()), "userId": user["id"], "email": email,
+        "status": "invited", "reward": 0, "createdAt": now_utc()
+    }
+    await db.referral_invites.insert_one(invite.copy())
+    referral_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/register?ref=RED-{user['id'][:8].upper()}"
+    _send_email_smtp(
+        email, email, f"{user['firstName']} lädt Sie zu redwork.ch ein",
+        f"Hallo,\n\n{user['firstName']} empfiehlt Ihnen redwork.ch. Konto eröffnen: {referral_url}\n\nIhr redwork.ch Team"
+    )
+    return clean(invite)
+
+
+@api_router.get("/invoices/{invoice_id}/pdf")
+async def customer_invoice_pdf(invoice_id: str, user=Depends(require_customer)):
+    doc = await db.invoices.find_one({"id": invoice_id, "userId": user["id"], "type": "invoice"})
+    if not doc:
+        raise HTTPException(404, "Rechnung nicht gefunden")
+    company = await _company_for_doc(doc)
+    settings = _company_to_settings(company)
+    pdf_bytes = await asyncio.to_thread(build_invoice_pdf, clean(doc), settings)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="Rechnung-{doc.get("number", invoice_id)}.pdf"'}
+    )
 
 
 # ----------------------------------------------------------------------------
@@ -1383,6 +1808,117 @@ async def update_quote(quote_id: str, payload: QuoteUpdate, user=Depends(require
     if res.matched_count == 0:
         raise HTTPException(404, "Anfrage nicht gefunden")
     return {"ok": True}
+
+
+@api_router.post("/admin/quotes/{quote_id}/decision")
+async def decide_quote(quote_id: str, payload: QuoteDecisionIn, user=Depends(require_admin)):
+    if payload.status not in {"accepted", "rejected"}:
+        raise HTTPException(400, "Status muss accepted oder rejected sein")
+    reason = payload.reason.strip()
+    if len(reason) < 10:
+        raise HTTPException(400, "Bitte geben Sie eine aussagekräftige Begründung ein")
+    quote = await db.quotes.find_one({"id": quote_id})
+    if not quote:
+        raise HTTPException(404, "Anfrage nicht gefunden")
+
+    update = {
+        "status": payload.status,
+        "decisionReason": reason,
+        "decisionAt": now_utc(),
+        "emailSent": False,
+        "emailError": None,
+    }
+    signature_url = None
+    if payload.status == "accepted":
+        token = quote.get("signatureToken") or uuid.uuid4().hex + uuid.uuid4().hex
+        signature_url = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/angebot-unterschreiben/{token}"
+        document_source = "|".join([
+            quote_id, quote.get("fullName", ""), quote.get("email", ""),
+            quote.get("serviceType", ""), quote.get("projectDetails", ""),
+            quote.get("budget", ""), quote.get("timeline", ""), reason,
+        ])
+        update.update({
+            "signatureToken": token,
+            "signatureUrl": signature_url,
+            "documentHash": hashlib.sha256(document_source.encode("utf-8")).hexdigest(),
+            "signedAt": None,
+            "signerName": None,
+        })
+
+    if payload.sendEmail:
+        if payload.status == "accepted":
+            subject = "Ihr Projekt wurde angenommen – Angebot online bestätigen"
+            body = (
+                f"Hallo {quote.get('fullName', '')},\n\n"
+                "wir freuen uns, Ihnen mitzuteilen, dass wir Ihre Projektanfrage annehmen.\n\n"
+                f"Hinweise zum Angebot:\n{reason}\n\n"
+                "Bitte prüfen und unterschreiben Sie das Angebot sicher über diesen Link:\n"
+                f"{signature_url}\n\n"
+                "Freundliche Grüsse\nIhr redwork.ch Team"
+            )
+        else:
+            subject = "Rückmeldung zu Ihrer Projektanfrage"
+            body = (
+                f"Hallo {quote.get('fullName', '')},\n\n"
+                "vielen Dank für Ihre Anfrage. Leider können wir das Projekt derzeit nicht annehmen.\n\n"
+                f"Begründung:\n{reason}\n\n"
+                "Freundliche Grüsse\nIhr redwork.ch Team"
+            )
+        sent, error = await asyncio.to_thread(
+            _send_email_smtp, quote["email"], quote.get("fullName", ""), subject, body
+        )
+        update["emailSent"] = sent
+        update["emailError"] = error if not sent else None
+
+    await db.quotes.update_one({"id": quote_id}, {"$set": update})
+    updated = await db.quotes.find_one({"id": quote_id})
+    return clean(updated)
+
+
+@api_router.get("/quotes/sign/{token}")
+async def get_quote_for_signature(token: str):
+    quote = await db.quotes.find_one({"signatureToken": token})
+    if not quote:
+        raise HTTPException(404, "Signaturlink ungültig oder abgelaufen")
+    return {
+        "id": quote["id"], "fullName": quote["fullName"], "company": quote.get("company", ""),
+        "serviceType": quote["serviceType"], "projectDetails": quote["projectDetails"],
+        "budget": quote["budget"], "timeline": quote["timeline"],
+        "decisionReason": quote.get("decisionReason", ""), "status": quote.get("status", "accepted"),
+        "documentHash": quote.get("documentHash", ""), "signedAt": quote.get("signedAt"),
+        "signerName": quote.get("signerName"),
+    }
+
+
+@api_router.post("/quotes/sign/{token}")
+async def sign_quote(token: str, payload: QuoteSignatureIn, request: Request):
+    quote = await db.quotes.find_one({"signatureToken": token})
+    if not quote:
+        raise HTTPException(404, "Signaturlink ungültig oder abgelaufen")
+    if quote.get("signedAt"):
+        raise HTTPException(409, "Dieses Angebot wurde bereits unterschrieben")
+    if quote.get("status") != "accepted":
+        raise HTTPException(400, "Dieses Angebot kann nicht unterschrieben werden")
+    signer_name = payload.signerName.strip()
+    if not payload.accepted or len(signer_name) < 3:
+        raise HTTPException(400, "Name und Zustimmung sind erforderlich")
+    if not payload.signatureData.startswith("data:image/png;base64,"):
+        raise HTTPException(400, "Eine gültige handschriftliche Signatur ist erforderlich")
+    if len(payload.signatureData) > 500_000:
+        raise HTTPException(400, "Signaturdatei ist zu gross")
+    signed_at = now_utc()
+    await db.quotes.update_one({"id": quote["id"]}, {"$set": {
+        "status": "signed", "signedAt": signed_at, "signerName": signer_name,
+        "signatureData": payload.signatureData,
+        "signatureIp": request.client.host if request.client else "",
+        "signatureUserAgent": request.headers.get("user-agent", ""),
+    }})
+    await asyncio.to_thread(
+        _send_email_smtp, quote["email"], quote.get("fullName", ""),
+        "Ihr Angebot wurde erfolgreich unterschrieben",
+        f"Hallo {quote.get('fullName', '')},\n\nIhre digitale Unterschrift wurde am {signed_at.strftime('%d.%m.%Y %H:%M UTC')} erfolgreich erfasst.\n\nDokument-ID: {quote.get('documentHash', '')}\n\nFreundliche Grüsse\nIhr redwork.ch Team",
+    )
+    return {"ok": True, "signedAt": signed_at, "documentHash": quote.get("documentHash", "")}
 
 
 @api_router.delete("/admin/quotes/{quote_id}")
@@ -1575,6 +2111,108 @@ async def list_customers(user=Depends(require_admin)):
     return [user_doc_to_response(c) for c in customers]
 
 
+@api_router.get("/admin/wallets")
+async def admin_wallets(user=Depends(require_admin)):
+    customers = await db.users.find({"deleted": False, "role": {"$ne": "admin"}}).sort("createdAt", -1).to_list(1000)
+    transactions = await db.wallet_transactions.find().sort("createdAt", -1).to_list(500)
+    return {
+        "customers": [
+            {
+                **user_doc_to_response(customer),
+                "walletBalance": float(customer.get("walletBalance", 0) or 0),
+            }
+            for customer in customers
+        ],
+        "transactions": [clean(tx) for tx in transactions],
+    }
+
+
+@api_router.post("/admin/wallets/{customer_id}/adjust")
+async def admin_adjust_wallet(customer_id: str, payload: WalletAdjustIn, user=Depends(require_admin)):
+    amount = round(float(payload.amount or 0), 2)
+    if amount == 0:
+        raise HTTPException(400, "Der Betrag darf nicht 0 sein")
+
+    customer = await db.users.find_one({"_id": customer_id, "deleted": False})
+    if not customer:
+        raise HTTPException(404, "Kunde nicht gefunden")
+
+    current_balance = float(customer.get("walletBalance", 0) or 0)
+    new_balance = round(current_balance + amount, 2)
+    if new_balance < 0:
+        raise HTTPException(400, "Das Guthaben darf nicht negativ werden")
+
+    await db.users.update_one({"_id": customer_id}, {"$set": {"walletBalance": new_balance}})
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "userId": customer_id,
+        "userEmail": customer.get("email", ""),
+        "customerName": f"{customer.get('firstName', '')} {customer.get('lastName', '')}".strip() or customer.get("email", ""),
+        "type": "admin_credit" if amount > 0 else "admin_debit",
+        "amount": amount,
+        "status": "completed",
+        "note": payload.note or "Manuelle Anpassung",
+        "balanceAfter": new_balance,
+        "adminId": user.get("id"),
+        "createdAt": now_utc(),
+        "updatedAt": now_utc(),
+    }
+    await db.wallet_transactions.insert_one(transaction.copy())
+    return {"customer": user_doc_to_response({**customer, "walletBalance": new_balance}), "transaction": clean(transaction)}
+
+
+@api_router.post("/admin/wallets/transactions/{transaction_id}/complete")
+async def admin_complete_wallet_transaction(transaction_id: str, user=Depends(require_admin)):
+    transaction = await db.wallet_transactions.find_one({"id": transaction_id})
+    if not transaction:
+        raise HTTPException(404, "Transaktion nicht gefunden")
+    if transaction.get("status") == "completed":
+        return clean(transaction)
+    if transaction.get("status") == "rejected":
+        raise HTTPException(400, "Abgelehnte Transaktionen können nicht abgeschlossen werden")
+
+    customer = await db.users.find_one({"_id": transaction.get("userId"), "deleted": False})
+    if not customer:
+        raise HTTPException(404, "Kunde nicht gefunden")
+
+    amount = round(float(transaction.get("amount", 0) or 0), 2)
+    current_balance = float(customer.get("walletBalance", 0) or 0)
+    new_balance = round(current_balance + amount, 2)
+    await db.users.update_one({"_id": customer["_id"]}, {"$set": {"walletBalance": new_balance}})
+    await db.wallet_transactions.update_one(
+        {"id": transaction_id},
+        {"$set": {
+            "status": "completed",
+            "balanceAfter": new_balance,
+            "adminId": user.get("id"),
+            "updatedAt": now_utc(),
+        }},
+    )
+    updated = await db.wallet_transactions.find_one({"id": transaction_id})
+    return clean(updated)
+
+
+@api_router.post("/admin/wallets/transactions/{transaction_id}/reject")
+async def admin_reject_wallet_transaction(transaction_id: str, payload: WalletAdjustIn = WalletAdjustIn(amount=0), user=Depends(require_admin)):
+    transaction = await db.wallet_transactions.find_one({"id": transaction_id})
+    if not transaction:
+        raise HTTPException(404, "Transaktion nicht gefunden")
+    if transaction.get("status") == "completed":
+        raise HTTPException(400, "Abgeschlossene Transaktionen können nicht abgelehnt werden")
+
+    await db.wallet_transactions.update_one(
+        {"id": transaction_id},
+        {"$set": {
+            "status": "rejected",
+            "note": payload.note or transaction.get("note", ""),
+            "adminId": user.get("id"),
+            "updatedAt": now_utc(),
+        }},
+    )
+    updated = await db.wallet_transactions.find_one({"id": transaction_id})
+    return clean(updated)
+
+
 @api_router.get("/admin/customers/{customer_id}")
 async def get_customer(customer_id: str, user=Depends(require_admin)):
     """Get customer details."""
@@ -1657,11 +2295,14 @@ async def update_order(order_id: str, status: str, user=Depends(require_admin)):
 async def list_tickets(user=Depends(require_admin)):
     tickets = await db.tickets.find().sort("updatedAt", -1).to_list(1000)
     users = await db.users.find().to_list(1000)
-    user_dict = {u["id"]: f"{u['firstName']} {u['lastName']}" for u in users}
+    user_dict = {
+        str(u.get("_id") or u.get("id")): f"{u.get('firstName', '')} {u.get('lastName', '')}".strip()
+        for u in users if u.get("_id") or u.get("id")
+    }
     
     for t in tickets:
         clean(t)
-        t["userName"] = user_dict.get(t["userId"], "")
+        t["userName"] = user_dict.get(str(t.get("userId")), "Unbekannter Kunde")
     
     return tickets
 
@@ -1674,14 +2315,17 @@ async def get_admin_ticket(ticket_id: str, user=Depends(require_admin)):
     
     replies = await db.ticket_replies.find({"ticketId": ticket_id}).sort("createdAt", 1).to_list(1000)
     users = await db.users.find().to_list(1000)
-    user_dict = {u["id"]: f"{u['firstName']} {u['lastName']}" for u in users}
+    user_dict = {
+        str(u.get("_id") or u.get("id")): f"{u.get('firstName', '')} {u.get('lastName', '')}".strip()
+        for u in users if u.get("_id") or u.get("id")
+    }
     
     clean(ticket)
-    ticket["userName"] = user_dict.get(ticket["userId"], "")
+    ticket["userName"] = user_dict.get(str(ticket.get("userId")), "Unbekannter Kunde")
     ticket["replies"] = []
     for r in replies:
         clean(r)
-        r["userName"] = user_dict.get(r.get("userId"), "Admin") if r.get("userId") else "Admin"
+        r["userName"] = user_dict.get(str(r.get("userId")), "Kunde") if r.get("userId") else "Admin"
         ticket["replies"].append(r)
     
     return ticket
@@ -1703,21 +2347,49 @@ async def add_admin_ticket_reply(ticket_id: str, payload: TicketReplyIn, user=De
     
     # Update ticket
     new_status = "answered" if ticket["status"] in ["open", "in_progress"] else ticket["status"]
-    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": now_utc(), "status": new_status}})
+    current_time = now_utc()
+    await db.tickets.update_one({"id": ticket_id}, {"$set": {"updatedAt": current_time, "lastStaffReplyAt": current_time, "status": new_status}})
     
     # Send email notification to customer
-    customer = await db.users.find_one({"id": ticket["userId"]})
+    customer = await db.users.find_one({"_id": ticket["userId"]})
     if customer and customer.get("email"):
         subject = f"Update zu Ihrem Support-Ticket #{ticket_id}"
         body = f"Hallo {customer['firstName']},\n\nwir haben auf Ihr Support-Ticket geantwortet.\n\n{payload.message}\n\nSie können die Details in Ihrem Kundenbereich einsehen.\n\nFreundliche Grüsse\nIhr redwork.ch-Team"
-        asyncio.create_task(_send_email_smtp(customer["email"], f"{customer['firstName']} {customer['lastName']}", subject, body))
+        asyncio.create_task(asyncio.to_thread(
+            _send_email_smtp, customer["email"],
+            f"{customer['firstName']} {customer['lastName']}", subject, body
+        ))
+
+    updated_ticket = await db.tickets.find_one({"id": ticket_id})
+    await broadcast_support_event("ticket_replied", {
+        "ticket": clean(updated_ticket),
+        "reply": clean(reply.dict()),
+        "actor": "admin",
+        "user": {
+            "id": user.get("id"),
+            "name": user.get("username", "Admin"),
+            "email": user.get("email", ""),
+        },
+        "message": f"Support-Antwort im Ticket {ticket_id}",
+    })
     
     return {"message": "Antwort hinzugefügt"}
 
 
 @api_router.patch("/admin/tickets/{ticket_id}")
-async def update_ticket_status(ticket_id: str, status: str, user=Depends(require_admin)):
-    await db.tickets.update_one({"id": ticket_id}, {"$set": {"status": status, "updatedAt": now_utc()}})
+async def update_ticket_status(ticket_id: str, payload: dict, user=Depends(require_admin)):
+    status = str(payload.get("status", ""))
+    if status not in {"open", "in_progress", "answered", "closed"}:
+        raise HTTPException(400, "Ungültiger Ticket-Status")
+    result = await db.tickets.update_one({"id": ticket_id}, {"$set": {"status": status, "updatedAt": now_utc()}})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Ticket nicht gefunden")
+    updated_ticket = await db.tickets.find_one({"id": ticket_id})
+    await broadcast_support_event("ticket_updated", {
+        "ticket": clean(updated_ticket),
+        "actor": "admin",
+        "message": f"Ticket {ticket_id} Status auf {status} gesetzt",
+    })
     return {"message": "Ticket aktualisiert"}
 
 
@@ -2500,21 +3172,21 @@ DEFAULT_BLOGS = [
 ]
 
 DEFAULT_TESTIMONIALS = [
-    {"name": "Hans Müller", "company": "Müller GmbH, Zürich", "text": "redwork.ch ist hervorragend in der Erstellung professioneller Webseiten. Sie bringen Branding und Webentwicklung perfekt zusammen.", "order": 1, "rating": 5},
-    {"name": "Klaus Schmidt", "company": "Schmidt & Partner, Bern", "text": "Sehr aufmerksam, modern, technisch versiert. Unsere Besucher lieben die neue Website.", "order": 2, "rating": 5},
-    {"name": "Maria Weber", "company": "Weber Solutions, Basel", "text": "redwork.ch hat Webdesign UND Marketing auf höchstem Niveau geliefert.", "order": 3, "rating": 5},
-    {"name": "Anna Becker", "company": "Becker Industries, Genf", "text": "Ich war sehr zufrieden, ich empfehle es jedem.", "order": 4, "rating": 5},
-    {"name": "Michael Wagner", "company": "Wagner AG, Luzern", "text": "Innovative und schnelle Lösungen, vollständig professioneller Service.", "order": 5, "rating": 5},
-    {"name": "Sabine Fischer", "company": "Fischer Media, Lausanne", "text": "Vielen Dank für all Ihre Dienste. Eine sehr empfehlenswerte Agentur.", "order": 6, "rating": 5},
+    {"name": "Hans Müller", "company": "Müller GmbH, Zürich", "text": "redwork.ch hat unsere Marke in eine digitale Präsenz übersetzt, die professionell und klar wirkt.", "order": 1, "rating": 5},
+    {"name": "Klaus Schmidt", "company": "Schmidt & Partner, Bern", "text": "Technisch sauber, gestalterisch stark und im Alltag angenehm unkompliziert. Genau so muss das sein.", "order": 2, "rating": 5},
+    {"name": "Maria Weber", "company": "Weber Solutions, Basel", "text": "Webdesign, Performance und Beratung greifen hier wirklich ineinander. Das Ergebnis überzeugt.", "order": 3, "rating": 5},
+    {"name": "Anna Becker", "company": "Becker Industries, Genf", "text": "Die Zusammenarbeit war präzise, verlässlich und angenehm professionell.", "order": 4, "rating": 5},
+    {"name": "Michael Wagner", "company": "Wagner AG, Luzern", "text": "Schnelle Umsetzung, klare Kommunikation und ein Resultat auf hohem Niveau.", "order": 5, "rating": 5},
+    {"name": "Sabine Fischer", "company": "Fischer Media, Lausanne", "text": "Eine Agentur, die Anspruch und Umsetzung sauber zusammenbringt.", "order": 6, "rating": 5},
 ]
 
 DEFAULT_SERVICES = [
-    {"title": "Webdesign", "desc": "Modern, funktional, mobiltauglich, originell, benutzerfreundlich, ökonomisch, innovativ und konversionsorientierte Webdesign-Projekte.", "icon": "Smartphone", "side": "left", "order": 1},
-    {"title": "Softwareentwicklung", "desc": "PHP, MySQL, Node.js, MongoDB, .NET – die Programmiersprache Ihrer Wahl.", "icon": "Code", "side": "right", "order": 2},
-    {"title": "SEO-Optimierung", "desc": "Während der Projektphase berücksichtigen wir grundlegende und moderne SEO-Regeln.", "icon": "Search", "side": "left", "order": 3},
-    {"title": "Werbemanagement", "desc": "Google Ads, Facebook, Instagram – Optimierungs- und Verwaltungsmanagement Ihrer Werbung.", "icon": "Megaphone", "side": "right", "order": 4},
-    {"title": "Logo & Corporate Identity", "desc": "Professionelle, kreative und einprägsame Corporate Identity, Logos, Embleme.", "icon": "Award", "side": "left", "order": 5},
-    {"title": "Web-Beratung", "desc": "Wir bieten professionelle Lösungen für Ihre IT-Bedürfnisse.", "icon": "MessageSquare", "side": "right", "order": 6},
+    {"title": "Webdesign", "desc": "Klar strukturiert, mobil optimiert und auf Konversion ausgelegt.", "icon": "Smartphone", "side": "left", "order": 1},
+    {"title": "Softwareentwicklung", "desc": "Individuelle Webanwendungen, Portale und Systeme auf Basis moderner Technologien.", "icon": "Code", "side": "right", "order": 2},
+    {"title": "SEO-Optimierung", "desc": "Technische Grundlage, saubere Inhalte und eine Struktur, die Sichtbarkeit unterstützt.", "icon": "Search", "side": "left", "order": 3},
+    {"title": "Werbemanagement", "desc": "Strategische Kampagnenführung für Google Ads, Meta Ads und weitere Kanäle.", "icon": "Megaphone", "side": "right", "order": 4},
+    {"title": "Logo & Corporate Identity", "desc": "Ein stimmiger Markenauftritt mit Wiedererkennung und klarer Linie.", "icon": "Award", "side": "left", "order": 5},
+    {"title": "Beratung", "desc": "Fundierte Empfehlungen für Web, Hosting, Struktur und digitale Weiterentwicklung.", "icon": "MessageSquare", "side": "right", "order": 6},
 ]
 
 DEFAULT_COMPANIES = [

@@ -1,6 +1,18 @@
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || window.location.origin;
+const resolveBackendUrl = () => {
+  const configured = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL;
+  if (configured) return configured;
+
+  const isLocalhost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
+  if (isLocalhost && window.location.port && Number(window.location.port) >= 3000) {
+    return "http://127.0.0.1:8005";
+  }
+
+  return window.location.origin;
+};
+
+const BACKEND_URL = resolveBackendUrl();
 export const API = `${BACKEND_URL.replace(/\/$/, "")}/api`;
 
 const TOKEN_KEY = "redwork_admin_token";

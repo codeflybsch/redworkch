@@ -91,10 +91,10 @@ export default function QuoteWizard() {
   const progress = (step / 4) * 100;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm fade-in">
-      <div className="relative w-full max-w-3xl max-h-[92vh] overflow-hidden bg-white rounded-3xl shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm fade-in sm:items-center sm:p-4">
+      <div className="relative flex max-h-[100dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-h-[92vh] sm:rounded-3xl">
         {/* Header */}
-        <div className="bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white px-8 pt-7 pb-5 relative">
+        <div className="relative bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] px-5 pb-4 pt-5 text-white sm:px-8 sm:pb-5 sm:pt-7">
           <button
             onClick={closeQuote}
             className="absolute top-5 right-5 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
@@ -102,12 +102,12 @@ export default function QuoteWizard() {
           >
             <X size={18} />
           </button>
-          <p className="text-[#FFC107] text-xs tracking-[0.2em] font-bold">REDWORK.CH</p>
+          <p className="text-[#E63946] text-xs tracking-[0.2em] font-bold">REDWORK.CH</p>
           <h2 className="text-[24px] md:text-[30px] font-extrabold mt-1">
-            Angebot in <span className="text-[#FFC107]">4 Schritten</span> einholen
+            Angebot in <span className="text-[#E63946]">4 Schritten</span> einholen
           </h2>
           <p className="text-white/70 text-sm mt-1">
-            Wir melden uns innerhalb von 24 Stunden mit einem maßgeschneiderten Angebot.
+            Wir melden uns in der Regel innerhalb eines Werktags mit einem präzisen, passgenauen Angebot.
           </p>
 
           {/* Progress steps */}
@@ -120,7 +120,7 @@ export default function QuoteWizard() {
                       step > s.id
                         ? "bg-[#22C55E] text-white"
                         : step === s.id
-                        ? "bg-[#FFC107] text-black ring-4 ring-[#FFC107]/30"
+                        ? "bg-[#E63946] text-white ring-4 ring-[#E63946]/30"
                         : "bg-white/10 text-white/60"
                     }`}
                   >
@@ -138,7 +138,7 @@ export default function QuoteWizard() {
             </div>
             <div className="h-1 bg-white/10 rounded-full overflow-hidden mt-3">
               <div
-                className="h-full bg-gradient-to-r from-[#FFC107] to-[#E63946] transition-all duration-500"
+                className="h-full bg-gradient-to-r from-[#E63946] to-[#E63946] transition-all duration-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -146,7 +146,7 @@ export default function QuoteWizard() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#f8fafc]">
+        <div className="flex-1 overflow-y-auto bg-[#f8fafc] p-4 sm:p-6 md:p-8">
           {success ? (
             <div className="text-center py-10">
               <div className="w-20 h-20 mx-auto bg-[#22C55E]/10 rounded-full flex items-center justify-center mb-5">
@@ -154,8 +154,8 @@ export default function QuoteWizard() {
               </div>
               <h3 className="text-2xl font-extrabold text-[#0f172a]">Vielen Dank!</h3>
               <p className="text-[#475569] mt-3 max-w-md mx-auto">
-                Ihre Anfrage wurde erfolgreich übermittelt. Unser Team wird sich innerhalb von <b>24 Stunden</b> bei
-                Ihnen melden.
+                Ihre Anfrage wurde erfolgreich übermittelt. Unser Team meldet sich in der Regel innerhalb eines
+                Werktags bei Ihnen.
               </p>
               <button
                 onClick={closeQuote}
@@ -171,8 +171,8 @@ export default function QuoteWizard() {
                   <h3 className="text-xl font-bold text-[#0f172a]">
                     Welche Art von Projekt planen Sie?
                   </h3>
-                  <p className="text-[#475569] text-sm mt-1">Wählen Sie eine Kategorie aus.</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
+                  <p className="text-[#475569] text-sm mt-1">Wählen Sie die Kategorie, die Ihrem Vorhaben am besten entspricht.</p>
+                  <div className="mt-6 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-3">
                     {serviceTypes.map((s) => {
                       const Icon = iconMap[s.icon] || Building2;
                       const active = data.serviceType === s.id;
@@ -210,7 +210,7 @@ export default function QuoteWizard() {
               {step === 2 && (
                 <div>
                   <h3 className="text-xl font-bold text-[#0f172a]">Erzählen Sie uns von Ihrem Projekt</h3>
-                  <p className="text-[#475569] text-sm mt-1">Je mehr Details, desto besser unser Angebot.</p>
+                  <p className="text-[#475569] text-sm mt-1">Je präziser die Angaben, desto passgenauer wird unser Angebot.</p>
                   <textarea
                     rows={9}
                     value={data.projectDetails}
@@ -228,8 +228,8 @@ export default function QuoteWizard() {
               {step === 3 && (
                 <div className="space-y-7">
                   <div>
-                    <h3 className="text-xl font-bold text-[#0f172a]">Wie ist Ihr Budget?</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mt-4">
+                    <h3 className="text-xl font-bold text-[#0f172a]">In welchem Rahmen bewegt sich Ihr Budget?</h3>
+                    <div className="mt-4 grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-2 md:grid-cols-3">
                       {budgetRanges.map((b) => {
                         const active = data.budget === b.id;
                         return (
@@ -249,8 +249,8 @@ export default function QuoteWizard() {
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-[#0f172a]">Bis wann soll das Projekt fertig sein?</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mt-4">
+                    <h3 className="text-xl font-bold text-[#0f172a]">Bis wann soll das Projekt umgesetzt sein?</h3>
+                    <div className="mt-4 grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-2 md:grid-cols-3">
                       {timelineOptions.map((t) => {
                         const active = data.timeline === t.id;
                         return (
@@ -275,7 +275,7 @@ export default function QuoteWizard() {
               {step === 4 && (
                 <div>
                   <h3 className="text-xl font-bold text-[#0f172a]">Wie können wir Sie erreichen?</h3>
-                  <p className="text-[#475569] text-sm mt-1">Ihre Daten werden vertraulich behandelt.</p>
+                  <p className="text-[#475569] text-sm mt-1">Ihre Angaben werden vertraulich behandelt und nur für die Projektvorbereitung verwendet.</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
                     <div>
                       <label className="text-xs font-semibold text-[#64748b] uppercase tracking-wide">
@@ -362,7 +362,7 @@ export default function QuoteWizard() {
 
         {/* Footer */}
         {!success && (
-          <div className="flex items-center justify-between gap-3 px-6 md:px-8 py-4 bg-white border-t border-[#e2e8f0]">
+          <div className="flex items-center justify-between gap-2 border-t border-[#e2e8f0] bg-white px-3 py-3 sm:gap-3 sm:px-6 sm:py-4 md:px-8">
             <button
               onClick={() => setStep((s) => Math.max(1, s - 1))}
               disabled={step === 1}

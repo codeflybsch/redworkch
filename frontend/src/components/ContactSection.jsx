@@ -6,7 +6,7 @@ import { API } from "../api";
 const FALLBACK = {
   contactTitle: "Kontakt",
   contactSubtitle: "Lassen Sie uns sprechen",
-  contactIntro: "Wir freuen uns auf Ihre Nachricht. Wählen Sie den Kanal, der Ihnen am liebsten ist – wir antworten innerhalb von 24 Stunden.",
+  contactIntro: "Wählen Sie den Kanal, der für Ihr Anliegen am besten passt. Wir reagieren zügig und persönlich, in der Regel innerhalb eines Werktags.",
   contactPhone: "+41 44 000 00 00",
   contactPhoneHours: "Mo–Fr 8–18 Uhr",
   contactEmail: "info@redwork.ch",
@@ -29,7 +29,7 @@ export default function ContactSection() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(230,57,70,0.18),transparent_50%),radial-gradient(circle_at_80%_70%,rgba(30,136,229,0.15),transparent_50%)] pointer-events-none" />
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 relative">
         <div className="text-center mb-12 max-w-3xl mx-auto">
-          <p className="text-[#FFC107] font-bold tracking-[0.25em] text-xs">{s.contactSubtitle?.toUpperCase()}</p>
+          <p className="text-[#E63946] font-bold tracking-[0.25em] text-xs">{s.contactSubtitle?.toUpperCase()}</p>
           <h2 className="text-[32px] md:text-[48px] font-extrabold mt-2">{s.contactTitle}</h2>
           <p className="text-white/70 mt-4 text-[15px] leading-relaxed">{s.contactIntro}</p>
         </div>
@@ -60,7 +60,7 @@ export default function ContactSection() {
               label="WhatsApp"
               value={s.contactWhatsapp}
               href={`https://wa.me/${s.contactWhatsapp.replace(/[^\d]/g, "")}`}
-              note="Sofortige Antwort tagsüber"
+              note="Direkter Kontakt während der Geschäftszeiten"
               dataTestid="contact-whatsapp-card"
             />
             <ContactCard
@@ -73,11 +73,11 @@ export default function ContactSection() {
               dataTestid="contact-address-card"
             />
 
-            <div className="grid grid-cols-2 gap-3 pt-4">
+            <div className="grid grid-cols-1 gap-3 pt-4 min-[400px]:grid-cols-2">
               <button onClick={openContact} data-testid="cta-contact" className="px-5 py-3.5 rounded-full bg-[#E63946] hover:bg-[#d22c39] font-bold text-sm flex items-center justify-center gap-2 transition">
                 <Send size={15} /> Nachricht senden
               </button>
-              <button onClick={() => openQuote()} data-testid="cta-quote" className="px-5 py-3.5 rounded-full bg-white text-[#0a0a0a] hover:bg-[#FFC107] font-bold text-sm flex items-center justify-center gap-2 transition">
+              <button onClick={() => openQuote()} data-testid="cta-quote" className="px-5 py-3.5 rounded-full bg-white text-[#0a0a0a] hover:bg-[#E63946] hover:text-white font-bold text-sm flex items-center justify-center gap-2 transition">
                 Angebot einholen <ArrowRight size={15} />
               </button>
             </div>

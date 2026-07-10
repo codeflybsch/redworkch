@@ -1,89 +1,89 @@
 // Statische Mock-Daten – nur für Hero-Slider & Stats (alles andere kommt aus dem Backend)
 
 export const heroSlides = [
-  { highlight: "Unternehmens", word: "Webdesign" },
-  { highlight: "E-Commerce", word: "Webdesign" },
-  { highlight: "Persönliches", word: "Webdesign" },
-  { highlight: "Produkt", word: "Webdesign" },
-  { highlight: "Reise", word: "Webdesign" },
-  { highlight: "Stiftung", word: "Webdesign" },
+  { highlight: "Unternehmens", word: "Webauftritt" },
+  { highlight: "E-Commerce", word: "Lösungen" },
+  { highlight: "Persönliche", word: "Websites" },
+  { highlight: "Produkt", word: "Launches" },
+  { highlight: "Reise", word: "Portale" },
+  { highlight: "Stiftungs", word: "Websites" },
 ];
 
 export const stats = [
-  { number: "61.300.000", suffix: "+", label: "Geschriebene Codezeilen" },
-  { number: "415.000", suffix: "+", label: "Einzigartige Webseiten" },
+  { number: "61.3 Mio.", suffix: "", label: "Zeilen sauberer Code" },
+  { number: "415.000", suffix: "+", label: "Umgesetzte Seiten" },
   { number: "860", suffix: "+", label: "Abgeschlossene Projekte" },
-  { number: "2.100", suffix: "+", label: "Zufriedene Kunden" },
+  { number: "2.100", suffix: "+", label: "Langfristige Kunden" },
 ];
 
 export const workSteps = [
   {
     color: "#2196F3",
     title: "Planung",
-    desc: "Der Wunsch des Projektinhabers wird gründlich analysiert; basierend auf Erwartungen und Zielen wird mit der Umsetzung begonnen.",
+    desc: "Wir schärfen Zielsetzung, Umfang und Prioritäten, bevor die erste Zeile Code geschrieben wird.",
     icon: "presentation",
   },
   {
     color: "#FF6B35",
     title: "Visuelles Design",
-    desc: "Allgemeines Konzeptdesign und Unterseitenlayouts werden festgelegt, grafisches Design und Skelettstruktur werden erstellt.",
+    desc: "Aus Konzept, Typografie und Seitenstruktur entsteht ein konsistentes Erscheinungsbild mit Charakter.",
     icon: "palette",
   },
   {
     color: "#22C55E",
     title: "Programmierung",
-    desc: "Code-Entwicklung, Anpassung der Codestruktur an das Design, Dateneingabe und Implementierung werden durchgeführt.",
+    desc: "Wir entwickeln die Oberfläche so, dass Design, Funktion und Ladezeiten präzise zusammenspielen.",
     icon: "code",
   },
   {
     color: "#EF4444",
     title: "SEO-Optimierung",
-    desc: "On-Page- und Off-Page-Optimierung des Projekts wird durchgeführt, um die besten Ergebnisse zu erzielen.",
+    desc: "Technische und inhaltliche SEO wird von Beginn an mitgedacht, nicht erst nach dem Launch.",
     icon: "rocket",
   },
   {
     color: "#A855F7",
     title: "Tests & Qualität",
-    desc: "Umfassende Tests auf allen Geräten, Browsern und Bildschirmgrößen, um eine fehlerfreie Erfahrung zu gewährleisten.",
+    desc: "Wir prüfen jedes Detail auf Mobilgeräten, Tablets und Desktop-Displays, bis das Ergebnis sitzt.",
     icon: "shield-check",
   },
   {
     color: "#06B6D4",
     title: "Veröffentlichung",
-    desc: "Das Projekt wird auf den Live-Server übertragen, Domain und Hosting werden konfiguriert und die Website wird live geschaltet.",
+    desc: "Zum Schluss übernehmen wir Deployment, Domain, Hosting und den sauberen Go-live.",
     icon: "globe",
   },
 ];
 
 export const features = [
-  { title: "Originelles Design", desc: "Wir gestalten Ihre Website mit ungewöhnlichem, völlig anderem Originaldesign und einzigartigem Inhalt." },
-  { title: "Vollständige Mobile-Kompatibilität", desc: "Mit responsivem Code stellen wir sicher, dass Ihre Website auf allen Geräten einwandfrei aussieht." },
-  { title: "Sauberer Code", desc: "Im Gegensatz zu komplizierten Codes auf Ihrer Website schreiben wir sehr einfachen und webfreundlichen Code." },
-  { title: "Geschwindigkeitsvorteil", desc: "Mit der modernsten und schnellsten Programmierinfrastruktur bieten wir Geschwindigkeit, die Sie zufrieden stellt." },
-  { title: "Web-Optimierung", desc: "Damit sich die Suchmaschinen Ihrer Website nähern, bieten wir technische Optimierung." },
-  { title: "SEO-Integration", desc: "Wir integrieren grundlegende SEO-Regeln in Ihre Website und sorgen für bessere Rankings in Suchmaschinen." },
+  { title: "Markenauftritt mit Klarheit", desc: "Wir entwickeln digitale Auftritte, die nicht austauschbar wirken, sondern eine klare Haltung zeigen." },
+  { title: "Konsequent mobil gedacht", desc: "Jede Seite ist für Smartphone, Tablet und Desktop sauber komponiert und leicht bedienbar." },
+  { title: "Sauber strukturierter Code", desc: "Technisch nachvollziehbar aufgebaut, wartbar und auf zukünftige Erweiterungen vorbereitet." },
+  { title: "Tempo ohne Kompromisse", desc: "Wir setzen auf performante Umsetzung, damit Ihre Website nicht nur gut aussieht, sondern auch schnell lädt." },
+  { title: "Technisch suchmaschinenfreundlich", desc: "Saubere Struktur, richtige Signale und eine Basis, die Google versteht." },
+  { title: "SEO von Anfang an mitgedacht", desc: "Sichtbarkeit entsteht bei uns nicht als Zusatz, sondern als Teil der Konzeption." },
 ];
 
 export const reasons = [
-  { title: "Erfahrenes Expertenteam", desc: "Unser professionelles Team mit über 10 Jahren Erfahrung produziert in jedem Projekt Ergebnisse, die ein hervorragendes Benutzererlebnis bieten." },
-  { title: "Modernste Technologien", desc: "Mit aktuellen Technologien wie HTML5, CSS3, React, PHP und WordPress entwickelte Projekte sind sowohl sicher als auch nachhaltig." },
-  { title: "Originelle, hochwertige Designs", desc: "Wir machen den Unterschied mit markenspezifischen, modernen und wirkungsvollen Webdesigns." },
-  { title: "Schnelle Entwicklung", desc: "Mit leistungsorientierten Webentwicklungsprozessen optimieren wir die Ladezeit und SEO-Leistung Ihrer Website." },
-  { title: "Kompetenz im Corporate Webdesign", desc: "Mit professionellen Webdesign-Lösungen, die Ihre Corporate Identity widerspiegeln, heben wir Ihre Marke in der digitalen Welt hervor." },
-  { title: "Effektives Social-Media-Management", desc: "Wir planen Ihre Social-Media-Strategien markenspezifisch und stärken Ihre digitale Präsenz mit Kampagnen." },
-  { title: "Maßgeschneiderte Lösungen", desc: "Jede Marke ist einzigartig. Wir entwickeln individuelle Software-, Design- und SEO-Lösungen für Ihre Bedürfnisse." },
-  { title: "E-Commerce-Expertise", desc: "Wir gestalten benutzerfreundliche, mobiloptimierte und verkaufsorientierte E-Commerce-Websites." },
-  { title: "Digital-Marketing-Dienste", desc: "Mit Google Ads, Meta-Anzeigen und Performance-Marketing-Strategien bringen wir Ihre Marke zur richtigen Zeit vor Ihre Zielgruppe." },
-  { title: "SEO-Expertise", desc: "Mit SEO-Analysen, Keyword-Recherche und technischen Optimierungsprozessen erhöhen wir die Sichtbarkeit Ihrer Website." },
-  { title: "12 Monate kostenloser Support", desc: "Ein ganzes Jahr lang technischer Support, Updates und Pflege – komplett kostenlos für jeden Kunden inklusive." },
-  { title: "Wettbewerbsfähige Preise", desc: "Wir bieten hohe Qualität zu wettbewerbsfähigen Preisen bei Webdesign- und SEO-Diensten." },
+  { title: "Erfahrenes Team", desc: "Mehr als zehn Jahre Projekterfahrung sorgen dafür, dass Strategie, Design und Umsetzung ineinandergreifen." },
+  { title: "Moderne Technologien", desc: "Wir arbeiten mit aktuellen, bewährten Technologien wie React, PHP und WordPress, damit Ihr Projekt sauber tragfähig bleibt." },
+  { title: "Design mit Substanz", desc: "Statt austauschbarer Vorlagen entwickeln wir einen Auftritt, der präzise zu Ihrer Marke passt." },
+  { title: "Schnelle Umsetzung", desc: "Ein klarer Prozess, kurze Wege und saubere Entwicklung sparen Zeit, ohne an Qualität einzubüßen." },
+  { title: "Corporate Webdesign", desc: "Wir übersetzen Ihre Markenidentität in eine digitale Sprache, die professionell und konsistent wirkt." },
+  { title: "Digitale Sichtbarkeit", desc: "Von SEO bis Performance-Marketing: Wir denken Reichweite als Teil der Gesamtstrategie." },
+  { title: "Individuelle Lösungen", desc: "Jede Marke hat andere Anforderungen. Deshalb entstehen bei uns keine Standardpakete, sondern passgenaue Konzepte." },
+  { title: "E-Commerce-Kompetenz", desc: "Verkaufsstarke Shops und strukturierte Produktwelten, die für Nutzer und Suchmaschinen sauber funktionieren." },
+  { title: "Performance-Marketing", desc: "Mit Google Ads und Social Ads bringen wir Botschaften dorthin, wo sie Wirkung entfalten." },
+  { title: "SEO mit Tiefgang", desc: "Technische Analyse, Content-Struktur und saubere Signale sorgen für nachhaltige Sichtbarkeit." },
+  { title: "12 Monate Support inklusive", desc: "Nach dem Launch bleiben wir ansprechbar, begleiten Updates und unterstützen Sie im laufenden Betrieb." },
+  { title: "Faire Konditionen", desc: "Premium-Qualität muss nicht unnötig kompliziert sein. Wir kalkulieren klar und nachvollziehbar." },
 ];
 
 export const navItems = [
   { label: "Start", href: "#top" },
   { label: "Leistungen", href: "#leistungen" },
   { label: "Hosting", href: "#hosting" },
-  { label: "Domain Auktionen", href: "#domains" },
+  { label: "Auktionen", href: "#domain-auctions" },
   { label: "Projekte", href: "#projekte" },
   { label: "Über uns", href: "#ueber" },
   { label: "Kontakt", href: "#kontakt" },

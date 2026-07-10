@@ -7,7 +7,7 @@ import Logo from "./Logo";
 const SOCIAL_ICONS = { facebook: Facebook, twitter: Twitter, instagram: Instagram, youtube: Youtube, linkedin: Linkedin };
 
 const FALLBACK = {
-  footerAbout: "redwork.ch ist Ihre Schweizer Premium-Agentur für Webdesign, Software-Entwicklung, SEO und digitales Marketing.",
+  footerAbout: "redwork.ch entwickelt digitale Auftritte für Unternehmen, Marken und Startups. Wir verbinden Webdesign, Softwareentwicklung, SEO und Hosting zu einem klaren, belastbaren Gesamtauftritt.",
   footerAddress: "Bahnhofstrasse 1, 8001 Zürich, Schweiz",
   footerPhone: "+41 44 000 00 00",
   footerEmail: "info@redwork.ch",
@@ -39,7 +39,7 @@ export default function Footer() {
 
         <div className="max-w-3xl mx-auto text-center text-[14px] sm:text-[15px] text-white/80 leading-relaxed">
           <p>{s.footerAbout}</p>
-          <p className="mt-4 text-[#FFC107] font-semibold">12 Monate kostenloser Support für alle unsere Kunden inklusive!</p>
+          <p className="mt-4 text-[#FFC107] font-semibold">12 Monate Premium-Support für alle Kunden inklusive.</p>
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-8 sm:mt-10">
@@ -48,7 +48,7 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 sm:mt-12 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-[13px]">
+        <div className="mt-10 grid grid-cols-1 gap-3 text-[13px] min-[420px]:grid-cols-2 sm:mt-12 sm:gap-4 md:grid-cols-4">
           {quickLinks.map((link) => (
             <button
               key={link}
@@ -63,9 +63,9 @@ export default function Footer() {
 
         <div className="mt-10 pt-6 border-t border-white/10 grid sm:grid-cols-3 gap-4 text-sm">
           {s.footerAddress && (
-            <a href={`https://maps.google.com/?q=${encodeURIComponent(s.footerAddress)}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-white/75 hover:text-white">
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(s.footerAddress)}`} target="_blank" rel="noreferrer" className="flex min-w-0 items-start gap-2 text-white/75 hover:text-white">
               <MapPin size={15} className="text-[#E63946] flex-shrink-0" />
-              <span className="truncate">{s.footerAddress}</span>
+              <span className="break-words">{s.footerAddress}</span>
             </a>
           )}
           {s.footerPhone && (

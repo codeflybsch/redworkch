@@ -70,7 +70,7 @@ export default function Products() {
               {prods.map((product) => (
                 <Card key={product.id} className="relative">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
+                    <CardTitle className="flex flex-wrap items-start justify-between gap-2">
                       {product.name}
                       {product.name.includes("Professional") && (
                         <Badge variant="secondary">

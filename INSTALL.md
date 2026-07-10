@@ -15,6 +15,67 @@ Selam! Bu rehber, redwork.ch sitesini kendi sunucuna (VPS) kurmak için. **Adım
 
 ---
 
+## 🐧 Debian Sunucuda Sezgisel Kurulum
+Bu proje için en sorunsuz kurulum **Debian 12 / Debian 11** üzerindedir. Aşağıdaki adımlar Debian sunucuya özel olarak hazırlandı ve repo içindeki `install-debian.sh` scripti ile uyumludur.
+
+### Hızlı Debian Kurulum Adımları
+1. VPS'e root olarak bağlan:
+```bash
+ssh root@VPS_IP_ADRESIN
+```
+
+2. Sistemi güncelle:
+```bash
+apt update && apt upgrade -y
+```
+
+3. Gerekli paketleri yükle:
+```bash
+apt install -y curl wget git unzip nano ufw build-essential ca-certificates gnupg software-properties-common
+```
+
+4. Projeyi VPS'e kopyala:
+```bash
+mkdir -p /var/www
+cd /var/www
+git clone https://github.com/codeflybsch/redworkch.git redwork
+cd redwork
+```
+Eğer proje zip ile gönderildiyse `unzip` ile çıkarıp proje köküne geçin.
+
+5. `install-debian.sh` scriptini çalıştır:
+```bash
+chmod +x install-debian.sh
+sudo bash install-debian.sh
+```
+
+Script sizden şu bilgileri isteyecek:
+- Domain (örnek: `redwork.ch`)
+- Admin kullanıcı adı / parola
+- SMTP bilgileri
+- SSL kurulumu isteyip istemediğin
+
+> Not: DNS A kaydın domaini VPS IP'ye işaret etmeli. Domain daha yeni yönlendiyse SSL adımını geçici olarak atlayabilirsin.
+
+6. Kurulum tamamlandıktan sonra doğrula:
+```bash
+systemctl status redwork-backend
+systemctl status nginx
+```
+Tarayıcıdan `https://DOMAIN` adresini aç.
+
+---
+
+## 📌 Debian için Özel Notlar
+- `install-debian.sh` scripti Debian 11/12 ve Ubuntu 22.04/24.04 üzerinde test edilmiştir.
+- Scripti çalıştırmak için proje kök dizininde olmalısın.
+- Eğer SSL ilk seferde alınmazsa, domain DNS yayılımı tamamlandıktan sonra:
+```bash
+certbot --nginx -d DOMAIN -d www.DOMAIN
+```
+
+---
+
 ## 🪜 Adım 0 — VPS'e Bağlan
 
 Aldığın VPS'in size IP, kullanıcı adı (genelde `root`) ve parola/SSH key vermiştir.
